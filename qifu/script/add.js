@@ -24,7 +24,8 @@ window.forceInsertNewEntry = function () {
         alert("✅ 新增成功");
         startNewEntry(); // 清空页面并准备新表单
       } else {
-        alert("❌ 新增失败：" + result.message);
+        // 新增失败，但后端有明确错误信息
+        alert(`❌ 新增失败：${result.message || '未知错误'}`);
       }
     })
     .catch(err => alert("❌ 提交异常：" + err.message));
