@@ -4,17 +4,16 @@
   <meta charset="UTF-8">
   <title>后台登录</title>
   <style>
- body {
-  margin: 0;
-  padding: 0;
-  font-family: "Segoe UI", sans-serif;
-  background-color: #fff8e7; /* 更黄一点的佛系背景 */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(to right, #ffefba, #ffffff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
 
     .login-container {
       background: white;
@@ -60,23 +59,18 @@
 </head>
 <body>
   <div class="login-container">
-    <h2>超度/祈福后台管理登录</h2>
+    <h2>后台管理登录</h2>
     <input type="password" id="password" placeholder="请输入管理员密码" />
     <button onclick="login()">登录</button>
   </div>
 
   <script>
-    // 自动跳转（已登录）
-    if (localStorage.getItem("admin")) {
-      location.href = "index.html";
-    }
-
     function login() {
       const pw = document.getElementById("password").value.trim();
       let adminName = "";
 
       if (pw === "123456") {
-        adminName = "雷藏寺";
+        adminName = "磊藏思";
       } else if (pw === "654321") {
         adminName = "妙理堂";
       } else {
@@ -85,7 +79,7 @@
       }
 
       localStorage.setItem("admin", adminName);
-      location.href = "/qifu/index.html";
+      location.href = "main.html";
     }
   </script>
 </body>
