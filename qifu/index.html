@@ -190,7 +190,7 @@ function createRow(item, formula, value) {
     const admin = localStorage.getItem("admin");
     if (!admin) {
       alert("请先登录！");
-      location.href = "login.html";
+      location.href = "form/houtai/login.html";
     } else {
       document.getElementById("whoLogin").textContent = admin;
     }
