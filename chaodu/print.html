@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>超度打印表格</title>
+  <style>
+    @page { size: A4; margin: 8mm; }
+    body {
+      font-family: "Segoe UI", sans-serif;
+      font-size: 8px;
+      max-width: 700px;
+      margin: auto;
+      color: #000;
+    }
+    .logo { height: 80px; width : auto; object-fit: contain; }
+    .logo-right { margin-top: 6px; /* 👈 控制右边Logo往下4px */}
+    .header-block { display: flex; justify-content: center; align-items: center; gap: 20px; margin-bottom: 10px; }
+    .header-center { flex: none; text-align: center; width: 100%; /* 👈 让中间居中，占满 */ max-width: 500px; /* 👈 控制最大宽度 */}
+    .temple-name { font-size: 26px; font-weight: bold; margin: 0; line-height: 1.3;}
+    .sub-title { font-size: 20px; /* 比庙名小一点 */ font-weight: bold; margin-top: 4px; line-height: 1.2;}
+    .header-line { font-size: 10px; font-weight: bold; }
+    .main-table th, .main-table td {height: 22px;}
+    .main-title { text-align: center; font-size: 18px; font-weight: bold; margin: 8px 0 10px; letter-spacing: 0.5px; line-height: 1.3;}
+    .info-line { font-size: 8px; margin: 0 0 2px 6px; text-align: left; }
+    .group-title { font-weight: bold; font-size: 9px; margin: 6px 0 2px; }
+    table { width: 100%; border-collapse: collapse; font-size: 9px; margin: 2px 0; }
+    th, td {border: 1px solid #000; padding: 1px 2px; text-align: center; vertical-align: middle; line-height: 1.1; word-break: break-word; white-space: normal; }
+    .engraving { font-size: 8px; text-align: center; font-style: italic; margin-top: 4px; }
+    .summary-wrapper { margin-top: 6px; page-break-inside: avoid; break-inside: avoid; }
+    .summary-table { margin-top: 6px;  width: 100%;  border: none;  font-size: 8px;  table-layout: fixed; /* 表格定宽，保证可以控制九宫格宽度 */}
+    .summary-table td { padding: 1px 2px;  vertical-align: middle;  text-align: left;  border: none;  white-space: nowrap;  overflow: hidden;  text-overflow: ellipsis;  line-height: 1.2;}
+    td.col-9 { width:80%; /* 九宫格占85% */}
+    td.col-2 { width:20%; /* 右边占15% */ text-align: right;  font-weight: bold;  font-size: 9px;  padding-left: 10px;}
+    .summary-footer-donation { text-align: right; font-weight: normal; font-size: 9px; padding-right: 4px; }
+    .summary-footer-total { text-align: right; font-weight: bold; font-size: 9px; padding-right: 4px; }
+    @media print { 
+      body { transform: scale(1.0); transform-origin: top center; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header-block">
+  <img src="left-logo.jpg" class="logo" alt="左 Logo">
+  <div class="header-center">
+    <div class="temple-name">真佛宗诗巫妙理雷藏寺</div> <!-- 第一行庙名 -->
+    <div class="sub-title">诚祈根本传承上师莲生活佛及法会光明诸尊放光加持</div> <!-- 👈 新增的小标题，庙名下面 -->
+    <div class="main-title" id="mainTitle"></div>
+    </div>
+  <img src="right-logo.jpg" class="logo" alt="右 Logo">
+</div>
+
+
+<div class="info-line">阳上报恩人：<span id="mainName"></span>　手机号：<span id="phoneNumber"></span></div>
+<div class="info-line">阳上地址：<span id="address"></span></div>
+
+<div style="text-align: right; margin-bottom: 10px;">
+  <button onclick="window.print()" class="no-print" 
+    style="padding: 6px 16px; font-size: 12px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+    🖨️ 打印表格
+  </button>
+</div>
+
+<div id="tableContainer"></div>
+
+<div class="summary-wrapper">
+  <table class="summary-table">
+    <tbody id="summaryTable"></tbody>
+  </table>
+</div>
+
+
+
+<script>
+window.onload = function () {
+  const data = JSON.parse(localStorage.getItem("printData") || '{}');
+
+  document.getElementById("phoneNumber").textContent = data.phoneNumber || "";
+  document.getElementById("mainName").textContent = data.mainName || "";
+  document.getElementById("address").textContent = data.address || "";
+
+  const titleMap = {
+    "清明节": "清明节超度功德回向表",
+    "中元节": "中元节白莲花王藏密式护摩 法会【 超度 】报名表格 																",
+    "其他": "超度祈福功德回向表"
+  };
+  const title = document.getElementById("mainTitle");
+  if (data.festival && titleMap[data.festival]) {
+    title.textContent = titleMap[data.festival];
+  } else {
+    title.style.display = "none";
+  }
+
+  const container = document.getElementById("tableContainer");
+  const groupTitles = {
+    "group-ancestor": "祖先 / 亡灵",
+    "group-baby": "水子灵",
+    "group-enemy": "缠身灵 / 冤亲债主",
+    "group-past": "前世今生所杀生灵",
+    "group-ground": "地基主 / 土地公"
+  };
+  const groupLimits = {
+    "group-ancestor": 8,
+    "group-baby": 5,
+    "group-enemy": 5,
+    "group-past": 4,
+    "group-ground": 3
+  };
+  const allTotals = { token: 0, boat: 0, lotus: 0, paper3: 0, paper6: 0, paper27: 0 };
+  const priceFields = ["token", "boat", "lotus", "paper3", "paper6", "paper27", "extra"];
+  const displayMap = {
+    token: "超度令牌", boat: "法船配套30", lotus: "莲花",
+    paper3: "纸金3", paper6: "纸金6", paper27: "纸金27", extra: "令牌配套"
+  };
+  const secondColumnTitles = {
+    'group-ancestor': '妙理雷藏寺 地藏/ 灵骨殿 /墓园 / 其他 ',
+    'group-baby': '妙理雷藏殿 水子灵莲位',
+    'group-enemy': '妙理雷藏殿 冤亲债主牌位',
+    'group-past': '前世今生所杀生灵',
+    'group-ground': '地址'
+  };
+
+  Object.keys(groupTitles).forEach(groupKey => {
+    const list = data[groupKey] || [];
+    const limit = groupLimits[groupKey];
+    let html = `<div class='group-title'>${groupTitles[groupKey]}</div>`;
+    html += `<table class='main-table'><colgroup><col style='width:110px;'><col style='width:240px;'><col style='width:32px;'><col style='width:32px;'><col style='width:32px;'><col style='width:32px;'><col style='width:32px;'><col style='width:32px;'><col style='width:32px;'></colgroup><thead><tr>`;
+    if (groupKey === 'group-ancestor') {
+      html += `<th>祖先 / 亡灵 姓名</th><th>${secondColumnTitles[groupKey]}</th>`;
+    } else if (groupKey === 'group-ground') {
+      html += `<th colspan='2'>${secondColumnTitles[groupKey]}</th>`;
+    } else {
+      html += `<th>阳上</th><th>${secondColumnTitles[groupKey]}</th>`;
+    }
+    priceFields.forEach(f => html += `<th>${displayMap[f]}</th>`);
+    html += `</tr></thead><tbody>`;
+    for (let i = 0; i < limit; i++) {
+      const row = list[i] || {};
+      html += `<tr>`;
+      if (groupKey === 'group-ancestor') {
+        const content = (row.placeType || '') + (row.location ? '：' + row.location : '');
+        html += `<td>${row.ancestorName || ''}</td><td style='text-align:left;padding-left:6px;'>${content || ''}</td>`;
+      } else if (groupKey === 'group-ground') {
+        html += `<td colspan='2' style='text-align:left;padding-left:6px;'>${row.location || ''}</td>`;
+      } else {
+        if (groupKey === 'group-past') {
+          html += `<td>${row.yang || ''}</td><td style='text-align:left;padding-left:6px;color:#666;'>前世今生所杀生灵</td>`;
+        } else {
+          html += `<td>${row.yang || ''}</td><td style='text-align:left;padding-left:6px;'>${row.location || ''}</td>`;
+        }
+      }
+      priceFields.forEach(f => {
+        html += `<td>${row[f] || ''}</td>`;
+        if (!isNaN(parseInt(row[f])) && f !== 'extra') allTotals[f] += parseInt(row[f]);
+      });
+      html += `</tr>`;
+    }
+    html += `</tbody></table>`;
+    if (groupKey === 'group-ground') {
+      html += `<div class='engraving'>上列諸靈思生前之罪咎，恐殁後於沉淪，欲求出苦超生，须仗佛光接引，涓今吉旦，延仗真佛密法，往生於西方極樂世界摩訶雙蓮池。。</div>`;
+    }
+    container.innerHTML += html;
+  });
+
+  const summary = document.getElementById("summaryTable");
+
+const priceMap = { token:5, boat:30, lotus:6, paper3:3, paper6:6, paper27:27 };
+const nameMap = {
+  token: "超度令牌",
+  boat: "法船配套30",
+  lotus: "莲花",
+  paper3: "纸金3",
+  paper6: "纸金6",
+  paper27: "纸金27"
+};
+
+let totalAmount = 0;
+const keys = Object.keys(priceMap).filter(k => allTotals[k] > 0);
+
+const donation = parseFloat(data.donation || 0);
+
+// 每行九宫格＋右侧一格
+for (let i = 0; i < keys.length; i += 3) {
+  const tr = document.createElement("tr");
+  for (let j = 0; j < 3; j++) {
+    const key = keys[i + j];
+    if (key) {
+      const qty = allTotals[key];
+      const unit = priceMap[key];
+      const subtotal = qty * unit;
+      totalAmount += subtotal;
+      tr.innerHTML += `<td>${nameMap[key]}</td><td>${qty} × RM${unit.toFixed(2)}</td><td>= RM${subtotal.toFixed(2)}</td>`;
+    } else {
+      tr.innerHTML += `<td></td><td></td><td></td>`;
+    }
+  }
+
+
+// 如果是第一行，加随喜供养
+if (i === 0 && donation > 0) {
+  tr.innerHTML += `<td class="col-2" style="text-align:right;">
+    <span style="margin-right:4px;">RM</span>
+    <span style="min-width:60px; display:inline-block; text-align:right;">
+      ${donation.toFixed(2)}
+    </span>
+  </td>`;
+}
+// 如果是第三行，加总金额
+else if (i === 3) {
+  tr.innerHTML += `<td class="col-2" style="text-align:right; font-weight:bold;">
+    <span style="margin-right:4px;">RM</span>
+    <span style="min-width:60px; display:inline-block; text-align:right;">
+      ${(totalAmount + donation).toFixed(2)}
+    </span>
+  </td>`;
+}
+// 其他行
+else {
+  tr.innerHTML += `<td></td>`;
+}
+
+
+
+  summary.appendChild(tr);
+}
+autoResizeText("#summaryTable td:nth-child(1)");
+autoResizeText("#summaryTable td:nth-child(2)");
+
+};
+
+function autoResizeText(selector) {
+  const cells = document.querySelectorAll(selector);
+  cells.forEach(cell => {
+    let fontSize = 12; // 从12px开始
+    cell.style.fontSize = fontSize + "px";
+    while (cell.scrollHeight > cell.offsetHeight && fontSize > 7) {
+      fontSize -= 0.5;
+      cell.style.fontSize = fontSize + "px";
+    }
+  });
+}
+
+</script>
+
+</body>
+</html>
