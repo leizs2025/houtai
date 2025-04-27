@@ -37,11 +37,8 @@
       text-align: center;
     }
 
-    .header-center h2 {
-      margin: 0;
-      font-size: 28px;
-      line-height: 1.4;
-    }
+    .temple-name { font-size: 26px; font-weight: bold; margin: 0; line-height: 1.3;}
+    .sub-title { font-size: 20px; /* 比庙名小一点 */ font-weight: bold; margin-top: 4px; line-height: 1.2;}
 
     .header-line {
       font-size: 12px;
@@ -112,49 +109,59 @@
       page-break-inside: avoid;
     }
 
+    .currency {
+  min-width: 26px;
+  text-align: right;
+}
     .totals {
-      font-size: 14px;
-      line-height: 1.6;
-      margin-top: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  margin-top: 20px;
+}
 
     .total-row {
-      display: flex;
-      font-size: 13px;
-      line-height: 1.3;
-      margin-bottom: 2px;
-      white-space: nowrap;
-      justify-content: flex-end;
-    }
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px; /* 🛠 项目/公式/RM/金额之间更紧凑 */
+  font-size: 13px; /* 🛠 字体稍小一点，更专业 */
+  line-height: 0.95; /* 🛠 行高压缩 */
 
-    .total-row .item {
-      text-align: left;
-      min-width: 90px;
-    }
+}
 
-    .total-row .formula {
-      text-align: left;
-      min-width: 140px;
-      padding-left: 10px;
-      color: #555;
-    }
+.item {
+  min-width: 100px;
+  text-align: left;
+}
 
-    .total-row .value {
-      text-align: right;
-      min-width: 80px;
-      font-variant-numeric: tabular-nums;
-      padding-left: 10px;
-    }
+.formula {
+  min-width: 90px; /* ⭐ 缩小公式宽度 */
+  max-width: 110px;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+}
 
-    .total-final {
-      font-weight: 700;
-      font-size: 15px;
-      line-height: 1.3;
-      margin-top: 2px;
-    }
+.value {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 120px;
+}
+
+.amount {
+  min-width: 80px;
+  text-align: right;
+  font-variant-numeric: tabular-nums; /* 保证数字对齐，小数点一条线 */
+}
+
+/* 最后一行总金额：加粗加大 */
+.total-final {
+  font-weight: bold;
+  font-size: 16px;
+}
 
     @media print {
       .btn-print {
@@ -165,19 +172,16 @@
 </head>
 <body>
   <div class="header-block">
-    <img src="left-logo.jpg" class="logo" alt="左 Logo">
+    <img src="left-logo.png" class="logo" alt="左 Logo">
     <div class="header-center">
-      <h2>真佛宗诗巫妙理雷藏寺</h2>
-      <div class="header-line">Persatuan Miao Li Tang Sibu</div>
-      <div class="header-line">No.22N, Taman Damai, Off Brooke Drive 33,</div>
-      <div class="header-line">Jalan Tun Abang Haji Openg, 96000, Sibu, Sarawak, Malaysia.</div>
-      <div class="header-line">Tel: 6-084-342986 / 013-980-4461</div>
-      <div class="header-line">Fax: 6-084-319961</div>
+      <div class="temple-name">真佛宗诗巫妙理雷藏寺</div> <!-- 第一行庙名 -->
+      <div class="sub-title">诚祈根本传承上师莲生活佛及法会光明诸尊放光加持</div> <!-- 👈 新增的小标题，庙名下面 -->
+      <div class="dharma-title" id="dharmaTypeTitle">法会登记表</div>
     </div>
-    <img src="right-logo.jpg" class="logo" alt="右 Logo">
+    <img src="right-logo.png" class="logo" alt="右 Logo">
   </div>
 
-  <div class="dharma-title" id="dharmaTypeTitle">法会登记表</div>
+  
 
   <div class="info">
     <span><strong>表格填写者：</strong><span id="mainName"></span></span>
@@ -213,6 +217,20 @@
   </div>
 
   <script>
+    function autoResizeText(selector, startSize = 13, minSize = 8) {
+  const cells = document.querySelectorAll(selector);
+
+  cells.forEach(cell => {
+    let fontSize = startSize;
+    cell.style.fontSize = fontSize + "px";
+
+    while ((cell.scrollHeight > cell.offsetHeight || cell.scrollWidth > cell.offsetWidth) && fontSize > minSize) {
+      fontSize--;
+      cell.style.fontSize = fontSize + "px";
+    }
+  });
+}
+
     window.addEventListener("message", function (event) {
       let data;
       try {
@@ -253,13 +271,13 @@
           <td>${fillCell(p.pg6)}</td>
         `;
         tbody.appendChild(row);
+        autoResizeText("#prayerBody td:nth-child(1), #prayerBody td:nth-child(2)");
 
         token += +p.token || 0;
         fire += +p.fire || 0;
         pg3 += +p.pg3 || 0;
         pg6 += +p.pg6 || 0;
       }
-
       const sponsor = +data.sponsorAmount || 0;
       const tokenAmt = token * 5;
       const fireAmt = fire * 1;
@@ -268,27 +286,34 @@
       const total = tokenAmt + fireAmt + pg3Amt + pg6Amt + sponsor;
 
       function createRow(item, formula, amount) {
-        return `
-          <div class="total-row">
-            <div class="item">${item}</div>
-            <div class="formula">${formula}</div>
-            <div class="value">RM ${amount.toFixed(2)}</div>
-          </div>
-        `;
-      }
+  return `
+    <div class="total-row">
+      <div class="item">${item}</div>
+      <div class="formula">${formula}</div>
+      <div class="value">
+        <span class="currency">RM</span>
+        <span class="amount">${amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+      </div>
+    </div>
+  `;
+}
 
-      $("totalBox").innerHTML = `
-        ${createRow("祈福令牌", `5 RM × ${token} 个`, tokenAmt)}
-        ${createRow("小护摩片", `1 RM × ${fire} 片`, fireAmt)}
-        ${createRow("纸金 3", `3 RM × ${pg3} 份`, pg3Amt)}
-        ${createRow("纸金 6", `6 RM × ${pg6} 份`, pg6Amt)}
-        ${createRow("随喜赞助", "", sponsor)}
-        <div class="total-row total-final">
-          <div class="item">总计</div>
-          <div class="formula"></div>
-          <div class="value">RM ${total.toFixed(2)}</div>
-        </div>
-      `;
+
+$("totalBox").innerHTML = `
+  ${createRow("祈福令牌", `RM 5 × ${token} 个`, tokenAmt)}
+  ${createRow("小护摩片", `RM 1 × ${fire} 片`, fireAmt)}
+  ${createRow("纸金 3", `RM 3 × ${pg3} 份`, pg3Amt)}
+  ${createRow("纸金 6", `RM 6 × ${pg6} 份`, pg6Amt)}
+  ${createRow("随喜赞助", "-", sponsor)}
+  <div class="total-row total-final">
+    <div class="item">总计</div>
+    <div class="formula"></div>
+    <div class="value">
+      <span class="currency">RM</span>
+      <span class="amount">${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+    </div>
+  </div>
+`;
     });
   </script>
 </body>
