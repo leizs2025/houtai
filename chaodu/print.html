@@ -153,33 +153,20 @@
     };
     document.getElementById("mainTitle").textContent = titleMap[data.festival] || "";
   
-    // 加前缀处理
-    if (data["group-baby"]) {
-      data["group-baby"] = data["group-baby"].map(row => ({
-        ...row,
-        location: `之水子灵、莲位：${row.location || ''}`
-      }));
-    }
-    if (data["group-enemy"]) {
-      data["group-enemy"] = data["group-enemy"].map(row => ({
-        ...row,
-        location: `之缠身灵、冤亲债主、牌位：${row.location || ''}`
-      }));
-    }
-  
     const groupOrder = ["group-ancestor", "group-baby", "group-enemy", "group-past", "group-ground"];
     const groupLimits = {
       "group-ancestor": 8, "group-baby": 5, "group-enemy": 5, "group-past": 4, "group-ground": 3
     };
     const secondColumnTitles = {
-      "group-ancestor": "妙理雷藏寺 地藏/灵骨殿 / 墓园 / 其他",
-      "group-baby": "妙理雷藏藏寺 地藏殿"
+      "group-ancestor": "妙理雷藏寺 地藏/灵骨殿/墓园/其他",
+      "group-baby": "妙理雷藏寺 地藏殿"
     };
     const priceFields = ["token", "boat", "lotus", "paper3", "paper6", "paper27", "extra"];
     const displayMap = {
-      token: "超度令牌", boat: "法船配套30", lotus: "莲花",
-      paper3: "纸金3", paper6: "纸金6", paper27: "纸金27", extra: "令牌配套"
+      token: "超度<br>令牌", boat: "法船<br>配套30", lotus: "莲花",
+      paper3: "纸金3", paper6: "纸金6", paper27: "纸金27", extra: "令牌<br>配套"
     };
+  
     const table = document.getElementById("fullTable");
     let allTotals = { token: 0, boat: 0, lotus: 0, paper3: 0, paper6: 0, paper27: 0 };
   
@@ -187,16 +174,29 @@
       const list = data[groupKey] || [];
       const limit = groupLimits[groupKey];
   
-      if (groupKey === 'group-ancestor' || groupKey === 'group-baby') {
-        let headRow = "<thead><tr>";
-        headRow += `<th>姓名/阳上</th><th>${secondColumnTitles[groupKey] || ''}</th>`;
+      if (groupKey === 'group-ancestor') {
+        let headRow = "<thead><tr><th>祖先 / 亡灵 姓名</th><th>" + (secondColumnTitles[groupKey] || '') + "</th>";
         priceFields.forEach(f => headRow += `<th>${displayMap[f]}</th>`);
         headRow += "</tr></thead><tbody>";
         table.innerHTML += headRow;
       }
+  
+      if (groupKey === 'group-baby') {
+        let headRow = "<thead><tr><th>姓名/阳上</th><th>" + (secondColumnTitles[groupKey] || '') + "</th>";
+        priceFields.forEach(f => headRow += `<th>${displayMap[f]}</th>`);
+        headRow += "</tr></thead><tbody>";
+        table.innerHTML += headRow;
+      }
+  
+      if (groupKey === 'group-enemy') {
+        let headRow = "<thead><tr><th>姓名/阳上</th><th>妙理雷藏寺 地藏殿 缠身灵/冤亲债主 牌位</th>";
+        priceFields.forEach(f => headRow += `<th>${displayMap[f]}</th>`);
+        headRow += "</tr></thead><tbody>";
+        table.innerHTML += headRow;
+      }
+  
       if (groupKey === 'group-ground') {
-        let headRow = "<thead><tr>";
-        headRow += `<th colspan="2">地址</th>`;
+        let headRow = "<thead><tr><th colspan='2'>地址</th>";
         priceFields.forEach(f => headRow += `<th>${displayMap[f]}</th>`);
         headRow += "</tr></thead><tbody>";
         table.innerHTML += headRow;
@@ -205,19 +205,31 @@
       for (let i = 0; i < limit; i++) {
         const row = list[i] || {};
         let tr = "<tr>";
+  
         if (groupKey === 'group-ancestor') {
           tr += `<td>${row.ancestorName || '&nbsp;'}</td><td style="text-align:left;padding-left:6px;">${row.placeType ? row.placeType + '：' : ''}${row.location || ''}</td>`;
-        } else if (groupKey === 'group-ground') {
-          tr += `<td colspan="2" style="text-align:left;padding-left:6px;">${row.location || '&nbsp;'}</td>`;
-        } else if (groupKey === 'group-baby' || groupKey === 'group-enemy') {
-          tr += `<td>${row.yang || '&nbsp;'}</td><td style="text-align:left;padding-left:6px;">${row.location || '&nbsp;'}</td>`;
-        } else if (groupKey === 'group-past') {
-          tr += `<td>${row.yang || '&nbsp;'}</td><td style="text-align:left;padding-left:6px;">前世今生所杀生灵</td>`;
+        } 
+        else if (groupKey === 'group-baby') {
+          tr += `<td>${row.yang || '&nbsp;'}</td>`;
+          tr += `<td style="text-align:left;padding-left:6px;">${row.location ? `之水子灵、莲位：${row.location}` : '之水子灵、莲位：'}</td>`;
+        } 
+        else if (groupKey === 'group-enemy') {
+          tr += `<td>${row.yang || '&nbsp;'}</td>`;
+          tr += `<td style="text-align:left;padding-left:6px;">${row.location ? `之缠身灵、冤亲债主、牌位：${row.location}` : '之缠身灵、冤亲债主、牌位：'}</td>`;
         }
+        else if (groupKey === 'group-ground') {
+          tr += `<td colspan='2' style="text-align:left;padding-left:6px;">${row.location || '&nbsp;'}</td>`;
+        } 
+        else if (groupKey === 'group-past') {
+          tr += `<td>${row.yang || '&nbsp;'}</td>`;
+          tr += `<td style="text-align:left;padding-left:6px;">前世今生所杀生灵</td>`;
+        }
+  
         priceFields.forEach(f => {
           tr += `<td>${row[f] || '&nbsp;'}</td>`;
           if (!isNaN(parseInt(row[f]))) allTotals[f] += parseInt(row[f]);
         });
+  
         tr += "</tr>";
         table.innerHTML += tr;
       }
@@ -225,7 +237,7 @@
   
     table.innerHTML += "</tbody>";
   
-    // 小计/总金额 FLEX模块（缩小版）
+    // 小计/总金额 FLEX模块
     const totalAmountDisplay = document.getElementById("totalAmountDisplay");
     const priceMap = { token:5, boat:30, lotus:6, paper3:3, paper6:6, paper27:27 };
     const nameMap = {
@@ -291,7 +303,6 @@
   
     totalAmountDisplay.innerHTML = `<div style="text-align:right;">${detailLines.join('')}</div>`;
   
-    // 自动缩小第1列、第2列字体
     autoResizeText("#fullTable td:nth-child(1)");
     autoResizeText("#fullTable td:nth-child(2)");
   };
@@ -308,6 +319,7 @@
     });
   }
   </script>
+  
   </body>
   </html>
   
