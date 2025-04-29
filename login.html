@@ -64,23 +64,27 @@
     <button onclick="login()">登录</button>
   </div>
 
-  <script>
-    function login() {
-      const pw = document.getElementById("password").value.trim();
-      let adminName = "";
+<script>
+function login() {
+  const pw = document.getElementById("password").value.trim();
 
-      if (pw === "123456") {
-        adminName = "雷藏寺";
-      } else if (pw === "654321") {
-        adminName = "妙理堂";
-      } else {
-        alert("密码错误，请重新输入！");
-        return;
-      }
+  // 密码和管理员名字的映射关系
+  const adminList = {
+    "123456": "雷藏寺",
+    "654321": "妙理堂",
+    "8665520": "超级管理员" // 👈 新加的管理员！
+  };
 
-      localStorage.setItem("admin", adminName);
-      location.href = "main.html";
-    }
-  </script>
+  const adminName = adminList[pw]; // 根据输入的密码找对应管理员
+
+  if (adminName) {
+    localStorage.setItem("admin", adminName);
+    location.href = "main.html";
+  } else {
+    alert("密码错误，请重新输入！");
+  }
+}
+</script>
+
 </body>
 </html>
