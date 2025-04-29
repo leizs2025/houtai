@@ -317,56 +317,73 @@ const groupLimitMap = {
 };
 
 
+function loadEntry(row) {
+  const get = id => document.getElementById(id);
 
-  function loadEntry(row) {
-    const get = id => document.getElementById(id);
-    get("mainName").value = row[1];
-    get("phoneNumber").value = row[2];
-    get("address").value = row[3];
-    get("festival").value = row[231] || "";
-    get("donation").value = row[230] || 0;
-    get("receiptNumber").value = row[232] || "";
-    get("receiptDate").value = row[233] || "";
-    
-    document.getElementById("groupsContainer").innerHTML = "";
-    initGroups();
-  
-    const groupConfigs = {
-      "group-ancestor": { start: 4, count: 8 },
-      "group-baby": { start: 84, count: 5 },
-      "group-enemy": { start: 129, count: 5 },
-      "group-past": { start: 174, count: 4 },
-      "group-ground": { start: 206, count: 3 },
-    };
-  
-    Object.entries(groupConfigs).forEach(([groupId, cfg]) => {
-      const container = document.getElementById(groupId);
-      const fields = fieldsMap[groupId];
-      const keys = fields.map(f => f.key);
-      const len = keys.length;
-  
-      for (let i = 0; i < cfg.count; i++) {
-        const offset = cfg.start + i * len;
-        const obj = {};
-        let hasValue = false;
-        for (let k = 0; k < len; k++) {
-          const val = row[offset + k];
-          obj[keys[k]] = val;
-          if (val) hasValue = true;
-        }
-        if (hasValue) {
-          const card = createFieldsBlock(fields, i, groupTitleMap[groupId]);
-          const inputs = card.querySelectorAll("[data-key]");
-          inputs.forEach(input => {
-            const key = input.dataset.key;
-            if (key in obj) input.value = obj[key];
-          });
-          container.appendChild(card);
-        }
+  // 直接赋值基础信息
+  get("mainName").value = row[1] || "";
+  get("phoneNumber").value = row[2] || "";
+  get("address").value = row[3] || "";
+  get("festival").value = row[231] || "";
+  get("donation").value = row[230] || 0;
+  get("receiptNumber").value = row[232] || "";
+  get("receiptDate").value = formatDate(row[233]) || ""; // ✅ 格式化收款日期
+
+  // 清空现有分组表单
+  document.getElementById("groupsContainer").innerHTML = "";
+  initGroups();
+
+  // 分组字段配置
+  const groupConfigs = {
+    "group-ancestor": { start: 4, count: 8 },
+    "group-baby": { start: 84, count: 5 },
+    "group-enemy": { start: 129, count: 5 },
+    "group-past": { start: 174, count: 4 },
+    "group-ground": { start: 206, count: 3 },
+  };
+
+  Object.entries(groupConfigs).forEach(([groupId, cfg]) => {
+    const container = document.getElementById(groupId);
+    const fields = fieldsMap[groupId];
+    const keys = fields.map(f => f.key);
+    const len = keys.length;
+
+    for (let i = 0; i < cfg.count; i++) {
+      const offset = cfg.start + i * len;
+      const obj = {};
+      let hasValue = false;
+
+      for (let k = 0; k < len; k++) {
+        const val = row[offset + k];
+        obj[keys[k]] = val;
+        if (val) hasValue = true;
       }
-    });
-    calculateTotal();
-  }
+
+      if (hasValue) {
+        const card = createFieldsBlock(fields, i, groupTitleMap[groupId]);
+        const inputs = card.querySelectorAll("[data-key]");
+        inputs.forEach(input => {
+          const key = input.dataset.key;
+          if (key in obj) input.value = obj[key];
+        });
+        container.appendChild(card);
+      }
+    }
+  });
+
+  calculateTotal();
+}
+
+// 🛠️ 日期格式化工具函数
+function formatDate(isoString) {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
   </script>
  
    <script>
