@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>祈福报表</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #fff;
+      font-family: "Segoe UI", sans-serif;
+      max-width: 600px;
+      margin: 30px auto;
+      padding: 20px;
+      border: 1px dashed #aaa;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .admin-summary {
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 16px;
+    }
+    .btn-print {
+      display: block;
+      margin: 30px auto 0;
+    }
+    .selector {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📅 祈福结算报表</h2>
+
+  <div class="selector">
+    <label for="yearSelect" class="form-label fw-bold">选择年份：</label>
+    <select id="yearSelect" class="form-select d-inline-block w-auto" onchange="loadReport()">
+      <option value="">全部年份</option>
+      <option value="5">2025</option>
+      <option value="6">2026</option>
+      <option value="7">2027</option>
+    </select>
+
+    <label for="typeSelect" class="form-label fw-bold ms-3">法会类型：</label>
+    <select id="typeSelect" class="form-select d-inline-block w-auto" onchange="loadReport()">
+      <option value="">全部</option>
+      <option value="清明节">清明节</option>
+      <option value="中元节">中元节</option>
+      <option value="红财神">红财神</option>
+    </select>
+  </div>
+
+  <div class="text-center fw-bold mb-3" id="filterInfo">⬅️ 请选择年份与法会类别以加载报表</div>
+
+  <div id="report" class="fs-5">
+    <div class="section" id="goldStats">📦 正在加载资料...</div>
+    <div class="section" id="donationStats">🎁 正在加载赞助金额...</div>
+    <div class="section" id="totalStats">💰 正在计算总金额...</div>
+    <div class="section admin-summary" id="adminStats">👤 收款人经手金额统计加载中...</div>
+  </div>
+
+  <button class="btn btn-secondary btn-print" onclick="window.print()">🖨️ 打印此报表</button>
+
+  <script>
+    function cleanNumber(val) {
+      const str = String(val).trim();
+      return /^[0-9]+(\.[0-9]+)?$/.test(str) ? parseFloat(str) : 0;
+    }
+
+    async function loadReport() {
+      const url = "https://form.gealarm2012.workers.dev/admin-qifu?list=1";
+      try {
+        const res = await fetch(url);
+        const entries = await res.json();
+
+        const selectedDigit = document.getElementById("yearSelect").value;
+        const selectedType = document.getElementById("typeSelect").value;
+
+        const yearMap = { '5': '2025', '6': '2026', '7': '2027' };
+        const filterTitle = `📎 当前筛选：${selectedDigit ? yearMap[selectedDigit] + '年' : '全部年份'}｜${selectedType || '全部法会'}`;
+        document.getElementById("filterInfo").textContent = filterTitle;
+
+        let annualTotal = 0;
+        entries.forEach(entry => {
+          const phone = String(entry.phoneNumber || '').trim();
+          if (selectedDigit && phone[0] !== selectedDigit) return;
+
+          let sponsor = cleanNumber(entry.sponsorAmount);
+          let pg3 = 0, pg6 = 0, fire = 0, token = 0;
+          (entry.data || []).forEach(p => {
+            pg3 += cleanNumber(p.pg3);
+            pg6 += cleanNumber(p.pg6);
+            fire += cleanNumber(p.fire);
+            token += cleanNumber(p.token);
+          });
+
+          annualTotal += sponsor + pg3 * 3 + pg6 * 6 + fire + token * 5;
+        });
+
+        let totalSponsor = 0;
+        let pg3Count = 0, pg6Count = 0;
+        let totalFire = 0;
+        let totalToken = 0;
+        const adminMap = {};
+
+        entries.forEach(entry => {
+          const phone = String(entry.phoneNumber || '').trim();
+          const dharmaType = entry.dharmaType || "";
+
+          if (selectedDigit && phone[0] !== selectedDigit) return;
+          if (selectedType && dharmaType !== selectedType) return;
+
+          let sponsor = cleanNumber(entry.sponsorAmount);
+          let fireTotal = 0;
+          let tokenTotal = 0;
+
+          (entry.data || []).forEach(p => {
+            pg3Count += cleanNumber(p.pg3);
+            pg6Count += cleanNumber(p.pg6);
+            fireTotal += cleanNumber(p.fire);
+            tokenTotal += cleanNumber(p.token);
+          });
+
+          const total = sponsor + fireTotal * 1 + tokenTotal * 5 + pg3Count * 3 + pg6Count * 6;
+          totalSponsor += sponsor;
+          totalFire += fireTotal;
+          totalToken += tokenTotal;
+
+          const who = (entry.admin && entry.admin.trim()) ? entry.admin.trim() : "无名";
+          if (!adminMap[who]) adminMap[who] = 0;
+          adminMap[who] += total;
+        });
+
+        const paperAmount = pg3Count * 3 + pg6Count * 6;
+        const totalAmount = totalSponsor + paperAmount + totalFire + totalToken * 5;
+
+        document.getElementById("goldStats").innerHTML =
+          `📦 紙金份数：<br>　- 3元：${pg3Count} 份，共 ${pg3Count * 3} 元<br>` +
+          `　- 6元：${pg6Count} 份，共 ${pg6Count * 6} 元<br>` +
+          `🧾 紙金总金额：${paperAmount.toLocaleString()} 元<br>` +
+          `🪙 祈福令牌：${totalToken} 个，共 ${totalToken * 5} 元<br>` +
+          `🔥 小护摩片：${totalFire} 片，共 ${totalFire} 元`;
+
+        document.getElementById("donationStats").textContent =
+          `🎁 累计赞助金额：${totalSponsor.toLocaleString()} 元`;
+
+        document.getElementById("totalStats").innerHTML =
+          `💰 总金额：${totalAmount.toLocaleString()} 元<br>` +
+          `📊 本年度总金额（不含筛选）：${annualTotal.toLocaleString()} 元`;
+
+        let adminStr = "👤 收款人经手金额统计：\n";
+        Object.entries(adminMap).forEach(([admin, amt]) => {
+          adminStr += `  - ${admin}：${amt.toLocaleString()} 元\n`;
+        });
+        document.getElementById("adminStats").textContent = adminStr;
+
+      } catch (err) {
+        document.getElementById("report").textContent = "❌ 报表加载失败，请稍后再试。";
+        console.error("加载错误：", err);
+      }
+    }
+  </script>
+</body>
+</html>
