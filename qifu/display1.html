@@ -20,17 +20,24 @@
   </style>
 </head>
 <body>
-  <h3 class="mb-4 text-center">📋 实时报名列表（左右对照）</h3>
+  <h3 class="mb-4 text-center">📋 超度/祈福 实时报名列表 </h3>
 
   <div class="row">
     <!-- 超度系统 -->
     <div class="col-md-6">
-      <h4>🪷 超度报名</h4>
+      <h4>🪔 超度报名</h4>
       <div class="filter-bar">
         <input id="chaoduSearch" class="form-control" placeholder="手机号">
+        <select id="chaoduType" class="form-select">
+          <option value="">全部法会</option>
+          <option value="清明节">清明节</option>
+          <option value="中元节">中元节</option>
+          <option value="其他">其他</option>
+        </select>
         <button onclick="applyFilter('chaodu')" class="btn btn-sm btn-primary">筛选</button>
         <button onclick="resetFilter('chaodu')" class="btn btn-sm btn-secondary">全部</button>
       </div>
+      
       <table class="table table-bordered table-striped">
         <thead class="table-light">
           <tr><th>#</th><th>表格填写者</th><th>手机号</th><th>是否已付款</th><th>收款人</th></tr>
@@ -74,15 +81,15 @@
         if (!tbody) return;
 
         tbody.innerHTML = "";
-
         const typeFilter = filter.dharmaType || "";
         const phoneFilter = filter.phone || "";
 
         const filtered = dataList.filter(item => {
-          const matchPhone = !phoneFilter || item.phoneNumber?.includes(phoneFilter);
-          const matchType = !typeFilter || item.dharmaType === typeFilter;
-          return matchPhone && matchType;
-        });
+        const matchPhone = !phoneFilter || String(item.phoneNumber || '').includes(phoneFilter);
+        const matchType = !typeFilter || item.dharmaType === typeFilter;
+        return matchPhone && matchType;
+      });
+
 
         filtered.forEach((item, index) => {
           const paid = String(item.receiptNumber || "").trim();
@@ -106,10 +113,20 @@
     }
 
     function applyFilter(system) {
-      const phone = document.getElementById(system + "Search").value.trim();
-      const dharma = system === "qifu" ? document.getElementById("qifuType").value : "";
-      loadSystemData(system, system + "Table", { phone: phone, dharmaType: dharma });
-    }
+  const phone = document.getElementById(system + "Search").value.trim();
+  let filter = { phone: phone };
+
+  if (system === "qifu") {
+    filter.dharmaType = document.getElementById("qifuType").value.trim();
+  }
+  if (system === "chaodu") {
+    filter.festival = document.getElementById("chaoduType").value.trim();
+  }
+
+  loadSystemData(system, system + "Table", filter);
+}
+
+
 
     function resetFilter(system) {
       document.getElementById(system + "Search").value = "";
