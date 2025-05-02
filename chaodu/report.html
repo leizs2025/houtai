@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>超度報表</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #fff;
+      font-family: "Segoe UI", sans-serif;
+      max-width: 700px;
+      margin: 30px auto;
+      padding: 20px;
+      border: 1px dashed #aaa;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    .admin-summary {
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 16px;
+    }
+    .btn-print {
+      display: block;
+      margin: 30px auto 0;
+    }
+    .selector {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>📅 超度結算報表</h2>
+
+  <div class="selector">
+    <label for="yearSelect" class="form-label fw-bold">选择年份：</label>
+    <select id="yearSelect" class="form-select d-inline-block w-auto" onchange="loadReport()">
+      <option value="">全部年份</option>
+      <option value="5">2025</option>
+      <option value="6">2026</option>
+      <option value="7">2027</option>
+    </select>
+
+    <label for="festivalSelect" class="form-label fw-bold ms-3">法会类别：</label>
+    <select id="festivalSelect" class="form-select d-inline-block w-auto" onchange="loadReport()">
+      <option value="">全部</option>
+      <option value="清明节">清明节</option>
+      <option value="中元节">中元节</option>
+      <option value="其他">其他</option>
+    </select>
+  </div>
+
+  <div class="text-center fw-bold mb-3" id="filterInfo">⬅️ 请选择年份与法会类别以加载报表</div>
+
+  <div id="report" class="fs-5">
+    <div class="section" id="goodsStats"></div>
+    <div class="section" id="donationStats"></div>
+    <div class="section" id="totalStats"></div>
+    <div class="section admin-summary" id="adminStats"></div>
+  </div>
+
+  <button class="btn btn-secondary btn-print" onclick="window.print()">🖨️ 打印此报表</button>
+
+  <script>
+    function cleanNumber(val) {
+      const str = String(val).trim();
+      return /^[0-9]+(\.[0-9]+)?$/.test(str) ? parseFloat(str) : 0;
+    }
+
+    async function loadReport() {
+      const res = await fetch("https://form.gealarm2012.workers.dev/admin-chaodu?list=1");
+      const entries = await res.json();
+
+      const selectedDigit = document.getElementById("yearSelect").value;
+      const selectedFestival = document.getElementById("festivalSelect").value;
+
+      const yearMap = { '5': '2025', '6': '2026', '7': '2027' };
+      const filterTitle = `📎 当前筛选：${selectedDigit ? yearMap[selectedDigit] + '年' : '全部年份'}｜${selectedFestival || '全部法会'}`;
+      document.getElementById("filterInfo").textContent = filterTitle;
+
+      let totalDonation = 0, totalAmount = 0;
+      let pg3 = 0, pg6 = 0, pg27 = 0;
+      let token = 0, boat = 0, lotus = 0;
+      let annualTotal = 0;
+      const adminMap = {};
+
+      entries.forEach(row => {
+        const phone = String(row.phoneNumber || '').trim();
+        if (selectedDigit && phone[0] !== selectedDigit) return;
+        annualTotal += cleanNumber(row.totalAmount);
+      });
+
+      entries.forEach(row => {
+        const phone = String(row.phoneNumber || '').trim();
+        const festival = row.festival || "";
+
+        if (selectedDigit && phone[0] !== selectedDigit) return;
+        if (selectedFestival && festival !== selectedFestival) return;
+
+        totalDonation += cleanNumber(row.donation);
+        totalAmount += cleanNumber(row.totalAmount);
+
+        const who = (row.admin && row.admin.trim()) ? row.admin.trim() : "无名";
+        if (!adminMap[who]) adminMap[who] = 0;
+        adminMap[who] += cleanNumber(row.totalAmount);
+
+        for (let i = 4; i <= 229; i += 10) {
+          pg3 += cleanNumber(row[i + 6]);
+          pg6 += cleanNumber(row[i + 7]);
+          pg27 += cleanNumber(row[i + 8]);
+          token += cleanNumber(row[i + 3]);
+          boat += cleanNumber(row[i + 4]);
+          lotus += cleanNumber(row[i + 5]);
+        }
+      });
+
+      const goodsHTML =
+        `📦 紙金份数：<br>　- 3元：${pg3} 份，共 ${pg3 * 3} 元<br>` +
+        `　- 6元：${pg6} 份，共 ${pg6 * 6} 元<br>` +
+        `　- 27元：${pg27} 份，共 ${pg27 * 27} 元<br>` +
+        `🪙 超度令牌：${token} 个，共 ${token * 5} 元<br>` +
+        `🛶 法船配套：${boat} 套，共 ${boat * 30} 元<br>` +
+        `🪷 莲花：${lotus} 朵，共 ${lotus * 6} 元`;
+
+      document.getElementById("goodsStats").innerHTML = goodsHTML;
+      document.getElementById("donationStats").textContent = `🎁 累计赞助金额：${totalDonation.toLocaleString()} 元`;
+      document.getElementById("totalStats").innerHTML =
+        `💰 总金额（当前筛选）：${totalAmount.toLocaleString()} 元<br>` +
+        `📊 本年度总金额（不含筛选）：${annualTotal.toLocaleString()} 元`;
+
+      let adminStr = "👤 收款人经手金额统计：\n";
+      Object.entries(adminMap).forEach(([admin, amt]) => {
+        adminStr += `  - ${admin}：${amt.toLocaleString()} 元\n`;
+      });
+      document.getElementById("adminStats").textContent = adminStr;
+    }
+  </script>
+</body>
+</html>
