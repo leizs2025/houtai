@@ -11,7 +11,6 @@
     }
     .paid { color: green; font-weight: bold; }
     .unpaid { color: red; }
-    h4 { margin-bottom: 10px; }
     .filter-bar {
       display: flex;
       gap: 10px;
@@ -20,55 +19,77 @@
   </style>
 </head>
 <body>
-  <h3 class="mb-4 text-center">📋 超度/祈福 实时报名列表 </h3>
+  <div class="container-fluid" style="max-width: 1400px;">
+    <h3 class="mb-4 text-center">📋 超度 / 祈福 实时报名列表</h3>
 
-  <div class="row">
-    <!-- 超度系统 -->
-    <div class="col-md-6">
-      <h4>🪔 超度报名</h4>
-      <div class="filter-bar">
-        <input id="chaoduSearch" class="form-control" placeholder="手机号">
-        <select id="chaoduType" class="form-select">
-          <option value="">全部法会</option>
-          <option value="清明节">清明节</option>
-          <option value="中元节">中元节</option>
-          <option value="其他">其他</option>
-        </select>
-        <button onclick="applyFilter('chaodu')" class="btn btn-sm btn-primary">筛选</button>
-        <button onclick="resetFilter('chaodu')" class="btn btn-sm btn-secondary">全部</button>
-      </div>
-      
-      <table class="table table-bordered table-striped">
-        <thead class="table-light">
-          <tr><th>#</th><th>表格填写者</th><th>手机号</th><th>是否已付款</th><th>收款人</th></tr>
-        </thead>
-        <tbody id="chaoduTable"></tbody>
-      </table>
-    </div>
+    <!-- 标签导航 -->
+    <ul class="nav nav-tabs" id="formTabs" role="tablist">
+      <li class="nav-item">
+        <button class="nav-link active" id="chaodu-tab" data-bs-toggle="tab" data-bs-target="#chaodu-pane" type="button" role="tab">🪔 超度报名</button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" id="qifu-tab" data-bs-toggle="tab" data-bs-target="#qifu-pane" type="button" role="tab">🙏 祈福报名</button>
+      </li>
+    </ul>
 
-    <!-- 祈福系统 -->
-    <div class="col-md-6">
-      <h4>🙏 祈福报名</h4>
-      <div class="filter-bar">
-        <input id="qifuSearch" class="form-control" placeholder="手机号">
-        <select id="qifuType" class="form-select">
-          <option value="">全部法会</option>
-          <option value="清明节">清明节</option>
-          <option value="中元节">中元节</option>
-          <option value="红财神">红财神</option>
-        </select>
-        <button onclick="applyFilter('qifu')" class="btn btn-sm btn-primary">筛选</button>
-        <button onclick="resetFilter('qifu')" class="btn btn-sm btn-secondary">全部</button>
+    <!-- 内容区 -->
+    <div class="tab-content mt-3">
+      <!-- 超度面板 -->
+      <div class="tab-pane fade show active" id="chaodu-pane" role="tabpanel">
+        <div class="p-4 bg-white shadow-sm rounded border">
+          <div class="filter-bar">
+            <input id="chaoduSearch" class="form-control" placeholder="手机号">
+            <select id="chaoduType" class="form-select">
+              <option value="">全部法会</option>
+              <option value="清明节">清明节</option>
+              <option value="中元节">中元节</option>
+              <option value="其他">其他</option>
+            </select>
+            <button onclick="applyFilter('chaodu')" class="btn btn-sm btn-primary">筛选</button>
+            <button onclick="resetFilter('chaodu')" class="btn btn-sm btn-secondary">全部</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+              <thead class="table-light">
+                <tr><th>#</th><th>表格填写者</th><th>手机号</th><th>是否已付款</th><th>收款人</th></tr>
+              </thead>
+              <tbody id="chaoduTable"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      <table class="table table-bordered table-striped">
-        <thead class="table-light">
-          <tr><th>#</th><th>表格填写者</th><th>手机号</th><th>是否已付款</th><th>收款人</th></tr>
-        </thead>
-        <tbody id="qifuTable"></tbody>
-      </table>
+
+      <!-- 祈福面板 -->
+      <div class="tab-pane fade" id="qifu-pane" role="tabpanel">
+        <div class="p-4 bg-white shadow-sm rounded border">
+          <div class="filter-bar">
+            <input id="qifuSearch" class="form-control" placeholder="手机号">
+            <select id="qifuType" class="form-select">
+              <option value="">全部法会</option>
+              <option value="清明节">清明节</option>
+              <option value="中元节">中元节</option>
+              <option value="红财神">红财神</option>
+            </select>
+            <button onclick="applyFilter('qifu')" class="btn btn-sm btn-primary">筛选</button>
+            <button onclick="resetFilter('qifu')" class="btn btn-sm btn-secondary">全部</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+              <thead class="table-light">
+                <tr><th>#</th><th>表格填写者</th><th>手机号</th><th>是否已付款</th><th>收款人</th></tr>
+              </thead>
+              <tbody id="qifuTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- 主要脚本 -->
   <script>
     async function loadSystemData(system, tableId, filter = {}) {
       let endpoint = system === "chaodu" ? "admin-chaodu" : "admin-qifu";
@@ -81,15 +102,18 @@
         if (!tbody) return;
 
         tbody.innerHTML = "";
-        const typeFilter = filter.dharmaType || "";
         const phoneFilter = filter.phone || "";
+        const typeFilter = system === "chaodu" ? filter.festival || "" : filter.dharmaType || "";
 
         const filtered = dataList.filter(item => {
-        const matchPhone = !phoneFilter || String(item.phoneNumber || '').includes(phoneFilter);
-        const matchType = !typeFilter || item.dharmaType === typeFilter;
-        return matchPhone && matchType;
-      });
-
+          const matchPhone = !phoneFilter || String(item.phoneNumber || '').includes(phoneFilter);
+          const matchType = !typeFilter || (
+            system === "chaodu"
+              ? item.festival === typeFilter
+              : item.dharmaType === typeFilter
+          );
+          return matchPhone && matchType;
+        });
 
         filtered.forEach((item, index) => {
           const paid = String(item.receiptNumber || "").trim();
@@ -113,35 +137,29 @@
     }
 
     function applyFilter(system) {
-  const phone = document.getElementById(system + "Search").value.trim();
-  let filter = { phone: phone };
+      const phone = document.getElementById(system + "Search").value.trim();
+      let filter = { phone: phone };
 
-  if (system === "qifu") {
-    filter.dharmaType = document.getElementById("qifuType").value.trim();
-  }
-  if (system === "chaodu") {
-    filter.festival = document.getElementById("chaoduType").value.trim();
-  }
+      if (system === "qifu") {
+        filter.dharmaType = document.getElementById("qifuType").value.trim();
+      }
+      if (system === "chaodu") {
+        filter.festival = document.getElementById("chaoduType").value.trim();
+      }
 
-  loadSystemData(system, system + "Table", filter);
-}
-
-
+      loadSystemData(system, system + "Table", filter);
+    }
 
     function resetFilter(system) {
       document.getElementById(system + "Search").value = "";
       if (system === "qifu") document.getElementById("qifuType").value = "";
+      if (system === "chaodu") document.getElementById("chaoduType").value = "";
       loadSystemData(system, system + "Table");
     }
 
     // 初始加载
     loadSystemData("qifu", "qifuTable");
     loadSystemData("chaodu", "chaoduTable");
-
-    // setInterval(() => {
-    //   loadSystemData("qifu", "qifuTable");
-    //   loadSystemData("chaodu", "chaoduTable");
-    // }, 300000); // 每5分钟刷新
   </script>
 </body>
 </html>
