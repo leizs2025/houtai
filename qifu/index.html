@@ -98,6 +98,7 @@
         <button onclick="saveChanges()" class="btn btn-primary">更新保存</button>
         <button onclick="deleteEntry()" class="btn btn-warning">删除</button>
         <button onclick="printEntry()" class="btn btn-secondary">打印</button>
+        <button onclick="printReceipt(getCurrentFormData(), true)">👁️ 小票预览</button>
       </div>
     </div>
   </div>
@@ -214,12 +215,13 @@ document.getElementById("donationBreakdown").innerHTML = `
 
   </script>
 
+  <script src="script/utils.js"></script>
+  <script src="script/receipt.js"></script>
   <script src="script/init.js"></script>
   <script src="script/query.js"></script>
   <script src="script/add.js"></script>
   <script src="script/update.js"></script>
   <script src="script/delete.js"></script>
-  <script src="script/utils.js"></script>
   <script src="script/print.js"></script>
 
   <script>
