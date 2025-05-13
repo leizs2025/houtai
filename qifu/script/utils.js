@@ -45,6 +45,8 @@ window.getCurrentFormData = function () {
     }))
     .filter(p => p.name); // 👈 忽略空卡片
 
+
+
   return {
     phoneNumber: document.getElementById("phoneNumber")?.value.trim() || "",
     mainName: document.getElementById("mainName")?.value.trim() || "",
@@ -57,6 +59,8 @@ window.getCurrentFormData = function () {
     data: prayers
   };
 };
+
+// utils.js
 
 // ✅ 全局编号生成函数
 window.generateReceiptNumber = function () {
