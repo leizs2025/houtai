@@ -77,7 +77,7 @@ window.generateReceiptNumber = function () {
   let counter = parseInt(localStorage.getItem("receiptCounter")) || 1;
 
   // ✅ 生成编号，例如 MLTS-2025-0001
-  const receiptNumber = `MLTS-${currentYear}-${String(counter).padStart(4, '0')}`;
+  const receiptNumber = `LQF-${currentYear}-${String(counter).padStart(4, '0')}`;
 
   // ✅ 增加计数器并保存到 localStorage
   localStorage.setItem("receiptCounter", counter + 1);
