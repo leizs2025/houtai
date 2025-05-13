@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=80mm">
+    <title>打印小票</title>
+    <style>
+        body {
+            width: 80mm;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 1px dashed #000;
+            margin-bottom: 10px;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .header p {
+            margin: 2px 0;
+            font-size: 14px;
+        }
+        .receipt-info {
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+        .receipt-info p {
+            margin: 4px 0; /* 减小段落间距 */
+        }
+        .item-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+        font-size: 14px;
+        }
+        .label {
+        flex: 1;
+        text-align: left;
+    }
+    .formula {
+        flex: 1;
+        text-align: center;
+    }
+    .amount {
+        flex: 1;
+        text-align: right;
+    }
+
+
+
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            font-style: italic;
+            color: #555;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        .print-button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        @media print {
+            .print-button {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>PERSATUAN MIAO LI TANG SIBU</h2>
+        <p>Tel: 013980446 (寺)</p>
+        <p>JALAN PASAI SIONG OFF 25TH MILE</p>
+        <p>JALAN OYA, SIBU SARAWAK</p>
+        <h2>DONATION</h2>
+        <p>CASH</p>
+    </div>
+
+    <div id="receiptInfo" class="receipt-info"></div>
+    <div id="summarySection" class="total-section"></div>
+
+    <div class="footer">
+        <p>🙏 愿一切吉祥如意，功德圆满 🙏</p>
+        <p>欢迎再次光临</p>
+    </div>
+
+    <button id="printBtn" class="print-button">🖨️ 打印小票</button>
+
+    <script>
+        window.addEventListener("message", function (event) {
+            try {
+                const data = JSON.parse(event.data);
+                
+                // 获取当前年份
+                const currentYear = new Date().getFullYear();
+    
+                // 填充基本信息
+                const receiptInfo = `
+                    <div>
+                        <p><strong>收据编号:</strong> ${data.receiptNumber || "未生成"}</p>
+                        <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                        <p><strong>主祈者:</strong> ${data.mainName || "未填写"}</p>
+                        <p><strong>电话:</strong> ${data.phoneNumber || "未填写"}</p>
+                        <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || "未选择"} 祈福</p>
+                    </div>
+                `;
+                document.getElementById("receiptInfo").innerHTML = receiptInfo;
+    
+                // 贡品计算
+                let tokenTotal = 0;
+                let fireTotal = 0;
+                let pg3Total = 0;
+                let pg6Total = 0;
+                let sponsorTotal = data.sponsorAmount || 0; // ✅ 修正这里
+    
+                data.data.forEach(item => {
+                    tokenTotal += (item.token || 0) * 5;
+                    fireTotal += (item.fire || 0) * 1;
+                    pg3Total += (item.pg3 || 0) * 3;
+                    pg6Total += (item.pg6 || 0) * 6;
+                });
+    
+                const grandTotal = tokenTotal + fireTotal + pg3Total + pg6Total + sponsorTotal;
+    
+                // 填充小票内容
+                const summarySection = `
+                    <div class="item-row">
+                        <span class="label">祈福令牌</span>
+                        <span class="formula">5 × ${tokenTotal / 5} 个</span>
+                        <span class="amount">${tokenTotal.toFixed(2)}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="label">小护摩片</span>
+                        <span class="formula">1 × ${fireTotal} 片</span>
+                        <span class="amount">${fireTotal.toFixed(2)}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="label">纸金 3</span>
+                        <span class="formula">3 × ${pg3Total / 3} 份</span>
+                        <span class="amount">${pg3Total.toFixed(2)}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="label">纸金 6</span>
+                        <span class="formula">6 × ${pg6Total / 6} 份</span>
+                        <span class="amount">${pg6Total.toFixed(2)}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="label">祈福报名供养金</span>
+                        <span class="formula">-</span>
+                        <span class="amount">${sponsorTotal.toFixed(2)}</span>
+                    </div>
+                    <div class="item-row" style="font-weight: bold; margin-top: 5px;">
+                        <span class="label">总计</span>
+                        <span class="formula"></span>
+                        <span class="amount">RM ${grandTotal.toFixed(2)}</span>
+                    </div>
+                `;
+
+                document.getElementById("summarySection").innerHTML = summarySection;
+    
+                // 显示打印按钮
+                document.getElementById("printBtn").addEventListener("click", () => {
+                    window.print();
+                });
+    
+            } catch (error) {
+                console.error("小票数据处理错误:", error);
+            }
+        });
+    </script>
+    
+</body>
+</html>
