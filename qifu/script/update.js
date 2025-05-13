@@ -6,7 +6,13 @@ window.saveChanges = function () {
     alert("⚠️ 主祈者姓名与手机号必填");
     return;
   }
-
+    // ✅ 如果有临时编号，用这个编号
+    const lastPrintedReceiptNumber = localStorage.getItem("lastPrintedReceiptNumber");
+    if (!body.receiptNumber && lastPrintedReceiptNumber) {
+        body.receiptNumber = lastPrintedReceiptNumber;
+        document.getElementById("receiptNumber").value = lastPrintedReceiptNumber;
+        console.log("已自动填入已打印的小票编号:", lastPrintedReceiptNumber);
+    }
   body.method = "PUT"; // ✅ 一定要是 PUT（与你后端一致）
   body.total = window.currentTotalAmount || 0;
   body.admin = localStorage.getItem("admin") || "未登录";
