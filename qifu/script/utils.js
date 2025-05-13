@@ -58,3 +58,34 @@ window.getCurrentFormData = function () {
   };
 };
 
+// ✅ 全局编号生成函数
+window.generateReceiptNumber = function () {
+  const currentYear = new Date().getFullYear();
+  const storedYear = localStorage.getItem("receiptYear");
+
+  // ✅ 如果年份变了，重置计数器
+  if (storedYear !== String(currentYear)) {
+      localStorage.setItem("receiptCounter", 1);
+      localStorage.setItem("receiptYear", currentYear);
+  }
+
+  // ✅ 读取当前计数器
+  let counter = parseInt(localStorage.getItem("receiptCounter")) || 1;
+
+  // ✅ 生成编号，例如 MLTS-2025-0001
+  const receiptNumber = `MLTS-${currentYear}-${String(counter).padStart(4, '0')}`;
+
+  // ✅ 增加计数器并保存到 localStorage
+  localStorage.setItem("receiptCounter", counter + 1);
+
+  return receiptNumber;
+};
+// utils.js 或 init.js
+
+function resetReceiptCounter() {
+  localStorage.removeItem("receiptCounter");
+  localStorage.removeItem("receiptYear");
+  localStorage.removeItem("lastPrintedReceiptNumber");
+  console.log("✅ 编号计数器已重置");
+  alert("✅ 编号计数器已重置");
+}
