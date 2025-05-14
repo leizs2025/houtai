@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=80mm">
+    <title>打印小票</title>
+    <style>
+        body {
+            width: 80mm;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 1px dashed #000;
+            margin-bottom: 10px;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .header p {
+            margin: 2px 0;
+            font-size: 14px;
+        }
+        .receipt-info p {
+            margin: 2px 0;
+            line-height: 1.2;
+            font-size: 14px;
+        }
+        .item-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .label {
+            flex: 2;
+            text-align: left;
+            min-width: 120px;
+        }
+        .formula {
+            flex: 1;
+            text-align: center;
+            min-width: 70px;
+        }
+        .amount {
+            flex: 1;
+            text-align: right;
+            min-width: 60px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            font-style: italic;
+            color: #000;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        @media print {
+            .print-button {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>PERSATUAN MIAO LI TANG SIBU</h2>
+        <p>Tel: 013980446 (寺)</p>
+        <p>JALAN PASAI SIONG OFF 25TH MILE</p>
+        <p>JALAN OYA, SIBU SARAWAK</p>
+        <h2>DONATION</h2>
+        <p>CASH</p>
+    </div>
+
+    <div id="receiptInfo" class="receipt-info"></div>
+    <div id="summarySection" class="total-section"></div>
+
+    <div class="footer">
+        <p> 愿一切吉祥如意，功德圆满 </p>
+        <p>欢迎再次光临</p>
+    </div>
+
+    <script>
+        function generateReceiptNumber() {
+            const currentYear = new Date().getFullYear();
+            const storedYear = localStorage.getItem("receiptYear");
+            
+            if (storedYear !== String(currentYear)) {
+                localStorage.setItem("receiptCounter", 1);
+                localStorage.setItem("receiptYear", currentYear);
+            }
+
+            let counter = parseInt(localStorage.getItem("receiptCounter")) || 1;
+            const receiptNumber = `MLTS-${currentYear}-${String(counter).padStart(4, '0')}`;
+            localStorage.setItem("receiptCounter", counter + 1);
+            return receiptNumber;
+        }
+
+        function setReceiptNumberIfEmpty() {
+            function setReceiptNumberIfEmpty() {
+    const input = window.opener.document.getElementById("receiptNumber");
+    const currentReceiptNo = input?.value?.trim();
+    
+    // ✅ 如果已有编号，不再生成
+    if (currentReceiptNo && currentReceiptNo !== "") {
+        return currentReceiptNo;
+    }
+
+    // ✅ 生成新的编号并保存到 input
+    const newNumber = generateReceiptNumber();
+    if (input) input.value = newNumber;
+    
+    return newNumber;
+}
+            const input = window.opener.document.getElementById("receiptNumber");
+            if (input && !input.value.trim()) {
+                const newNumber = generateReceiptNumber();
+                input.value = newNumber;
+                return newNumber;
+            }
+            return input.value;
+        }
+
+        function renderReceipt(data) {
+            const receiptNumber = data.receiptNo || setReceiptNumberIfEmpty();
+            const currentYear = new Date().getFullYear();
+            let content = `
+                <div>
+                    <p><strong>收据编号:</strong> ${receiptNumber}</p>
+                    <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                    <p><strong>主祈者:</strong> ${data.name || "未填写"}</p>
+                    <p><strong>电话:</strong> ${data.phone || "未填写"}</p>
+                    <p><strong>报名 ${currentYear} 年</strong> ${data.festival || "未选择"} 超度法会</p>
+                </div>
+            `;
+
+            let total = parseFloat(data.donation || 0);
+            const priceMap = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
+            const nameMap = { token: "祈福令牌", boat: "法船配套", lotus: "莲花", paper3: "纸金 3", paper6: "纸金 6", paper27: "纸金 27" };
+            const summary = {};
+
+            ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
+                (data[group] || []).forEach(item => {
+                    Object.entries(item).forEach(([key, value]) => {
+                        if (value && priceMap[key]) {
+                            const quantity = parseFloat(value);
+                            if (!isNaN(quantity)) {
+                                if (!summary[key]) summary[key] = 0;
+                                summary[key] += quantity;
+                                total += quantity * priceMap[key];
+                            }
+                        }
+                    });
+                });
+            });
+
+            let items = "";
+            Object.entries(summary).forEach(([key, qty]) => {
+                const subtotal = qty * priceMap[key];
+                const unit = key === 'lotus' ? '朵' : key.startsWith('paper') ? '份' : key === 'boat' ? '套' : '个';
+                items += `
+                    <div class="item-row">
+                        <span class="label">${nameMap[key]}</span>
+                        <span class="formula">${priceMap[key]} × ${qty}</span>
+                        <span class="amount">${subtotal.toFixed(2)}</span>
+                    </div>
+                `;
+            });
+
+            if (total > 0) {
+                items += `
+                    <div class="item-row">
+                        <span class="label">超度报名供养金</span>
+                        <span class="formula"></span>
+                        <span class="amount">${parseFloat(data.donation || 0).toFixed(2)}</span>
+                    </div>
+                `;
+            }
+
+            content += items + `
+                <div class="item-row" style="font-weight: bold; margin-top: 5px;">
+                    <span class="label">总计</span>
+                    <span class="formula"></span>
+                    <span class="amount">RM ${total.toFixed(2)}</span>
+                </div>
+            `;
+
+            document.getElementById("receiptInfo").innerHTML = content;
+        }
+
+        window.addEventListener("message", (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                renderReceipt(data);
+                setTimeout(() => window.print(), 500);
+            } catch (error) {
+                console.error("小票数据处理错误:", error);
+            }
+        });
+    </script>
+</body>
+</html>
