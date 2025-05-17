@@ -3,291 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>日结报表总览</title>
+    <title>日结算报表预览</title>
     <style>
-        /* 基础样式 */
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --bg-color: #f8f9fa;
-        }
-
+        /* 保持原始视觉风格 */
         body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
             margin: 0;
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--bg-color);
+            padding: 20px;
         }
 
-        /* 头部样式 */
-        .header {
-            background: var(--primary-color);
-            color: white;
-            padding: 1.5rem;
+        header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 15px 20px;
             text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
         }
 
-        /* 选项卡容器 */
-        .tab-system {
-            max-width: 1400px;
-            margin: 2rem auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        /* 选项卡导航 */
-        .tab-nav {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2px;
-            background: #e0e0e0;
-        }
-
-        .tab-btn {
-            padding: 1.2rem;
-            border: none;
-            background: #f5f5f5;
-            color: #666;
-            font-size: 1.1rem;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-        }
-
-        .tab-btn.active {
-            background: white;
-            color: var(--primary-color);
-            font-weight: 600;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-
-        .tab-btn::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
+        .container {
             width: 100%;
-            height: 3px;
-            background: var(--secondary-color);
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
+            max-width: 1000px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            padding: 20px;
         }
 
-        .tab-btn.active::after {
-            transform: scaleX(1);
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 20px;
         }
 
-        /* iframe容器 */
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            text-align: center;
+            background-color: #f1f1f1;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .tab.active {
+            background-color: #007bff;
+            color: #ffffff;
+            border-bottom: 2px solid #007bff;
+        }
+
         .iframe-container {
+            height: 600px;
             position: relative;
-            height: calc(100vh - 160px);
-            min-height: 700px;
         }
 
+        /* 优化后的iframe样式 */
         .system-iframe {
             width: 100%;
             height: 100%;
             border: none;
+            position: absolute;
             opacity: 0;
             transition: opacity 0.3s ease;
-            position: absolute;
-            top: 0;
-            left: 0;
+            visibility: hidden;
         }
 
         .system-iframe.active {
             opacity: 1;
-            z-index: 1;
+            visibility: visible;
         }
 
         /* 加载动画 */
         .loader {
-            display: none;
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             width: 40px;
             height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--secondary-color);
+            border: 3px solid rgba(0,123,255,0.2);
+            border-top-color: #007bff;
             border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: spin 0.8s linear infinite;
+            display: none;
         }
 
         @keyframes spin {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-
-        @media (max-width: 768px) {
-            .tab-nav {
-                grid-template-columns: 1fr;
-            }
-            
-            .iframe-container {
-                height: calc(100vh - 200px);
-            }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>日结报表总览</h1>
-        <p>当前版本：1.0.0 | 数据实时更新</p>
-    </div>
+    <header>
+        日结算报表预览
+    </header>
 
-    <div class="tab-system">
-        <nav class="tab-nav">
-            <button class="tab-btn active" data-tab="tai-sui">太岁日结</button>
-            <button class="tab-btn" data-tab="blessing">祈福日结</button>
-            <button class="tab-btn" data-tab="donation">超度日结</button>
-        </nav>
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" data-tab="0">太岁光明灯</div>
+            <div class="tab" data-tab="1">祈福</div>
+            <div class="tab" data-tab="2">超度</div>
+        </div>
 
         <div class="iframe-container">
             <div class="loader"></div>
-            
-            <!-- 太岁日结报表 -->
-            <iframe 
-                class="system-iframe active" 
-                src="tsdr.html"
-                data-tab="tai-sui"
-                loading="lazy"
-            ></iframe>
-
-            <!-- 祈福日结报表  -->
-            <iframe 
-                class="system-iframe"
-                src="qfdr.html" 
-                data-tab="blessing"
-                loading="lazy"
-            ></iframe>
-
-            <!-- 超度日结报表 -->
-            <iframe 
-                class="system-iframe"
-                src="cddr.html"
-                data-tab="donation"
-                loading="lazy"
-            ></iframe>
+            <iframe class="system-iframe active" data-src="tsdr.html"></iframe>
+            <iframe class="system-iframe" data-src="qfdr.html"></iframe>
+            <iframe class="system-iframe" data-src="cddr.html"></iframe>
         </div>
     </div>
 
     <script>
-        // 系统配置
-        const config = {
-            preloadNextTab: true, // 预加载相邻选项卡
-            iframeLazyLoad: true, // 延迟加载
-            heightSync: true      // 高度同步
-        };
-
-        // 初始化系统
-        class TabSystem {
+        class TabManager {
             constructor() {
-                this.tabs = document.querySelectorAll('.tab-btn');
+                this.tabs = document.querySelectorAll('.tab');
                 this.iframes = document.querySelectorAll('.system-iframe');
                 this.loader = document.querySelector('.loader');
+                this.activeIndex = 0;
                 this.init();
             }
 
             init() {
+                // 初始化首个标签
+                this.loadIframe(0);
                 this.bindEvents();
-                this.initIframes();
             }
 
             bindEvents() {
-                this.tabs.forEach(tab => {
-                    tab.addEventListener('click', () => this.switchTab(tab));
-                });
-
-                window.addEventListener('message', (e) => {
-                    if (e.data?.type === 'frameHeight') {
-                        this.adjustIframeHeight(e.source, e.data.height);
-                    }
+                this.tabs.forEach((tab, index) => {
+                    tab.addEventListener('click', () => {
+                        if (index === this.activeIndex) return;
+                        this.switchTab(index);
+                    });
                 });
             }
 
-            initIframes() {
-                this.iframes.forEach(iframe => {
-                    if (config.iframeLazyLoad) {
-                        iframe.setAttribute('loading', 'lazy');
-                    }
-                    if (iframe.classList.contains('active')) {
-                        this.loadIframe(iframe);
-                    }
-                });
-            }
-
-            async switchTab(clickedTab) {
+            async switchTab(newIndex) {
                 // 显示加载动画
-                this.loader.style.display = 'block';
+                this.showLoader();
 
-                // 切换选项卡状态
-                this.tabs.forEach(tab => tab.classList.remove('active'));
-                clickedTab.classList.add('active');
+                // 切换标签状态
+                this.tabs[this.activeIndex].classList.remove('active');
+                this.tabs[newIndex].classList.add('active');
 
-                // 获取目标iframe
-                const targetTab = clickedTab.dataset.tab;
-                const targetIframe = [...this.iframes].find(
-                    iframe => iframe.dataset.tab === targetTab
-                );
+                // 隐藏旧iframe
+                this.iframes[this.activeIndex].classList.remove('active');
 
-                // 加载目标iframe
-                await this.loadIframe(targetIframe);
+                // 加载或显示新iframe
+                await this.loadIframe(newIndex);
+                this.iframes[newIndex].classList.add('active');
 
-                // 预加载相邻选项卡
-                if (config.preloadNextTab) {
-                    const nextTab = this.getNextTab(targetTab);
-                    const nextIframe = [...this.iframes].find(
-                        iframe => iframe.dataset.tab === nextTab
-                    );
-                    this.preloadIframe(nextIframe);
-                }
-
-                // 隐藏其他iframe
-                this.iframes.forEach(iframe => {
-                    iframe.classList.remove('active');
-                });
-                targetIframe.classList.add('active');
+                // 更新当前索引
+                this.activeIndex = newIndex;
 
                 // 隐藏加载动画
-                this.loader.style.display = 'none';
+                this.hideLoader();
             }
 
-            async loadIframe(iframe) {
-                return new Promise((resolve) => {
-                    if (!iframe.src) {
-                        iframe.src = iframe.dataset.src;
-                    }
-                    iframe.onload = () => resolve();
-                });
-            }
-
-            preloadIframe(iframe) {
+            async loadIframe(index) {
+                const iframe = this.iframes[index];
                 if (!iframe.src) {
                     iframe.src = iframe.dataset.src;
+                    await new Promise(resolve => {
+                        iframe.onload = resolve;
+                        // 超时保障
+                        setTimeout(resolve, 3000);
+                    });
                 }
+                return true;
             }
 
-            getNextTab(currentTab) {
-                const tabsOrder = ['tai-sui', 'blessing', 'donation'];
-                const currentIndex = tabsOrder.indexOf(currentTab);
-                return tabsOrder[(currentIndex + 1) % tabsOrder.length];
+            showLoader() {
+                this.loader.style.display = 'block';
+                // 强制重绘确保动画流畅
+                void this.loader.offsetWidth;
             }
 
-            adjustIframeHeight(source, height) {
-                this.iframes.forEach(iframe => {
-                    if (iframe.contentWindow === source) {
-                        iframe.style.height = `${height}px`;
-                    }
-                });
+            hideLoader() {
+                this.loader.style.display = 'none';
             }
         }
 
-        // 启动系统
-        new TabSystem();
+        // 初始化系统
+        new TabManager();
+
+        // 内存优化：页面隐藏时释放资源
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                document.querySelectorAll('.system-iframe:not(.active)').forEach(iframe => {
+                    iframe.src = '';
+                });
+            }
+        });
     </script>
 </body>
 </html>
