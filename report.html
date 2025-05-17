@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日结报表总览</title>
+    <style>
+        /* 基础样式 */
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+        }
+
+        /* 头部样式 */
+        .header {
+            background: var(--primary-color);
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* 选项卡容器 */
+        .tab-system {
+            max-width: 1400px;
+            margin: 2rem auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        /* 选项卡导航 */
+        .tab-nav {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            background: #e0e0e0;
+        }
+
+        .tab-btn {
+            padding: 1.2rem;
+            border: none;
+            background: #f5f5f5;
+            color: #666;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .tab-btn.active {
+            background: white;
+            color: var(--primary-color);
+            font-weight: 600;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .tab-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--secondary-color);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .tab-btn.active::after {
+            transform: scaleX(1);
+        }
+
+        /* iframe容器 */
+        .iframe-container {
+            position: relative;
+            height: calc(100vh - 160px);
+            min-height: 700px;
+        }
+
+        .system-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .system-iframe.active {
+            opacity: 1;
+            z-index: 1;
+        }
+
+        /* 加载动画 */
+        .loader {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .tab-nav {
+                grid-template-columns: 1fr;
+            }
+            
+            .iframe-container {
+                height: calc(100vh - 200px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>日结报表总览</h1>
+        <p>当前版本：1.0.0 | 数据实时更新</p>
+    </div>
+
+    <div class="tab-system">
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="tai-sui">太岁日结</button>
+            <button class="tab-btn" data-tab="blessing">祈福日结</button>
+            <button class="tab-btn" data-tab="donation">超度日结</button>
+        </nav>
+
+        <div class="iframe-container">
+            <div class="loader"></div>
+            
+            <!-- 太岁日结报表 -->
+            <iframe 
+                class="system-iframe active" 
+                src="tsdr.html"
+                data-tab="tai-sui"
+                loading="lazy"
+            ></iframe>
+
+            <!-- 祈福日结报表  -->
+            <iframe 
+                class="system-iframe"
+                src="qfdr.html" 
+                data-tab="blessing"
+                loading="lazy"
+            ></iframe>
+
+            <!-- 超度日结报表 -->
+            <iframe 
+                class="system-iframe"
+                src="cddr.html"
+                data-tab="donation"
+                loading="lazy"
+            ></iframe>
+        </div>
+    </div>
+
+    <script>
+        // 系统配置
+        const config = {
+            preloadNextTab: true, // 预加载相邻选项卡
+            iframeLazyLoad: true, // 延迟加载
+            heightSync: true      // 高度同步
+        };
+
+        // 初始化系统
+        class TabSystem {
+            constructor() {
+                this.tabs = document.querySelectorAll('.tab-btn');
+                this.iframes = document.querySelectorAll('.system-iframe');
+                this.loader = document.querySelector('.loader');
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.initIframes();
+            }
+
+            bindEvents() {
+                this.tabs.forEach(tab => {
+                    tab.addEventListener('click', () => this.switchTab(tab));
+                });
+
+                window.addEventListener('message', (e) => {
+                    if (e.data?.type === 'frameHeight') {
+                        this.adjustIframeHeight(e.source, e.data.height);
+                    }
+                });
+            }
+
+            initIframes() {
+                this.iframes.forEach(iframe => {
+                    if (config.iframeLazyLoad) {
+                        iframe.setAttribute('loading', 'lazy');
+                    }
+                    if (iframe.classList.contains('active')) {
+                        this.loadIframe(iframe);
+                    }
+                });
+            }
+
+            async switchTab(clickedTab) {
+                // 显示加载动画
+                this.loader.style.display = 'block';
+
+                // 切换选项卡状态
+                this.tabs.forEach(tab => tab.classList.remove('active'));
+                clickedTab.classList.add('active');
+
+                // 获取目标iframe
+                const targetTab = clickedTab.dataset.tab;
+                const targetIframe = [...this.iframes].find(
+                    iframe => iframe.dataset.tab === targetTab
+                );
+
+                // 加载目标iframe
+                await this.loadIframe(targetIframe);
+
+                // 预加载相邻选项卡
+                if (config.preloadNextTab) {
+                    const nextTab = this.getNextTab(targetTab);
+                    const nextIframe = [...this.iframes].find(
+                        iframe => iframe.dataset.tab === nextTab
+                    );
+                    this.preloadIframe(nextIframe);
+                }
+
+                // 隐藏其他iframe
+                this.iframes.forEach(iframe => {
+                    iframe.classList.remove('active');
+                });
+                targetIframe.classList.add('active');
+
+                // 隐藏加载动画
+                this.loader.style.display = 'none';
+            }
+
+            async loadIframe(iframe) {
+                return new Promise((resolve) => {
+                    if (!iframe.src) {
+                        iframe.src = iframe.dataset.src;
+                    }
+                    iframe.onload = () => resolve();
+                });
+            }
+
+            preloadIframe(iframe) {
+                if (!iframe.src) {
+                    iframe.src = iframe.dataset.src;
+                }
+            }
+
+            getNextTab(currentTab) {
+                const tabsOrder = ['tai-sui', 'blessing', 'donation'];
+                const currentIndex = tabsOrder.indexOf(currentTab);
+                return tabsOrder[(currentIndex + 1) % tabsOrder.length];
+            }
+
+            adjustIframeHeight(source, height) {
+                this.iframes.forEach(iframe => {
+                    if (iframe.contentWindow === source) {
+                        iframe.style.height = `${height}px`;
+                    }
+                });
+            }
+        }
+
+        // 启动系统
+        new TabSystem();
+    </script>
+</body>
+</html>
