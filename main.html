@@ -25,11 +25,23 @@
       margin-bottom: 30px;
       color: #b80000;
     }
+    .username {
+      text-align: right;
+      margin-bottom: 20px;
+      font-weight: bold;
+      color: #555;
+    }
+    .restricted {
+      display: none;  /* 确保默认隐藏 */
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="username">👤 当前用户：<span id="whoLogin">未知</span></div>
+
     <h2 class="text-center">🔧 后台导航面板</h2>
+
     <div class="nav-card">
       <h5>🪔 超度管理后台</h5>
       <a href="https://leizs2025.github.io/houtai/chaodu/index1.html" target="_blank" class="btn btn-success">查看预览</a>
@@ -40,7 +52,7 @@
       <a href="https://leizs2025.github.io/houtai/qifu/index.html" target="_blank" class="btn btn-primary">进入系统</a>
     </div>
 
-        <div class="nav-card">
+    <div class="nav-card">
       <h5>💡 太岁光明灯后台</h5>
       <a href="https://leizs2025.github.io/1/crud-admin/index.html" target="_blank" class="btn btn-warning">进入系统</a>
     </div>
@@ -54,9 +66,9 @@
       <h5>👁️ 实时预览（太岁光明灯）</h5>
       <a href="https://leizs2025.github.io/1/crud-admin/display.html" target="_blank" class="btn btn-info">查看预览</a>
     </div>
-    
-     <div class="nav-card">
-      <h5>👁️ 日结报表总览 </h5>
+
+    <div class="nav-card restricted">
+      <h5>👁️ 日结报表总览</h5>
       <a href="report.html" target="_blank" class="btn btn-info">查看预览</a>
     </div>
 
@@ -65,19 +77,33 @@
     </div>
   </div>
 
-  
- 
-  
   <script>
+    // 获取管理员名称和角色
     const admin = localStorage.getItem("admin");
-    if (!admin) {
+    const role = localStorage.getItem("role");
+
+    // 确保用户已登录
+    if (!admin || !role) {
       alert("请先登录！");
-      location.href = "login.html";
+      location.href = "https://leizs2025.github.io/houtai/login.html";
+    } else {
+      // 设置显示的用户名
+      document.getElementById("whoLogin").textContent = admin;
+      
+      // 只允许 "admin" 和 "manager" 看到 restricted 内容
+      if (role === "admin" || role === "manager") {
+        // 确保在 DOM 加载完成后显示
+        window.addEventListener("DOMContentLoaded", () => {
+          const restrictedElements = document.querySelectorAll(".restricted");
+          restrictedElements.forEach(element => element.style.display = "block");
+        });
+      }
     }
 
     function logout() {
       localStorage.removeItem("admin");
-      location.href = "login.html";
+      localStorage.removeItem("role");
+      location.href = "https://leizs2025.github.io/houtai/login.html";
     }
   </script>
 </body>
