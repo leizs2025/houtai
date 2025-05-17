@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>超度日结算报表</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #f9f9f9;
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #007bff;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      margin-bottom: 20px;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #ddd;
+    }
+    th {
+      background-color: #007bff;
+      color: #fff;
+    }
+    tfoot td {
+      font-weight: bold;
+      background-color: #f1f1f1;
+    }
+  </style>
+</head>
+<body>
+  <h2>📅 超度日结算报表</h2>
+
+  <!-- 日期选择 -->
+  <div class="mb-4 text-center">
+    <label for="dateSelect" class="form-label fw-bold">选择日期：</label>
+    <input type="date" id="dateSelect" class="form-control w-auto d-inline-block mb-3" onchange="loadReport()">
+  </div>
+
+  <!-- 数据表格 -->
+  <table id="reportTable" class="table table-striped table-bordered">
+    <thead>
+      <tr>
+        <th>时间戳</th>
+        <th>电话</th>
+        <th>令牌</th>
+        <th>法船配套</th>
+        <th>莲花</th>
+        <th>3元纸金</th>
+        <th>6元纸金</th>
+        <th>27元纸金</th>
+        <th>供养金额</th>
+        <th>管理员</th>
+        <th>收据号</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">总计</td>
+        <td id="totalToken">0.00</td>
+        <td id="totalBoat">0.00</td>
+        <td id="totalLotus">0.00</td>
+        <td id="totalPG3">0.00</td>
+        <td id="totalPG6">0.00</td>
+        <td id="totalPG27">0.00</td>
+        <td id="totalDonation">0.00</td>
+        
+        
+        <td colspan="2"></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <script>
+async function loadReport() {
+  const dateSelect = document.getElementById("dateSelect").value;
+  if (!dateSelect) return;
+
+  const apiUrl = "https://script.google.com/macros/s/AKfycbzW1Rfjh8D6vbCApFn2ZZvMSZa5DoF74UMQ2T8Fr6Gxr-hmft0VIMbSESD4ofIXxRQ/exec?list=1";
+
+  try {
+    const res = await fetch(apiUrl);
+    const entries = await res.json();
+    const tableBody = document.querySelector("#reportTable tbody");
+    tableBody.innerHTML = "";
+
+    // **确保日期没有重复计算**
+    const uniqueEntries = {};
+    let totalToken = 0, totalBoat = 0, totalLotus = 0, totalPG3 = 0, totalPG6 = 0, totalPG27 = 0, totalDonation = 0;
+
+    entries.forEach(entry => {
+      const timestamp = entry.timestamp.split(" ")[0];
+
+      // **确保只匹配一次**
+      const uniqueKey = entry.phoneNumber + timestamp;
+      if (uniqueEntries[uniqueKey]) return;
+      uniqueEntries[uniqueKey] = true;
+
+      if (timestamp !== dateSelect) return;
+
+      // **小计**
+      const pg3Total = entry.paper3 * 3;
+      const pg6Total = entry.paper6 * 6;
+      const pg27Total = entry.paper27 * 27;
+      const tokenTotal = entry.token * 5;
+      const boatTotal = entry.boat * 30;
+      const lotusTotal = entry.lotus * 6;
+      const donationTotal = entry.donation || 0;
+
+      totalToken += tokenTotal;
+      totalBoat += boatTotal;
+      totalLotus += lotusTotal;
+      totalPG3 += pg3Total;
+      totalPG6 += pg6Total;
+      totalPG27 += pg27Total;
+      totalDonation += donationTotal;
+
+      tableBody.insertAdjacentHTML("beforeend", `
+        <tr>
+          <td>${entry.timestamp}</td>
+          <td>${entry.phoneNumber || "未知"}</td>
+          <td>${tokenTotal.toFixed(2)}</td>
+          <td>${boatTotal.toFixed(2)}</td>
+          <td>${lotusTotal.toFixed(2)}</td>
+          <td>${pg3Total.toFixed(2)}</td>
+          <td>${pg6Total.toFixed(2)}</td>
+          <td>${pg27Total.toFixed(2)}</td>
+          <td>${donationTotal.toFixed(2)}</td>
+          <td>${entry.admin || "无名"}</td>
+          <td>${entry.receiptNo || ""}</td>
+        </tr>
+      `);
+    });
+
+    // **更新合计**
+    document.getElementById("totalDonation").textContent = totalDonation.toFixed(2);
+    document.getElementById("totalPG3").textContent = totalPG3.toFixed(2);
+    document.getElementById("totalPG6").textContent = totalPG6.toFixed(2);
+    document.getElementById("totalPG27").textContent = totalPG27.toFixed(2);
+    document.getElementById("totalToken").textContent = totalToken.toFixed(2);
+    document.getElementById("totalBoat").textContent = totalBoat.toFixed(2);
+    document.getElementById("totalLotus").textContent = totalLotus.toFixed(2);
+  } catch (err) {
+    console.error("加载错误：", err);
+  }
+}
+
+</script>
+
+</body>
+</html>
