@@ -3,88 +3,83 @@
 <head>
   <meta charset="UTF-8">
   <title>后台登录</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <style>
     body {
-      margin: 0;
-      padding: 0;
+      background-color: #fff8e7;
       font-family: "Segoe UI", sans-serif;
-      background: linear-gradient(to right, #ffefba, #ffffff);
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
+      margin: 0;
     }
-
-    .login-container {
-      background: white;
-      padding: 40px 30px;
+    .login-card {
+      padding: 40px;
       border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      background: white;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      width: 350px;
       text-align: center;
-      width: 300px;
     }
-
     h2 {
       color: #b80000;
-      margin-bottom: 24px;
+      margin-bottom: 30px;
     }
-
-    input {
+    .btn-primary {
       width: 100%;
-      padding: 10px 12px;
-      margin: 8px 0 16px;
-      font-size: 16px;
-      border: 2px solid #ccc;
-      border-radius: 8px;
-      box-sizing: border-box;
+      margin-bottom: 15px;
     }
-
-    button {
-      width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      color: white;
-      background: linear-gradient(145deg, #d0021b, #ff5e62);
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-
-    button:hover {
-      background: linear-gradient(145deg, #b80012, #e44c50);
+    .alert {
+      margin-top: 20px;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <h2>后台管理登录</h2>
-    <input type="password" id="password" placeholder="请输入管理员密码" />
-    <button onclick="login()">登录</button>
+  <div class="login-card">
+    <h2>🔒 后台登录</h2>
+
+    <div class="mb-3">
+      <input type="password" id="password" class="form-control" placeholder="请输入密码">
+    </div>
+
+    <button class="btn btn-primary" onclick="login()">登录</button>
+
+    <div id="login-message" class="alert alert-danger" role="alert"></div>
   </div>
 
-<script>
-function login() {
-  const pw = document.getElementById("password").value.trim();
+  <script>
+    // 用户密码映射
+    const USERS = {
+      "8665520": { name: "超级管理员", role: "admin" },
+      "123456": { name: "雷藏寺", role: "manager" },
+      "654321": { name: "妙理堂", role: "user" },
+      "boss2025": { name: "李老板", role: "boss" }
+    };
 
-  // 密码和管理员名字的映射关系
-  const adminList = {
-    "123456": "雷藏寺",
-    "654321": "妙理堂",
-    "8665520": "超级管理员" // 👈 新加的管理员！
-  };
+    function login() {
+      const password = document.getElementById("password").value.trim();
 
-  const adminName = adminList[pw]; // 根据输入的密码找对应管理员
+      // 检查密码是否有效
+      const user = USERS[password];
 
-  if (adminName) {
-    localStorage.setItem("admin", adminName);
-    location.href = "main.html";
-  } else {
-    alert("密码错误，请重新输入！");
-  }
-}
-</script>
+      if (user) {
+        // 设置管理员名称和角色
+        localStorage.setItem("admin", user.name);
+        localStorage.setItem("role", user.role);
+        location.href = "main.html";
+      } else {
+        const message = document.getElementById("login-message");
+        message.textContent = "密码错误，请重试！";
+        message.style.display = "block";
+      }
+    }
 
+    // 已登录用户直接跳转到主页
+    if (localStorage.getItem("admin")) {
+      location.href = "main.html";
+    }
+  </script>
 </body>
 </html>
