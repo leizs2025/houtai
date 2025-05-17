@@ -8,40 +8,71 @@
     body {
       background-color: #fff;
       font-family: "Segoe UI", sans-serif;
-      max-width: 95%;
-      margin: 30px auto;
-      padding: 20px;
-      border: 1px dashed #aaa;
-      overflow-x: auto;
+      max-width: 100%; /* 修改为100% */
+      margin: 20px auto; /* 减少外边距 */
+      padding: 15px;
+      box-sizing: border-box; /* 新增 */
     }
+
     h2 {
       text-align: center;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
+      font-size: 1.5rem; /* 响应式字体 */
     }
-    table {
+
+    .responsive-table {
       width: 100%;
-      margin-bottom: 20px;
-      border-collapse: collapse;
-      min-width: 1000px;
+      overflow-x: auto; /* 添加横向滚动 */
+      margin-bottom: 15px;
+      border: 1px solid #ddd; /* 替代body边框 */
     }
+
+    table {
+      min-width: 600px; /* 降低最小宽度 */
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: auto; /* 自动列宽 */
+    }
+
     th, td {
       border: 1px solid #ddd;
-      padding: 12px;
+      padding: 10px;
       text-align: center;
+      min-width: 80px; /* 设置最小列宽 */
       white-space: nowrap;
     }
+
     th {
-      background-color: #f2f2f2;
-      font-weight: bold;
+      background-color: #f8f9fa;
+      font-weight: 600;
+      font-size: 0.9rem;
     }
+
     tfoot td {
       font-weight: bold;
-      background-color: #f9f9f9;
+      background-color: #f8f9fa;
     }
+
     .no-receipt {
       background-color: #ffe6e6;
-      color: #a94442;
-      font-weight: bold;
+      color: #dc3545;
+    }
+
+    /* 响应式调整 */
+    @media screen and (max-width: 768px) {
+      body {
+        padding: 10px;
+        margin: 10px auto;
+      }
+
+      h2 {
+        font-size: 1.3rem;
+      }
+
+      th, td {
+        padding: 8px;
+        font-size: 0.85rem;
+      }
     }
   </style>
 </head>
