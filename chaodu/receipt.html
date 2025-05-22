@@ -85,20 +85,29 @@
     </div>
 
     <script>
-        function generateReceiptNumber() {
-            const currentYear = new Date().getFullYear();
-            const storedYear = localStorage.getItem("receiptYear");
-            
-            if (storedYear !== String(currentYear)) {
-                localStorage.setItem("receiptCounter", 1);
-                localStorage.setItem("receiptYear", currentYear);
-            }
+function generateReceiptNumber() {
+    const now = new Date();
+    const year = String(now.getFullYear()).slice(-2);           // "25"
+    const month = String(now.getMonth() + 1).padStart(2, '0');  // "05"
+    const ymKey = `${year}${month}`;                            // "2505"
 
-            let counter = parseInt(localStorage.getItem("receiptCounter")) || 1;
-            const receiptNumber = `MLTS-${currentYear}-${String(counter).padStart(4, '0')}`;
-            localStorage.setItem("receiptCounter", counter + 1);
-            return receiptNumber;
-        }
+    const storedYM = localStorage.getItem("receiptYearMonth");
+
+    if (storedYM !== ymKey) {
+        localStorage.setItem("receiptCounter", 1);
+        localStorage.setItem("receiptYearMonth", ymKey);
+    }
+
+    let counter = parseInt(localStorage.getItem("receiptCounter"), 10);
+    if (isNaN(counter) || counter < 1) {
+        counter = 1;
+    }
+
+    const receiptNumber = `MLTS-${ymKey}-${String(counter).padStart(4, '0')}`;
+    localStorage.setItem("receiptCounter", counter + 1);
+    return receiptNumber;
+}
+
 
         function setReceiptNumberIfEmpty() {
             function setReceiptNumberIfEmpty() {
