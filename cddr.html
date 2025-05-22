@@ -56,12 +56,12 @@
         <th>时间戳</th>
         <th>电话</th>
         <th>令牌</th>
-        <th>法船<br>配套</th>
+        <th>法船配套</th>
         <th>莲花</th>
-        <th>3元<br>纸金</th>
-        <th>6元<br>纸金</th>
-        <th>27元<br>纸金</th>
-        <th>报名供<br>养金</th>
+        <th>3元纸金</th>
+        <th>6元纸金</th>
+        <th>27元纸金</th>
+        <th>供养金额</th>
         <th>管理员</th>
         <th>收据号</th>
       </tr>
@@ -69,7 +69,18 @@
     <tbody></tbody>
     <tfoot>
       <tr>
-        <td colspan="2">总计</td>
+        <td colspan="2">数量合计</td>
+        <td id="countToken">0</td>
+        <td id="countBoat">0</td>
+        <td id="countLotus">0</td>
+        <td id="countPG3">0</td>
+        <td id="countPG6">0</td>
+        <td id="countPG27">0</td>
+        <td>-</td>
+        <td colspan="2"></td>
+      </tr>
+      <tr>
+        <td colspan="2">总金额</td>
         <td id="totalToken">0.00</td>
         <td id="totalBoat">0.00</td>
         <td id="totalLotus">0.00</td>
@@ -77,88 +88,96 @@
         <td id="totalPG6">0.00</td>
         <td id="totalPG27">0.00</td>
         <td id="totalDonation">0.00</td>
-        
-        
         <td colspan="2"></td>
       </tr>
     </tfoot>
   </table>
 
   <script>
-async function loadReport() {
-  const dateSelect = document.getElementById("dateSelect").value;
-  if (!dateSelect) return;
+    async function loadReport() {
+      const dateSelect = document.getElementById("dateSelect").value;
+      if (!dateSelect) return;
 
-  const apiUrl = "https://script.google.com/macros/s/AKfycbzW1Rfjh8D6vbCApFn2ZZvMSZa5DoF74UMQ2T8Fr6Gxr-hmft0VIMbSESD4ofIXxRQ/exec?list=1";
+      const apiUrl = "https://script.google.com/macros/s/AKfycbzW1Rfjh8D6vbCApFn2ZZvMSZa5DoF74UMQ2T8Fr6Gxr-hmft0VIMbSESD4ofIXxRQ/exec?list=1";
 
-  try {
-    const res = await fetch(apiUrl);
-    const entries = await res.json();
-    const tableBody = document.querySelector("#reportTable tbody");
-    tableBody.innerHTML = "";
+      try {
+        const res = await fetch(apiUrl);
+        const entries = await res.json();
+        const tableBody = document.querySelector("#reportTable tbody");
+        tableBody.innerHTML = "";
 
-    // **确保日期没有重复计算**
-    const uniqueEntries = {};
-    let totalToken = 0, totalBoat = 0, totalLotus = 0, totalPG3 = 0, totalPG6 = 0, totalPG27 = 0, totalDonation = 0;
+        const uniqueEntries = {};
+        let totalToken = 0, totalBoat = 0, totalLotus = 0, totalPG3 = 0, totalPG6 = 0, totalPG27 = 0, totalDonation = 0;
+        let countToken = 0, countBoat = 0, countLotus = 0, countPG3 = 0, countPG6 = 0, countPG27 = 0;
 
-    entries.forEach(entry => {
-      const timestamp = entry.timestamp.split(" ")[0];
+        entries.forEach(entry => {
+          const timestamp = entry.timestamp.split(" ")[0];
+          const uniqueKey = entry.phoneNumber + timestamp;
+          if (uniqueEntries[uniqueKey]) return;
+          uniqueEntries[uniqueKey] = true;
 
-      // **确保只匹配一次**
-      const uniqueKey = entry.phoneNumber + timestamp;
-      if (uniqueEntries[uniqueKey]) return;
-      uniqueEntries[uniqueKey] = true;
+          if (timestamp !== dateSelect) return;
 
-      if (timestamp !== dateSelect) return;
+          const pg3Total = entry.paper3 * 3;
+          const pg6Total = entry.paper6 * 6;
+          const pg27Total = entry.paper27 * 27;
+          const tokenTotal = entry.token * 5;
+          const boatTotal = entry.boat * 30;
+          const lotusTotal = entry.lotus * 6;
+          const donationTotal = entry.donation || 0;
 
-      // **小计**
-      const pg3Total = entry.paper3 * 3;
-      const pg6Total = entry.paper6 * 6;
-      const pg27Total = entry.paper27 * 27;
-      const tokenTotal = entry.token * 5;
-      const boatTotal = entry.boat * 30;
-      const lotusTotal = entry.lotus * 6;
-      const donationTotal = entry.donation || 0;
+          totalToken += tokenTotal;
+          totalBoat += boatTotal;
+          totalLotus += lotusTotal;
+          totalPG3 += pg3Total;
+          totalPG6 += pg6Total;
+          totalPG27 += pg27Total;
+          totalDonation += donationTotal;
 
-      totalToken += tokenTotal;
-      totalBoat += boatTotal;
-      totalLotus += lotusTotal;
-      totalPG3 += pg3Total;
-      totalPG6 += pg6Total;
-      totalPG27 += pg27Total;
-      totalDonation += donationTotal;
+          countToken += entry.token || 0;
+          countBoat += entry.boat || 0;
+          countLotus += entry.lotus || 0;
+          countPG3 += entry.paper3 || 0;
+          countPG6 += entry.paper6 || 0;
+          countPG27 += entry.paper27 || 0;
 
-      tableBody.insertAdjacentHTML("beforeend", `
-        <tr>
-          <td>${entry.timestamp}</td>
-          <td>${entry.phoneNumber || "未知"}</td>
-          <td>${tokenTotal.toFixed(2)}</td>
-          <td>${boatTotal.toFixed(2)}</td>
-          <td>${lotusTotal.toFixed(2)}</td>
-          <td>${pg3Total.toFixed(2)}</td>
-          <td>${pg6Total.toFixed(2)}</td>
-          <td>${pg27Total.toFixed(2)}</td>
-          <td>${donationTotal.toFixed(2)}</td>
-          <td>${entry.admin || "无名"}</td>
-          <td>${entry.receiptNo || ""}</td>
-        </tr>
-      `);
-    });
+          tableBody.insertAdjacentHTML("beforeend", `
+            <tr>
+              <td>${entry.timestamp}</td>
+              <td>${entry.phoneNumber || "未知"}</td>
+              <td>${tokenTotal.toFixed(2)}</td>
+              <td>${boatTotal.toFixed(2)}</td>
+              <td>${lotusTotal.toFixed(2)}</td>
+              <td>${pg3Total.toFixed(2)}</td>
+              <td>${pg6Total.toFixed(2)}</td>
+              <td>${pg27Total.toFixed(2)}</td>
+              <td>${donationTotal.toFixed(2)}</td>
+              <td>${entry.admin || "无名"}</td>
+              <td>${entry.receiptNo || ""}</td>
+            </tr>
+          `);
+        });
 
-    // **更新合计**
-    document.getElementById("totalDonation").textContent = totalDonation.toFixed(2);
-    document.getElementById("totalPG3").textContent = totalPG3.toFixed(2);
-    document.getElementById("totalPG6").textContent = totalPG6.toFixed(2);
-    document.getElementById("totalPG27").textContent = totalPG27.toFixed(2);
-    document.getElementById("totalToken").textContent = totalToken.toFixed(2);
-    document.getElementById("totalBoat").textContent = totalBoat.toFixed(2);
-    document.getElementById("totalLotus").textContent = totalLotus.toFixed(2);
-  } catch (err) {
-    console.error("加载错误：", err);
-  }
-}
+        // 更新数量合计
+        document.getElementById("countToken").textContent = countToken;
+        document.getElementById("countBoat").textContent = countBoat;
+        document.getElementById("countLotus").textContent = countLotus;
+        document.getElementById("countPG3").textContent = countPG3;
+        document.getElementById("countPG6").textContent = countPG6;
+        document.getElementById("countPG27").textContent = countPG27;
 
-</script>
-
+        // 更新金额合计
+        document.getElementById("totalDonation").textContent = totalDonation.toFixed(2);
+        document.getElementById("totalPG3").textContent = totalPG3.toFixed(2);
+        document.getElementById("totalPG6").textContent = totalPG6.toFixed(2);
+        document.getElementById("totalPG27").textContent = totalPG27.toFixed(2);
+        document.getElementById("totalToken").textContent = totalToken.toFixed(2);
+        document.getElementById("totalBoat").textContent = totalBoat.toFixed(2);
+        document.getElementById("totalLotus").textContent = totalLotus.toFixed(2);
+      } catch (err) {
+        console.error("加载错误：", err);
+      }
+    }
+  </script>
 </body>
 </html>
