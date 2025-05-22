@@ -83,7 +83,7 @@ window.generateReceiptNumber = function () {
     }
 
     // ✅ 生成编号，例如 MLTS-2505-0001
-    const receiptNumber = `MLTS-${ymKey}-${String(counter).padStart(4, '0')}`;
+    const receiptNumber = `LQFR-${ymKey}-${String(counter).padStart(4, '0')}`;
 
     // ✅ 增加计数器并保存
     localStorage.setItem("receiptCounter", counter + 1);
