@@ -77,97 +77,100 @@
   </style>
 </head>
 <body>
-  <h2>📅 太岁光明灯日结报表</h2>
+  <h2>📅 太岁日结报表</h2>
 
-  <div class="selector">
+  <div class="selector mb-3">
     <label for="dateSelect" class="form-label fw-bold">选择日期：</label>
-    <input type="date" id="dateSelect" onchange="loadReport()" />
-
+    <input type="date" id="dateSelect" class="form-control form-control-sm" style="max-width: 200px" onchange="loadReport()">
   </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>时间戳</th>
-        <th>电话</th>
-        <th>纸金</th>
-        <th>随意赞助</th>
-        <th>收据号</th>
-        <th>管理员</th>
-      </tr>
-    </thead>
-    <tbody id="reportBody">
-      <tr><td colspan="6">⚠️ 请选择日期以加载数据</td></tr>
-    </tbody>
-    <tfoot>
-      <tr>
-        <td colspan="2">总计</td>
-        <td id="totalPaper">0.00</td>
-        <td id="totalDonation">0.00</td>
-        <td colspan="2"></td>
-      </tr>
-    </tfoot>
-  </table>
-
+  <div class="responsive-table">
+    <table>
+      <thead>
+        <tr>
+          <th>时间戳</th>
+          <th>电话</th>
+          <th>纸金</th>
+          <th>随意赞助</th>
+          <th>收据号</th>
+          <th>管理员</th>
+        </tr>
+      </thead>
+      <tbody id="reportBody">
+        <tr><td colspan="6">⚠️ 请选择日期以加载数据</td></tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">纸金份数</td>
+          <td id="countPaper">0</td>
+          <td>-</td>
+          <td colspan="2"></td>
+        </tr>
+        <tr>
+          <td colspan="2">总计</td>
+          <td id="totalPaper">0.00</td>
+          <td id="totalDonation">0.00</td>
+          <td colspan="2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
 
   <script>
-async function loadReport() {
-  const dateSelect = document.getElementById("dateSelect").value;
-  if (!dateSelect) return;
+    async function loadReport() {
+      const dateSelect = document.getElementById("dateSelect").value;
+      if (!dateSelect) return;
 
-  // **确保前端日期格式与后端一致 (yyyy-MM-dd)**
-  const formattedDate = dateSelect;
+      const scriptUrl = "https://script.google.com/macros/s/AKfycby2b1eQKp0xL4Uu3NzFk9VCZF3L0UpwdvHDCHtow4RKC4tJPB82rl5kHZsD8zuTvBt2/exec";
+      const url = `${scriptUrl}?date=${encodeURIComponent(dateSelect)}`;
 
-  const scriptUrl = "https://script.google.com/macros/s/AKfycby2b1eQKp0xL4Uu3NzFk9VCZF3L0UpwdvHDCHtow4RKC4tJPB82rl5kHZsD8zuTvBt2/exec";
-  const url = `${scriptUrl}?date=${encodeURIComponent(formattedDate)}`;
+      try {
+        const res = await fetch(url);
+        const entries = await res.json();
 
-  try {
-    const res = await fetch(url);
-    const entries = await res.json();
+        const tableBody = document.getElementById("reportBody");
+        tableBody.innerHTML = "";
 
-    const tableBody = document.getElementById("reportBody");
-    tableBody.innerHTML = "";
+        let totalPaper = 0;
+        let totalDonation = 0;
+        let countPaper = 0;
 
-    let totalPaper = 0;
-    let totalDonation = 0;
+        entries.forEach(entry => {
+          if (typeof entry !== 'object' || !entry.timestamp) return;
 
-    entries.forEach(entry => {
-      if (typeof entry !== 'object' || !entry.timestamp) return;
+          const paperTotal = parseFloat(entry.paperTotal || 0);
+          const paperCount = Math.round(paperTotal / 3);  // 每份纸金 3 元
+          const donation = parseFloat(entry.donation || 0);
 
-      // **计算总计**
-      totalPaper += parseFloat(entry.paperTotal || 0);
-      totalDonation += parseFloat(entry.donation || 0);
+          totalPaper += paperTotal;
+          totalDonation += donation;
+          countPaper += paperCount;
 
-      const rowHtml = `
-        <tr>
-          <td>${entry.timestamp}</td>
-          <td>${entry.phoneNumber || "未知"}</td>
-          <td>${parseFloat(entry.paperTotal || 0).toFixed(2)}</td>
-          <td>${parseFloat(entry.donation || 0).toFixed(2)}</td>
-          <td>${entry.receiptNumber || ""}</td>
-          <td>${entry.admin || ""}</td>
-        </tr>`;
+          const rowHtml = `
+            <tr>
+              <td>${entry.timestamp}</td>
+              <td>${entry.phoneNumber || "未知"}</td>
+              <td>${paperTotal.toFixed(2)}</td>
+              <td>${donation.toFixed(2)}</td>
+              <td>${entry.receiptNumber || ""}</td>
+              <td>${entry.admin || ""}</td>
+            </tr>`;
+          tableBody.insertAdjacentHTML("beforeend", rowHtml);
+        });
 
-      tableBody.insertAdjacentHTML("beforeend", rowHtml);
-    });
+        document.getElementById("totalPaper").textContent = totalPaper.toFixed(2);
+        document.getElementById("totalDonation").textContent = totalDonation.toFixed(2);
+        document.getElementById("countPaper").textContent = countPaper;
 
-    // **更新合计**
-    document.getElementById("totalPaper").textContent = totalPaper.toFixed(2);
-    document.getElementById("totalDonation").textContent = totalDonation.toFixed(2);
-
-    // **如果没有数据**
-    if (tableBody.innerHTML.trim() === "") {
-      tableBody.innerHTML = "<tr><td colspan='6'>⚠️ 没有找到当天的数据</td></tr>";
+        if (tableBody.innerHTML.trim() === "") {
+          tableBody.innerHTML = "<tr><td colspan='6'>⚠️ 没有找到当天的数据</td></tr>";
+        }
+      } catch (err) {
+        console.error("加载错误：", err);
+        const tableBody = document.getElementById("reportBody");
+        tableBody.innerHTML = "<tr><td colspan='6'>❌ 数据加载失败，请稍后再试</td></tr>";
+      }
     }
-  } catch (err) {
-    console.error("加载错误：", err);
-    const tableBody = document.getElementById("reportBody");
-    tableBody.innerHTML = "<tr><td colspan='6'>❌ 数据加载失败，请稍后再试</td></tr>";
-  }
-}
-
   </script>
-  
-
 </body>
 </html>
