@@ -62,28 +62,35 @@ window.getCurrentFormData = function () {
 
 // utils.js
 
-// ✅ 全局编号生成函数
 window.generateReceiptNumber = function () {
-  const currentYear = new Date().getFullYear();
-  const storedYear = localStorage.getItem("receiptYear");
+    const now = new Date();
+    const year = String(now.getFullYear()).slice(-2);       // 两位年，如 "25"
+    const month = String(now.getMonth() + 1).padStart(2, '0'); // 两位月，如 "05"
+    const ymKey = `${year}${month}`;  // "2505"
 
-  // ✅ 如果年份变了，重置计数器
-  if (storedYear !== String(currentYear)) {
-      localStorage.setItem("receiptCounter", 1);
-      localStorage.setItem("receiptYear", currentYear);
-  }
+    const storedYM = localStorage.getItem("receiptYearMonth");
 
-  // ✅ 读取当前计数器
-  let counter = parseInt(localStorage.getItem("receiptCounter")) || 1;
+    // ✅ 如果年月变了，重置计数器
+    if (storedYM !== ymKey) {
+        localStorage.setItem("receiptCounter", 1);
+        localStorage.setItem("receiptYearMonth", ymKey);
+    }
 
-  // ✅ 生成编号，例如 MLTS-2025-0001
-  const receiptNumber = `LQF-${currentYear}-${String(counter).padStart(4, '0')}`;
+    // ✅ 读取当前计数器
+    let counter = parseInt(localStorage.getItem("receiptCounter"), 10);
+    if (isNaN(counter) || counter < 1) {
+        counter = 1;
+    }
 
-  // ✅ 增加计数器并保存到 localStorage
-  localStorage.setItem("receiptCounter", counter + 1);
+    // ✅ 生成编号，例如 MLTS-2505-0001
+    const receiptNumber = `MLTS-${ymKey}-${String(counter).padStart(4, '0')}`;
 
-  return receiptNumber;
+    // ✅ 增加计数器并保存
+    localStorage.setItem("receiptCounter", counter + 1);
+
+    return receiptNumber;
 };
+
 // utils.js 或 init.js
 
 function resetReceiptCounter() {
