@@ -147,17 +147,26 @@
         <th>小护摩片总额</th>
         <th>纸金3总额</th>
         <th>纸金6总额</th>
-        <th>报名供养金</th>
+        <th>报名供养金额</th>
         <th>管理员</th>
         <th>收据号</th>
       </tr>
     </thead>
     <tbody id="dailyReportBody">
-      <tr><td colspan="8">🔄 请选择日期以加载数据</td></tr>
+      <tr><td colspan="9">🔄 请选择日期以加载数据</td></tr>
     </tbody>
     <tfoot>
       <tr>
-        <td colspan="2">总计</td>
+        <td colspan="2">数量合计</td>
+        <td id="countToken">0</td>
+        <td id="countFire">0</td>
+        <td id="countPaper3">0</td>
+        <td id="countPaper6">0</td>
+        <td>-</td>
+        <td colspan="2"></td>
+      </tr>
+      <tr>
+        <td colspan="2">总金额</td>
         <td id="totalToken">0.00</td>
         <td id="totalFire">0.00</td>
         <td id="totalPaper3">0.00</td>
@@ -183,62 +192,70 @@ async function loadReport() {
     const tableBody = document.getElementById("dailyReportBody");
     tableBody.innerHTML = "";
 
-    let totalSponsor = 0;
-    let totalPaper3 = 0;
-    let totalPaper6 = 0;
-    let totalToken = 0;
-    let totalFire = 0;
+    let totalSponsor = 0, totalPaper3 = 0, totalPaper6 = 0, totalToken = 0, totalFire = 0;
+    let countToken = 0, countFire = 0, countPaper3 = 0, countPaper6 = 0;
 
     entries.forEach(entry => {
       if (typeof entry !== 'object' || !entry.timestamp) return;
 
       const dateObj = new Date(entry.timestamp);
-      if (isNaN(dateObj.getTime())) {
-        console.warn("无效时间戳：", entry.timestamp);
-        return;
-      }
+      if (isNaN(dateObj.getTime())) return;
 
-      // **日期过滤**
-      const formattedDate = dateObj.toLocaleDateString("zh-CN", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit"
-      });
+      const formattedDate = dateObj.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" });
       if (formattedDate !== dateSelect.replace(/-/g, "/")) return;
 
       const phone = entry.phoneNumber || "未知";
       const sponsor = parseFloat(entry.sponsorAmount || 0);
-      const pg3 = (entry.data || []).reduce((sum, p) => sum + (p.pg3 || 0) * 3, 0);
-      const pg6 = (entry.data || []).reduce((sum, p) => sum + (p.pg6 || 0) * 6, 0);
-      const token = (entry.data || []).reduce((sum, p) => sum + (p.token || 0) * 5, 0);
-      const fire = (entry.data || []).reduce((sum, p) => sum + (p.fire || 0), 0);
+
+      let tokenQty = 0, fireQty = 0, pg3Qty = 0, pg6Qty = 0;
+      (entry.data || []).forEach(p => {
+        tokenQty += p.token || 0;
+        fireQty += p.fire || 0;
+        pg3Qty += p.pg3 || 0;
+        pg6Qty += p.pg6 || 0;
+      });
+
+      const pg3Total = pg3Qty * 3;
+      const pg6Total = pg6Qty * 6;
+      const tokenTotal = tokenQty * 5;
+
+      totalSponsor += sponsor;
+      totalPaper3 += pg3Total;
+      totalPaper6 += pg6Total;
+      totalToken += tokenTotal;
+      totalFire += fireQty;
+
+      countToken += tokenQty;
+      countFire += fireQty;
+      countPaper3 += pg3Qty;
+      countPaper6 += pg6Qty;
+
       const admin = entry.admin || "无名";
       const receiptNumber = entry.receiptNumber || "";
       const rowClass = receiptNumber ? "" : "no-receipt";
-
-      totalSponsor += sponsor;
-      totalPaper3 += pg3;
-      totalPaper6 += pg6;
-      totalToken += token;
-      totalFire += fire;
 
       const rowHtml = `
         <tr class="${rowClass}">
           <td>${dateObj.toLocaleString("zh-CN", { hour12: false })}</td>
           <td>${phone}</td>
-          <td>${token.toFixed(2)}</td>
-          <td>${fire.toFixed(2)}</td> 
-          <td>${pg3.toFixed(2)}</td>
-          <td>${pg6.toFixed(2)}</td>
+          <td>${tokenTotal.toFixed(2)}</td>
+          <td>${fireQty.toFixed(2)}</td>
+          <td>${pg3Total.toFixed(2)}</td>
+          <td>${pg6Total.toFixed(2)}</td>
           <td>${sponsor.toFixed(2)}</td>
           <td>${admin}</td>
           <td>${receiptNumber}</td>
         </tr>`;
-
       tableBody.insertAdjacentHTML("beforeend", rowHtml);
     });
 
-    // **更新合计**
+    // 数量合计更新
+    document.getElementById("countToken").textContent = countToken;
+    document.getElementById("countFire").textContent = countFire;
+    document.getElementById("countPaper3").textContent = countPaper3;
+    document.getElementById("countPaper6").textContent = countPaper6;
+
+    // 金额合计更新
     document.getElementById("totalSponsor").textContent = totalSponsor.toFixed(2);
     document.getElementById("totalPaper3").textContent = totalPaper3.toFixed(2);
     document.getElementById("totalPaper6").textContent = totalPaper6.toFixed(2);
@@ -250,11 +267,10 @@ async function loadReport() {
     }
   } catch (err) {
     console.error("加载错误：", err);
-    const tableBody = document.getElementById("dailyReportBody");
-    tableBody.innerHTML = "<tr><td colspan='9'>❌ 数据加载失败，请稍后再试</td></tr>";
+    document.getElementById("dailyReportBody").innerHTML =
+      "<tr><td colspan='9'>❌ 数据加载失败，请稍后再试</td></tr>";
   }
 }
-
   </script>
 </body>
 </html>
