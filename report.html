@@ -164,18 +164,27 @@
                 this.hideLoader();
             }
 
-            async loadIframe(index) {
-                const iframe = this.iframes[index];
-                if (!iframe.src) {
-                    iframe.src = iframe.dataset.src;
-                    await new Promise(resolve => {
-                        iframe.onload = resolve;
-                        // 超时保障
-                        setTimeout(resolve, 3000);
-                    });
-                }
-                return true;
-            }
+async loadIframe(index) {
+    const iframe = this.iframes[index];
+    const src = iframe.dataset.src;
+
+    // 如果 iframe.src 为空或 src 与当前不一致，则重新加载
+    if (!iframe.src || iframe.src !== src) {
+        return new Promise(resolve => {
+            iframe.onload = () => {
+                resolve(true);
+            };
+            iframe.src = ''; // ⚠️ 强制刷新
+            setTimeout(() => {
+                iframe.src = src;
+            }, 50); // 💡 50ms 小延迟触发 onload
+            // ⏱️ 容错 3 秒后自动 resolve，防卡死
+            setTimeout(resolve, 3000);
+        });
+    }
+
+    return true; // 已加载过，直接切换即可
+}
 
             showLoader() {
                 this.loader.style.display = 'block';
