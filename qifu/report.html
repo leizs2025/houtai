@@ -86,63 +86,66 @@
         const filterTitle = `📎 当前筛选：${selectedDigit ? yearMap[selectedDigit] + '年' : '全部年份'}｜${selectedType || '全部法会'}`;
         document.getElementById("filterInfo").textContent = filterTitle;
 
-        let annualTotal = 0;
-        entries.forEach(entry => {
-          const phone = String(entry.phoneNumber || '').trim();
-          if (selectedDigit && phone[0] !== selectedDigit) return;
-
-          let sponsor = cleanNumber(entry.sponsorAmount);
-          let pg3 = 0, pg6 = 0, fire = 0, token = 0;
-          (entry.data || []).forEach(p => {
-            pg3 += cleanNumber(p.pg3);
-            pg6 += cleanNumber(p.pg6);
-            fire += cleanNumber(p.fire);
-            token += cleanNumber(p.token);
-          });
-
-          annualTotal += sponsor + pg3 * 3 + pg6 * 6 + fire + token * 5;
-        });
-
+        // --- 初始化统计变量 ---
         let totalSponsor = 0;
-        let pg3Count = 0, pg6Count = 0;
+        let globalPg3Count = 0; 
+        let globalPg6Count = 0;
         let totalFire = 0;
         let totalToken = 0;
+        let recordCount = 0; // 新增：统计笔数
         const adminMap = {};
 
+        // --- 单次遍历完成所有统计 ---
         entries.forEach(entry => {
           const phone = String(entry.phoneNumber || '').trim();
           const dharmaType = entry.dharmaType || "";
 
+          // 筛选逻辑
           if (selectedDigit && phone[0] !== selectedDigit) return;
           if (selectedType && dharmaType !== selectedType) return;
 
+          // 笔数 +1
+          recordCount++;
+
           let sponsor = cleanNumber(entry.sponsorAmount);
-          let fireTotal = 0;
-          let tokenTotal = 0;
+          
+          // 个人单项统计 (每次循环重置)
+          let personPg3 = 0;
+          let personPg6 = 0;
+          let personFire = 0;
+          let personToken = 0;
 
           (entry.data || []).forEach(p => {
-            pg3Count += cleanNumber(p.pg3);
-            pg6Count += cleanNumber(p.pg6);
-            fireTotal += cleanNumber(p.fire);
-            tokenTotal += cleanNumber(p.token);
+            personPg3 += cleanNumber(p.pg3);
+            personPg6 += cleanNumber(p.pg6);
+            personFire += cleanNumber(p.fire);
+            personToken += cleanNumber(p.token);
           });
 
-          const total = sponsor + fireTotal * 1 + tokenTotal * 5 + pg3Count * 3 + pg6Count * 6;
+          // 累加到全局总数
+          globalPg3Count += personPg3;
+          globalPg6Count += personPg6;
+          totalFire += personFire;
+          totalToken += personToken;
           totalSponsor += sponsor;
-          totalFire += fireTotal;
-          totalToken += tokenTotal;
 
+          // 计算该笔订单总金额
+          const personTotal = sponsor + personFire * 1 + personToken * 5 + personPg3 * 3 + personPg6 * 6;
+
+          // 统计收款人
           const who = (entry.admin && entry.admin.trim()) ? entry.admin.trim() : "无名";
           if (!adminMap[who]) adminMap[who] = 0;
-          adminMap[who] += total;
+          adminMap[who] += personTotal;
         });
 
-        const paperAmount = pg3Count * 3 + pg6Count * 6;
+        // 计算最终总额
+        const paperAmount = globalPg3Count * 3 + globalPg6Count * 6;
         const totalAmount = totalSponsor + paperAmount + totalFire + totalToken * 5;
 
+        // --- 渲染显示 ---
         document.getElementById("goldStats").innerHTML =
-          `📦 紙金份数：<br>　- 3元：${pg3Count} 份，共 ${pg3Count * 3} 元<br>` +
-          `　- 6元：${pg6Count} 份，共 ${pg6Count * 6} 元<br>` +
+          `📦 紙金份数：<br> - 3元：${globalPg3Count} 份，共 ${globalPg3Count * 3} 元<br>` +
+          ` - 6元：${globalPg6Count} 份，共 ${globalPg6Count * 6} 元<br>` +
           `🧾 紙金总金额：${paperAmount.toLocaleString()} 元<br>` +
           `🪙 祈福令牌：${totalToken} 个，共 ${totalToken * 5} 元<br>` +
           `🔥 小护摩片：${totalFire} 片，共 ${totalFire} 元`;
@@ -150,14 +153,22 @@
         document.getElementById("donationStats").textContent =
           `🎁 累计赞助金额：${totalSponsor.toLocaleString()} 元`;
 
+        // ✅ 修改处：第二行改为显示“总笔数”，不再重复显示金额
         document.getElementById("totalStats").innerHTML =
           `💰 总金额：${totalAmount.toLocaleString()} 元<br>` +
-          `📊 本年度总金额（不含筛选）：${annualTotal.toLocaleString()} 元`;
+          `📊 符合筛选条件的记录数：${recordCount} 笔`; 
 
         let adminStr = "👤 收款人经手金额统计：\n";
-        Object.entries(adminMap).forEach(([admin, amt]) => {
-          adminStr += `  - ${admin}：${amt.toLocaleString()} 元\n`;
-        });
+        // 排序：按金额从高到低
+        const sortedAdmins = Object.entries(adminMap).sort((a, b) => b[1] - a[1]);
+        
+        if (sortedAdmins.length === 0) {
+          adminStr += "  (无数据)";
+        } else {
+          sortedAdmins.forEach(([admin, amt]) => {
+            adminStr += `  - ${admin}：${amt.toLocaleString()} 元\n`;
+          });
+        }
         document.getElementById("adminStats").textContent = adminStr;
 
       } catch (err) {
@@ -165,6 +176,9 @@
         console.error("加载错误：", err);
       }
     }
+    
+    // 页面加载时自动运行一次
+    window.onload = loadReport;
   </script>
 </body>
 </html>
