@@ -9,12 +9,12 @@ window.forceInsertNewEntry = function () {
     return;
   }
       // ✅ 如果有临时编号，用这个编号
-    const lastPrintedReceiptNumber = localStorage.getItem("lastPrintedReceiptNumber");
-    if (lastPrintedReceiptNumber) {
-        body.receiptNumber = lastPrintedReceiptNumber;
-        document.getElementById("receiptNumber").value = lastPrintedReceiptNumber;
-        console.log("已自动填入已打印的小票编号:", lastPrintedReceiptNumber);
-    }
+//    const lastPrintedReceiptNumber = localStorage.getItem("lastPrintedReceiptNumber");
+  //  if (lastPrintedReceiptNumber) {
+    //    body.receiptNumber = lastPrintedReceiptNumber;
+      //  document.getElementById("receiptNumber").value = lastPrintedReceiptNumber;
+        //console.log("已自动填入已打印的小票编号:", lastPrintedReceiptNumber);
+   // }
   body.method = "POST";
   body.admin = localStorage.getItem("admin") || "未登录";
   body.total = window.currentTotalAmount || 0;
