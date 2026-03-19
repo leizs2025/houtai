@@ -154,11 +154,16 @@
           `💰 总金额：${totalAmount.toLocaleString()} 元<br>` +
           `📊 本年度总金额（不含筛选）：${annualTotal.toLocaleString()} 元`;
 
-      let adminStr = "👤 收款人经手金额统计：\n";
+            let adminStr = "👤 收款人经手金额统计：\n";
       Object.entries(adminMap).forEach(([admin, amt]) => {
         adminStr += `  - ${admin}：${amt.toLocaleString()} 元\n`;
       });
       document.getElementById("adminStats").textContent = adminStr;
+    }
+      } catch (err) {
+        document.getElementById("report").textContent = "❌ 报表加载失败，请稍后再试。";
+        console.error("加载错误：", err);
+      }
     }
   </script>
 </body>
