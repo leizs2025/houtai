@@ -2,13 +2,13 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title>超度報表</title>
+  <title>超度結算報表 (含明细)</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <style>
     body {
       background-color: #fff;
       font-family: "Segoe UI", sans-serif;
-      max-width: 700px;
+      max-width: 900px; /* 稍微加宽以容纳表格 */
       margin: 30px auto;
       padding: 20px;
       border: 1px dashed #aaa;
@@ -19,11 +19,16 @@
     }
     .section {
       margin-bottom: 20px;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
     }
     .admin-summary {
       white-space: pre-wrap;
       font-family: monospace;
-      font-size: 16px;
+      font-size: 14px;
+      background: #fff;
+      border: 1px solid #ddd;
     }
     .btn-print {
       display: block;
@@ -32,15 +37,62 @@
     .selector {
       text-align: center;
       margin-bottom: 20px;
+      background: #e9ecef;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    /* 明细表格样式 */
+    .detail-table-container {
+      margin-top: 30px;
+      overflow-x: auto;
+    }
+    .detail-table th {
+      background-color: #343a40;
+      color: white;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+    .detail-table td {
+      font-size: 0.85rem;
+      vertical-align: middle;
+    }
+    .text-sub {
+      font-size: 0.75rem;
+      color: #6c757d;
+    }
+
+    /* 打印专用样式 */
+    @media print {
+      body {
+        max-width: 100%;
+        border: none;
+        margin: 0;
+        padding: 0;
+      }
+      .selector, .btn-print {
+        display: none !important;
+      }
+      .section {
+        break-inside: avoid;
+        border: 1px solid #ccc;
+      }
+      .detail-table {
+        font-size: 10pt;
+      }
+      .detail-table th {
+        background-color: #ddd !important;
+        color: black !important;
+        -webkit-print-color-adjust: exact;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>📅 超度結算報表</h2>
+  <h2>📅 超度結算報表 (含明细)</h2>
 
   <div class="selector">
     <label for="yearSelect" class="form-label fw-bold">选择年份：</label>
-    <select id="yearSelect" class="form-select d-inline-block w-auto" onchange="loadReport()">
+    <select id="yearSelect" class="form-select d-inline-block w-auto">
       <option value="">全部年份</option>
       <option value="5">2025</option>
       <option value="6">2026</option>
@@ -48,7 +100,7 @@
     </select>
 
     <label for="festivalSelect" class="form-label fw-bold ms-3">法会类别：</label>
-    <select id="festivalSelect" class="form-select d-inline-block w-auto" onchange="loadReport()">
+    <select id="festivalSelect" class="form-select d-inline-block w-auto">
       <option value="">全部</option>
       <option value="清明节">清明节</option>
       <option value="中元节">中元节</option>
@@ -58,87 +110,292 @@
 
   <div class="text-center fw-bold mb-3" id="filterInfo">⬅️ 请选择年份与法会类别以加载报表</div>
 
+  <!-- 统计区域 -->
   <div id="report" class="fs-5">
-    <div class="section" id="goodsStats"></div>
-    <div class="section" id="donationStats"></div>
-    <div class="section" id="totalStats"></div>
+    <div class="row">
+      <div class="col-md-6">
+        <div class="section" id="goodsStats"></div>
+      </div>
+      <div class="col-md-6">
+        <div class="section">
+          <div id="donationStats" class="mb-2"></div>
+          <div id="totalStats"></div>
+        </div>
+      </div>
+    </div>
     <div class="section admin-summary" id="adminStats"></div>
   </div>
 
-  <button class="btn btn-secondary btn-print" onclick="window.print()">🖨️ 打印此报表</button>
+  <!-- 新增：明细列表区域 -->
+  <div class="detail-table-container">
+    <h4 class="mb-3 border-bottom pb-2">📋 交易明细列表</h4>
+    <div id="detailListContent">
+      <!-- 表格将在此处生成 -->
+    </div>
+  </div>
+
+  <button id="printBtn" class="btn btn-secondary btn-print">🖨️ 打印此报表</button>
 
   <script>
+    // 配置常量
+    const startIndices = [
+      7, 17, 27, 37, 47, 57, 67, 77, 86, 95, 
+      104, 113, 122, 131, 140, 149, 158, 167, 175, 183, 
+      191, 199, 207, 215, 223
+    ];
+    const OFFSET_TOKEN = 0;
+    const OFFSET_BOAT  = 1;
+    const OFFSET_LOTUS = 2;
+    const OFFSET_PG3   = 3;
+    const OFFSET_PG6   = 4;
+    const OFFSET_PG27  = 5;
+
+    // 价格配置
+    const PRICES = {
+      token: 5,
+      boat: 30,
+      lotus: 6,
+      pg3: 3,
+      pg6: 6,
+      pg27: 27
+    };
+
     function cleanNumber(val) {
+      if (val === null || val === undefined) return 0;
       const str = String(val).trim();
       return /^[0-9]+(\.[0-9]+)?$/.test(str) ? parseFloat(str) : 0;
     }
 
-    async function loadReport() {
-      const res = await fetch("https://form.gealarm2012.workers.dev/admin-chaodu?list=1");
-      const entries = await res.json();
+    // 辅助函数：从一行数据中提取所有商品数量
+    function parseRowItems(row) {
+      let t = 0, b = 0, l = 0, p3 = 0, p6 = 0, p27 = 0;
+      
+      startIndices.forEach(startIdx => {
+        let valT, valB, valL, valP3, valP6, valP27;
 
-      const selectedDigit = document.getElementById("yearSelect").value;
-      const selectedFestival = document.getElementById("festivalSelect").value;
-
-      const yearMap = { '5': '2025', '6': '2026', '7': '2027' };
-      const filterTitle = `📎 当前筛选：${selectedDigit ? yearMap[selectedDigit] + '年' : '全部年份'}｜${selectedFestival || '全部法会'}`;
-      document.getElementById("filterInfo").textContent = filterTitle;
-
-      let totalDonation = 0, totalAmount = 0;
-      let pg3 = 0, pg6 = 0, pg27 = 0;
-      let token = 0, boat = 0, lotus = 0;
-      let annualTotal = 0;
-      const adminMap = {};
-
-      entries.forEach(row => {
-        const phone = String(row.phoneNumber || '').trim();
-        if (selectedDigit && phone[0] !== selectedDigit) return;
-        annualTotal += cleanNumber(row.totalAmount);
-      });
-
-      entries.forEach(row => {
-        const phone = String(row.phoneNumber || '').trim();
-        const festival = row.festival || "";
-
-        if (selectedDigit && phone[0] !== selectedDigit) return;
-        if (selectedFestival && festival !== selectedFestival) return;
-
-        totalDonation += cleanNumber(row.donation);
-        totalAmount += cleanNumber(row.totalAmount);
-
-        const who = (row.admin && row.admin.trim()) ? row.admin.trim() : "无名";
-        if (!adminMap[who]) adminMap[who] = 0;
-        adminMap[who] += cleanNumber(row.totalAmount);
-
-        for (let i = 4; i <= 229; i += 10) {
-          pg3 += cleanNumber(row[i + 6]);
-          pg6 += cleanNumber(row[i + 7]);
-          pg27 += cleanNumber(row[i + 8]);
-          token += cleanNumber(row[i + 3]);
-          boat += cleanNumber(row[i + 4]);
-          lotus += cleanNumber(row[i + 5]);
+        if (Array.isArray(row)) {
+          if (row.length > startIdx + 5) {
+            valT = row[startIdx + OFFSET_TOKEN];
+            valB = row[startIdx + OFFSET_BOAT];
+            valL = row[startIdx + OFFSET_LOTUS];
+            valP3 = row[startIdx + OFFSET_PG3];
+            valP6 = row[startIdx + OFFSET_PG6];
+            valP27 = row[startIdx + OFFSET_PG27];
+          }
+        } else {
+          // 兼容对象模式
+          valT = row[startIdx + OFFSET_TOKEN]; 
+          valB = row[startIdx + OFFSET_BOAT];
+          valL = row[startIdx + OFFSET_LOTUS];
+          valP3 = row[startIdx + OFFSET_PG3];
+          valP6 = row[startIdx + OFFSET_PG6];
+          valP27 = row[startIdx + OFFSET_PG27];
         }
+
+        t += cleanNumber(valT);
+        b += cleanNumber(valB);
+        l += cleanNumber(valL);
+        p3 += cleanNumber(valP3);
+        p6 += cleanNumber(valP6);
+        p27 += cleanNumber(valP27);
       });
 
-      const goodsHTML =
-        `📦 紙金份数：<br>　- 3元：${pg3} 份，共 ${pg3 * 3} 元<br>` +
-        `　- 6元：${pg6} 份，共 ${pg6 * 6} 元<br>` +
-        `　- 27元：${pg27} 份，共 ${pg27 * 27} 元<br>` +
-        `🪙 超度令牌：${token} 个，共 ${token * 5} 元<br>` +
-        `🛶 法船配套：${boat} 套，共 ${boat * 30} 元<br>` +
-        `🪷 莲花：${lotus} 朵，共 ${lotus * 6} 元`;
+      return { t, b, l, p3, p6, p27 };
+    }
 
-      document.getElementById("goodsStats").innerHTML = goodsHTML;
-      document.getElementById("donationStats").textContent = `🎁 累计赞助金额：${totalDonation.toLocaleString()} 元`;
-      document.getElementById("totalStats").innerHTML =
-        `💰 总金额（当前筛选）：${totalAmount.toLocaleString()} 元<br>` +
-        `📊 本年度总金额（不含筛选）：${annualTotal.toLocaleString()} 元`;
+    // 将 loadReport 定义为全局函数
+    window.loadReport = async function() {
+      const detailListContent = document.getElementById("detailListContent");
+      detailListContent.innerHTML = '<div class="text-center text-muted">加载中...</div>';
 
-      let adminStr = "👤 收款人经手金额统计：\n";
-      Object.entries(adminMap).forEach(([admin, amt]) => {
-        adminStr += `  - ${admin}：${amt.toLocaleString()} 元\n`;
+      try {
+        const res = await fetch("https://form.gealarm2012.workers.dev/admin-chaodu?list=1");
+        const entries = await res.json();
+
+        if (!entries || entries.length === 0) {
+          document.getElementById("report").innerHTML = "暂无数据";
+          detailListContent.innerHTML = "暂无数据";
+          return;
+        }
+
+        const selectedDigit = document.getElementById("yearSelect").value;
+        const selectedFestival = document.getElementById("festivalSelect").value;
+
+        const yearMap = { '5': '2025', '6': '2026', '7': '2027' };
+        const filterTitle = `📎 当前筛选：${selectedDigit ? yearMap[selectedDigit] + '年' : '全部年份'}｜${selectedFestival || '全部法会'}`;
+        document.getElementById("filterInfo").textContent = filterTitle;
+
+        // 初始化统计变量
+        let totalDonation = 0;
+        let totalAmount = 0;
+        let annualTotal = 0;
+        
+        let grandToken = 0, grandBoat = 0, grandLotus = 0;
+        let grandPg3 = 0, grandPg6 = 0, grandPg27 = 0;
+        
+        const adminMap = {};
+        const detailRows = []; // 存储明细数据
+
+        // 1. 计算年度总额 (不受法会筛选影响，只受年份影响)
+        entries.forEach(row => {
+          const phone = String(row.phoneNumber || (Array.isArray(row) ? row[0] : '')).trim();
+          if (selectedDigit && phone[0] !== selectedDigit) return;
+          annualTotal += cleanNumber(row.totalAmount);
+        });
+
+        // 2. 详细统计 & 收集明细
+        entries.forEach(row => {
+          const phoneRaw = String(row.phoneNumber || (Array.isArray(row) ? row[0] : '')).trim();
+          const festival = row.festival || (Array.isArray(row) ? row[1] : "");
+
+          // 筛选逻辑
+          if (selectedDigit && phoneRaw[0] !== selectedDigit) return;
+          if (selectedFestival && festival !== selectedFestival) return;
+
+          const donationVal = cleanNumber(row.donation);
+          const totalVal = cleanNumber(row.totalAmount);
+
+          totalDonation += donationVal;
+          totalAmount += totalVal;
+
+          const who = (row.admin || (Array.isArray(row) ? row[3] : "无名"));
+          const adminName = (who && String(who).trim()) ? String(who).trim() : "无名";
+          
+          if (!adminMap[adminName]) adminMap[adminName] = 0;
+          adminMap[adminName] += totalVal;
+
+          // 解析商品数量
+          const items = parseRowItems(row);
+
+          // 累加到总统计
+          grandToken += items.t;
+          grandBoat += items.b;
+          grandLotus += items.l;
+          grandPg3 += items.p3;
+          grandPg6 += items.p6;
+          grandPg27 += items.p27;
+
+          // 添加到明细列表
+          detailRows.push({
+            phone: phoneRaw,
+            festival: festival,
+            admin: adminName,
+            donation: donationVal,
+            total: totalVal,
+            items: items
+          });
+        });
+
+        // --- 渲染统计部分 ---
+        const costToken = grandToken * PRICES.token;
+        const costBoat  = grandBoat * PRICES.boat;
+        const costLotus = grandLotus * PRICES.lotus;
+        const costPg3   = grandPg3 * PRICES.pg3;
+        const costPg6   = grandPg6 * PRICES.pg6;
+        const costPg27  = grandPg27 * PRICES.pg27;
+        const detailSum = costToken + costBoat + costLotus + costPg3 + costPg6 + costPg27;
+
+        const goodsHTML =
+          `<h5>📦 商品统计</h5>` +
+          `  - 3元纸金：${grandPg3} 份 (${costPg3.toLocaleString()} 元)<br>` +
+          `  - 6元纸金：${grandPg6} 份 (${costPg6.toLocaleString()} 元)<br>` +
+          `  - 27元纸金：${grandPg27} 份 (${costPg27.toLocaleString()} 元)<br>` +
+          `  - 超度令牌：${grandToken} 个 (${costToken.toLocaleString()} 元)<br>` +
+          `  - 法船配套：${grandBoat} 套 (${costBoat.toLocaleString()} 元)<br>` +
+          `  - 莲花：${grandLotus} 朵 (${costLotus.toLocaleString()} 元)<br>` +
+          `<hr class="my-2"><strong>明细商品总计：${detailSum.toLocaleString()} 元</strong><br>` +
+          `<small class="text-muted">对比总金额：${totalAmount.toLocaleString()} 元 (差额应为功德金)</small>`;
+
+        document.getElementById("goodsStats").innerHTML = goodsHTML;
+        document.getElementById("donationStats").innerHTML = `<h5>💰 金额统计</h5><strong>🎁 累计赞助金额：${totalDonation.toLocaleString()} 元</strong>`;
+        document.getElementById("totalStats").innerHTML =
+          `总金额（当前筛选）：<strong>${totalAmount.toLocaleString()} 元</strong><br>` +
+          `本年度总金额：${annualTotal.toLocaleString()} 元`;
+
+        let adminStr = "👤 收款人经手金额统计：\n";
+        Object.entries(adminMap).sort((a, b) => b[1] - a[1]).forEach(([admin, amt]) => {
+          adminStr += `  - ${admin}：${amt.toLocaleString()} 元\n`;
+        });
+        document.getElementById("adminStats").textContent = adminStr;
+
+        // --- 渲染明细表格 ---
+        if (detailRows.length === 0) {
+          detailListContent.innerHTML = '<div class="alert alert-warning">当前筛选条件下无明细数据</div>';
+        } else {
+          let tableHTML = `
+            <table class="table table-bordered table-hover detail-table">
+              <thead>
+                <tr>
+                  <th>序号</th>
+                  <th>法会</th>
+                  <th>手机号</th>
+                  <th>收款人</th>
+                  <th>功德金</th>
+                  <th>商品明细 (数量)</th>
+                  <th>总金额</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+
+          detailRows.forEach((row, index) => {
+            // 手机号脱敏：只显示后4位
+            const phoneDisplay = row.phone.length > 4 ? `****${row.phone.slice(-4)}` : row.phone;
+            
+            // 构建商品明细字符串
+            const itemParts = [];
+            if (row.items.t > 0) itemParts.push(`令:${row.items.t}`);
+            if (row.items.b > 0) itemParts.push(`船:${row.items.b}`);
+            if (row.items.l > 0) itemParts.push(`莲:${row.items.l}`);
+            if (row.items.p3 > 0) itemParts.push(`3元:${row.items.p3}`);
+            if (row.items.p6 > 0) itemParts.push(`6元:${row.items.p6}`);
+            if (row.items.p27 > 0) itemParts.push(`27元:${row.items.p27}`);
+            
+            const itemStr = itemParts.length > 0 ? itemParts.join(', ') : '<span class="text-muted">无商品</span>';
+
+            tableHTML += `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${row.festival}</td>
+                <td>${phoneDisplay}</td>
+                <td>${row.admin}</td>
+                <td class="text-success">${row.donation > 0 ? row.donation.toLocaleString() : '-'}</td>
+                <td><small>${itemStr}</small></td>
+                <td class="fw-bold">${row.total.toLocaleString()}</td>
+              </tr>
+            `;
+          });
+
+          tableHTML += `</tbody></table>`;
+          tableHTML += `<div class="text-end text-muted small">共 ${detailRows.length} 条记录</div>`;
+          
+          detailListContent.innerHTML = tableHTML;
+        }
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById("report").innerHTML = `<span class="text-danger">❌ 错误：${err.message}</span>`;
+        detailListContent.innerHTML = `<span class="text-danger">❌ 加载明细失败：${err.message}</span>`;
+      }
+    }
+
+    // 页面加载完成后执行
+    window.addEventListener('DOMContentLoaded', function() {
+      // 为下拉菜单添加事件监听器
+      document.getElementById('yearSelect').addEventListener('change', loadReport);
+      document.getElementById('festivalSelect').addEventListener('change', loadReport);
+      // 为打印按钮添加事件监听器
+      document.getElementById('printBtn').addEventListener('click', function() {
+        window.print();
       });
-      document.getElementById("adminStats").textContent = adminStr;
+
+      // 初始加载数据
+      loadReport();
+    });
+
+    // 确保函数在全局作用域可用，以防万一
+    if (typeof loadReport !== 'undefined') {
+        window.loadReport = loadReport;
     }
   </script>
 </body>
