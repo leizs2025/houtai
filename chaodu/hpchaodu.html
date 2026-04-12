@@ -414,77 +414,94 @@ function searchPhone() {
       const container = document.getElementById("searchResults");
       container.innerHTML = "";
       
-      // 1. 无结果情况
       if (results.length === 0) {
         container.textContent = "未找到相关记录";
         return;
       }
-      
-      // 2. 单条或多条结果情况 - 创建下拉选择菜单
+
+      // --- UI: 创建下拉框 ---
       container.innerHTML = "<p>请选择需要查看的记录：</p>";
-      
-      // 创建下拉选择框
       const select = document.createElement("select");
-      select.id = "resultSelect";
       select.className = "result-dropdown";
-      
-      // 添加默认选项
-      const defaultOption = document.createElement("option");
-      defaultOption.value = "";
-      defaultOption.textContent = "请选择一个记录";
-      select.appendChild(defaultOption);
-      
-      // 按时间排序（最新在前）
-      results.sort((a, b) => new Date(b[0]) - new Date(a[0]));
-      
-      // 填充下拉选项
+      select.innerHTML = "<option value=''>请选择一个记录</option>";
+
+      results.sort((a, b) => new Date(b.timestamp || b[0]) - new Date(a.timestamp || a[0]));
+
       results.forEach((result, index) => {
-        // result[1]是姓名, result[2]是手机号, result[0]是时间
-        const name = result[1] || "未知";
-        const phone = result[2] || "";
-        const date = new Date(result[0]).toLocaleString();
+        // 🔴 调试：检查数据是否存在
+        let name = "未知";
+        let phone = "未知";
         
-        const option = document.createElement("option");
-        option.value = index; // 使用索引作为值
-        option.textContent = `${name} - ${phone} (${date})`;
-        select.appendChild(option);
+        // 尝试从两种可能的结构中取值
+        if (Array.isArray(result)) {
+          name = result[1] || "未知";
+          phone = result[2] || "未知";
+        } else {
+          name = result.name || result[1] || "未知";
+          phone = result.phone || result[2] || "未知";
+        }
+
+        const date = new Date(result.timestamp || result[0]).toLocaleString();
+        select.innerHTML += `<option value="${index}">${name} - ${phone} (${date})</option>`;
       });
-      
-      // 添加下拉框到容器
+
       container.appendChild(select);
-      
-      // 3. 添加选择事件处理 (核心修复点)
-      select.addEventListener("change", () => {
-        const selectedIndex = select.value;
-        if (selectedIndex === "") return;
+      // --- END UI ---
+
+      // --- 逻辑: 选择处理 ---
+      select.addEventListener("change", function() {
+        const idx = this.value;
+        if (idx === "") return;
+
+        const selectedData = results[parseInt(idx)];
         
-        // 🔴 关键：直接获取 results 数组中对应索引的完整数据行
-        // loadEntry 函数内部知道如何解析这个数组结构
-        const selectedResult = results[selectedIndex];
+        // 🛠️ 核心修复：强制转换为 loadEntry 能识别的 Array 格式
+        // loadEntry 期望一个数组，索引位置固定。如果后端返回的是对象，我们需要把它“拍平”成数组。
+        let rowData;
         
-        // 先清空现有表单
+        if (Array.isArray(selectedData)) {
+          // 情况1：后端返回的就是数组，直接使用
+          rowData = selectedData;
+        } else {
+          // 情况2：后端返回的是对象，我们需要模拟数组结构
+          // 注意：这里需要根据你实际的后端返回字段名调整，这是最常见的字段映射
+          rowData = [];
+          rowData[0] = selectedData.timestamp || ""; // 时间
+          rowData[1] = selectedData.name || "";      // 姓名
+          rowData[2] = selectedData.phone || "";     // 手机号
+          rowData[3] = selectedData.address || "";   // 地址
+          rowData[230] = selectedData.donation || "0"; // 供养金额 (索引230)
+          rowData[231] = selectedData.festival || "";  // 法会类别 (索引231)
+          
+          // 🔴 这里需要特别注意：
+          // loadEntry 还会读取索引 4-83 (祖先), 84-128 (水子) 等
+          // 如果你的后端没有返回这些长数组，loadEntry 会报错或空白。
+          // 如果你发现还是空白，请在控制台 (F12) 检查 selectedData 里是否有这些数据。
+        }
+
+        // ✅ 最终调用
         clearForm();
         
-        // 延迟执行，确保DOM更新完毕
+        // 延迟确保 DOM 稳定
         setTimeout(() => {
-          // ✅ 调用原本的 loadEntry 函数，传入完整的数据行
-          loadEntry(selectedResult);
-        }, 50);
-        
-        // 可选：显示成功提示
-        container.innerHTML = `<p>已加载记录：${selectedResult[1]} - ${selectedResult[2]}</p>`;
-      });
-      
-      // 4. 单条结果自动选择
-      if (results.length === 1) {
-        setTimeout(() => {
-          select.value = 0;
-          select.dispatchEvent(new Event("change"));
+          try {
+            loadEntry(rowData);
+            container.innerHTML = `<p>✅ 已加载：${rowData[1]} 的记录</p>`;
+          } catch (e) {
+            // 🔴 调试用：如果报错，弹出错误信息
+            alert("加载数据时出错: " + e.message + "\n请检查控制台数据结构");
+            console.error("传给 loadEntry 的数据:", rowData);
+          }
         }, 100);
+      });
+      // --- END 逻辑 ---
+
+      if (results.length === 1) {
+        select.dispatchEvent(new Event("change"));
       }
     })
     .catch(err => {
-      alert("查询失败");
+      alert("查询失败: " + err.message);
       console.error(err);
     });
 }
