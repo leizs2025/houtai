@@ -200,7 +200,7 @@
     document.getElementById('grandTotal').innerText = total.toFixed(2);
   }
 
-  // --- 5. 获取当前表单数据的函数 (基于源代码 forceInsertNewEntry) ---
+  // --- 5. 获取当前表单数据的函数 ---
   function getCurrentFormData() {
     // 从页面收集主要信息
     const formData = {
@@ -239,21 +239,66 @@
     return formData;
   }
 
-  // --- 6. 提交逻辑 (修正以匹配源代码结构) ---
-  async function submitForm() {
-    const btn = document.getElementById('submitBtn');
-    // const festival = document.getElementById('dharmaType').value; // 不再单独获取
-    // const mainName = document.getElementById('mainName').value.trim(); // 不再单独获取
-    const phoneRaw = document.getElementById('phoneNumber').value.trim(); // 获取只读的手机号
-    // const sponsorAmount = parseFloat(document.getElementById('sponsorAmount').value) || 0; // 不再单独获取
+  // --- 6. 定义生成前缀的函数 (来自你提供的代码) ---
+  function generatePrefixedPhone(phone, festival) {
+    const yearCode = String(new Date().getFullYear()).slice(-1);
+    let prefix = "";
+    if (festival === "清明节") prefix = `${yearCode}m`;
+    else if (festival === "中元节") prefix = `${yearCode}y`;
+    else if (festival === "不空羂索") prefix = `${yearCode}q`;
+    else if (festival === "感恩护法") prefix = `${yearCode}b`;
+    else prefix = `${yearCode}x`; // 对应 "其他"
+    return prefix + phone;
+  }
 
-    if (!phoneRaw) return alert("请输入手机号");
+  // --- 7. 提交逻辑 (用户版：生成receiptNumber并处理新增/更新) ---
+  async function submitForm(method = "POST") {
+    const btn = document.getElementById('submitBtn');
+    const rawInputPhone = document.getElementById('phoneNumber').value.trim(); // 获取只读的原始手机号输入
+    const festival = document.getElementById('dharmaType').value; // 获取法会类型
+
+    if (!rawInputPhone) return alert("请输入手机号");
+    if (!festival) return alert("请选择法会类别");
     if (btn.disabled) return;
 
     btn.disabled = true;
-    btn.innerText = "⏳ 提交中...";
+    btn.innerText = method === "POST" ? "⏳ 正在新增..." : "⏳ 正在更新...";
 
     try {
+      // ✅ 第一步：暴力清洗，只保留数字
+      let allDigits = rawInputPhone.replace(/\D/g, '');
+
+      // ✅ 第二步：智能提取马来西亚手机号 (10-11位)
+      const match = allDigits.match(/01\d{8,9}/);
+
+      if (!match) {
+         alert("无法识别手机号格式，请检查是否包含正确数字");
+         btn.disabled = false;
+         btn.innerText = "提交登记";
+         return;
+      }
+
+      const pureNumber = match[0]; // 提取出的纯净手机号，如 0198863232
+
+      // 5. 构建用于查询的基础号码 (今年前缀 + 纯数字)
+      const basePhone = generatePrefixedPhone(pureNumber, festival);
+
+      // 6. 查询后端 (使用 admin-chaodu 接口查询，根据返回数量判断是新增还是更新)
+      const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${basePhone}`);
+      const existingRows = await searchRes.json();
+
+      // 7. 智能生成最终号码 (receiptNumber)
+      let receiptNumber = "";
+      const count = existingRows.length;
+
+      if (count === 0) {
+          receiptNumber = basePhone;       // 第1笔：不加后缀 (例如 6y019...)
+      } else {
+          receiptNumber = `${basePhone}+${count + 1}`; // 第2笔起：+2, +3, +4...
+      }
+
+      console.log("Generated final receipt number:", receiptNumber);
+
       // 获取表单数据
       const body = getCurrentFormData();
       if (!body.mainName || !body.phoneNumber) {
@@ -263,21 +308,21 @@
         return;
       }
 
-      // 构造符合源代码期望的请求体
+      // 构造请求体，包含生成的 receiptNumber 和方法
       const payload = {
         ...body, // 展开表单数据
-        method: "POST",
-        admin: localStorage.getItem("admin") || "未登录", // 可以设置一个默认值或从别处获取
-        total: currentTotalAmount || 0 // 使用计算出的总额
+        receiptNumber: receiptNumber, // 加入生成的编号
+        method: method, // 指定是新增还是更新
+        total: currentTotalAmount || 0 // 总额
       };
 
-      console.log("Sending payload:", payload); // 打印发送的数据
+      console.log(`Sending payload with method ${method}:`, payload); // 打印发送的数据
 
-      const res = await fetch('https://form.gealarm2012.workers.dev/admin-qifu', { // 确认此URL与源代码一致
-        method: 'POST',
+      // 向 admin-qifu 接口发送请求
+      const res = await fetch('https://form.gealarm2012.workers.dev/admin-qifu', {
+        method: 'POST', // 外部 HTTP 方法通常为 POST
         headers: { 
             'Content-Type': 'application/json'
-            // 如果源代码中有其他必需的头部，需要在这里添加
         },
         body: JSON.stringify(payload)
       });
@@ -288,12 +333,32 @@
       console.log("Parsed result:", result); // 打印解析后的结果
 
       if (result.success) {
-        alert(`✅ 提交成功！`);
-        // location.reload(); // 成功后可以选择清空表单而不是刷新页面
-        startNewEntry(); // 如果存在此函数，可以调用来清空表单
+        alert(`✅ ${method === "POST" ? '新增' : '更新'}成功！\n编号: ${receiptNumber}`);
+        startNewEntry(); // 成功后清空表单
       } else {
-        // 新增失败，但后端有明确错误信息
-        alert(`❌ 提交失败：${result.message || '未知错误'}`);
+        // 检查是否是 receiptNumber 已存在的错误 (用户版逻辑的关键)
+        if (result.message && (result.message.includes("已存在") || result.message.includes("receiptNumber"))) {
+            if (method === "POST") {
+                // 第一次尝试新增，但发现 receiptNumber 已存在，意味着是更新操作
+                const shouldUpdate = confirm("检测到您已有登记记录，是否要更新？");
+                if (shouldUpdate) {
+                    // 递归调用自身，使用 PUT 方法重试
+                    submitForm("PUT");
+                    return; // 退出当前执行
+                } else {
+                    // 用户选择不更新，恢复按钮状态
+                    btn.disabled = false;
+                    btn.innerText = "提交登记";
+                    return;
+                }
+            } else if (method === "PUT") {
+                // 即使是 PUT 也失败了
+                 alert(`❌ 更新失败：${result.message || '未知错误'}`);
+            }
+        } else {
+            // 其他错误
+            alert(`❌ ${method === "POST" ? '新增' : '更新'}失败：${result.message || '未知错误'}`);
+        }
       }
 
     } catch (err) {
@@ -304,11 +369,12 @@
     }
   }
 
-  // --- 7. (可选) 清空表单的函数 ---
+  // --- 8. (可选) 清空表单的函数 ---
   window.startNewEntry = function() {
     document.getElementById('mainName').value = '';
     document.getElementById('phoneNumber').value = '';
     document.getElementById('phoneNumber').readOnly = false; // 解锁手机号以便下次输入
+    document.getElementById('dharmaType').value = '清明节'; // 重置法会类型
     document.getElementById('sponsorAmount').value = '';
     document.getElementById('prayersContainer').innerHTML = '';
     addCard(); // 添加一张新卡片
@@ -317,7 +383,7 @@
     document.getElementById('searchInput').value = ''; // 清空搜索框
   };
 
-  // --- 8. 日期格式化函数 ---
+  // --- 9. 日期格式化函数 ---
   function padDate(input) {
     if (!input) return "";
     const date = new Date(input);
@@ -328,7 +394,7 @@
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  // --- 9. 表单渲染函数 (基于原始代码，移除字段并锁定手机号) ---
+  // --- 10. 表单渲染函数 (基于原始代码，移除字段并锁定手机号) ---
   window.renderForm = function (entry) {
     const container = document.getElementById("prayersContainer");
     if (!container) return alert("页面未加载完成，请刷新");
@@ -374,7 +440,7 @@
     updateDonationBreakdown();
   };
 
-  // --- 10. 精确查询逻辑 (基于原始代码) ---
+  // --- 11. 精确查询逻辑 (基于原始代码) ---
   window.searchPhone = function () {
     const keyword = document.getElementById("searchInput").value.trim();
     if (!keyword) return alert("请输入手机号关键字");
@@ -435,7 +501,7 @@
       });
   };
 
-  // --- 11. 模糊查询逻辑 (新增) ---
+  // --- 12. 模糊查询逻辑 (新增) ---
   async function handleSearchInput() {
     const keyword = document.getElementById('searchInput').value.trim();
     
