@@ -423,33 +423,90 @@
             });
         }
 
-        // 10. 提交函数 (调用原逻辑)
+           // 1. 定义生成前缀的函数
+        function generatePrefixedPhone(phone, festival) {
+            const yearCode = String(new Date().getFullYear()).slice(-1);
+            let prefix = "";
+            if (festival === "清明节") prefix = `${yearCode}m`;
+            else if (festival === "中元节") prefix = `${yearCode}y`;
+            else if (festival === "不空羂索") prefix = `${yearCode}q`;
+            else if (festival === "感恩护法") prefix = `${yearCode}b`;
+            return prefix + phone;
+        }
+
+        // 2. 定义数据收集函数 (你提供的 buildPayload)
+        function buildPayload() {
+            // ... (你提供的 buildPayload 完整代码) ...
+            // (这里省略代码以节省空间，请保留你原本的 buildPayload 内容)
+             const getVal = id => document.getElementById(id)?.value?.trim() || "";
+             // ...
+             return data;
+        }
+
+        // 3. 定义提交函数 (使用刚才确认的新代码)
         function submitUserData() {
-            // 假设你有原版的 submitData 函数
-            if (typeof submitData === 'function') {
-                submitData();
-            } else {
-                // 如果没有，则提供一个模拟的提交逻辑
-                alert("数据提交中... (此处应连接真实后端)");
-                // 模拟成功
-                document.getElementById("btnSubmit").disabled = true;
-                document.getElementById("btnSubmit").innerText = "✅ 提交成功！感谢随喜";
+            const submitBtn = document.getElementById("btnSubmit");
+            
+            // 1. 防重复提交
+            if (submitBtn.disabled) return;
+
+            const festival = document.getElementById("festival").value;
+            const phoneNumber = document.getElementById("phoneNumber").value.trim();
+
+            // 2. 验证
+            if (!festival) return alert("请先选择法会类别");
+            if (!phoneNumber) return alert("请输入手机号");
+
+            // 3. 生成新手机号
+            const newPrefixedPhone = generatePrefixedPhone(phoneNumber, festival);
+            
+            try {
+                // 4. 收集数据
+                const payload = buildPayload();
+                
+                // 5. 关键覆盖：强制使用带前缀的手机号
+                payload.phone = newPrefixedPhone;
+                payload.action = "create";
+
+                // 6. 锁定按钮
+                submitBtn.disabled = true;
+                submitBtn.innerText = "⏳ 提交中...";
+
+                // 7. 发送真实请求
+                fetch("https://form.gealarm2012.workers.dev/admin-chaodu", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.message); // 显示后端返回的消息
+                    if (data.success !== false) { // 只要不是失败，就视为成功
+                        submitBtn.innerText = "✅ 提交成功！感谢随喜";
+                        clearForm(); // 清空表单
+                    } else {
+                        // 如果后端返回失败，恢复按钮
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = "📤 重新提交";
+                    }
+                })
+                .catch(err => {
+                    alert("提交失败: " + err.message);
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "📤 重新提交";
+                });
+
+            } catch (error) {
+                alert("数据处理出错: " + error.message);
+                submitBtn.disabled = false;
+                submitBtn.innerText = "📤 重新提交";
             }
         }
 
-        // 11. 页面加载初始化
+        // 4. 页面初始化
         document.addEventListener("DOMContentLoaded", function() {
-            initGroups(); // 页面加载时初始化分组
+            initGroups();
         });
-
-        // 12. 原版 submitData 函数 (如果存在，请取消注释并替换下面的模拟函数)
-        /*
-        function submitData() {
-            // 这里应该包含你原版 submit.js 中的完整逻辑
-            // 例如构建表单数据、发送 POST 请求等
-            console.log('调用原版 submitData');
-        }
-        */
     </script>
 </body>
 </html>
