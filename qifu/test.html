@@ -17,6 +17,25 @@
         
         /* 增加查询区域的视觉区分 */
         .search-box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .result-dropdown {
+    width: 100%;
+    padding: 8px 12px;
+    margin: 10px 0;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+}
+
+.result-dropdown:hover {
+    border-color: #4096ff;
+}
+
+.result-dropdown:focus {
+    outline: none;
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
     </style>
 </head>
 <body>
@@ -385,45 +404,78 @@
         }
 
         // 9. 查询函数 (修改过的)
-        function searchPhone() {
-            const keyword = document.getElementById("searchInput").value.trim();
-            if (!keyword) {
-                alert("请输入手机号");
-                return;
-            }
+function searchPhone() {
+  const keyword = document.getElementById("searchInput").value.trim();
+  if (!keyword) return;
 
-            document.getElementById("formContainer").style.display = "block";
-            document.getElementById("searchResults").innerHTML = "正在加载数据...";
-
-            fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(keyword)}`)
-            .then(res => res.json())
-            .then(results => {
-                const resultDiv = document.getElementById("searchResults");
-                
-                if (results.length === 0) {
-                    resultDiv.innerHTML = "未找到记录，您将创建一条新记录";
-                    clearForm();
-                    document.getElementById("mainName").removeAttribute("readonly");
-                    document.getElementById("phoneNumber").removeAttribute("readonly");
-                } 
-                else if (results.length >= 1) {
-                    resultDiv.innerHTML = "✅ 查询到记录，请核对并补录新名单";
-                    loadEntry(results[0]); 
-                    
-                    // 🔒 锁定关键字段
-                    document.getElementById("mainName").setAttribute("readonly", true);
-                    document.getElementById("phoneNumber").setAttribute("readonly", true);
-                    
-                    alert("已自动填充旧数据。请勿修改姓名/电话，如需修改请联系管理员。");
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                alert("查询失败，请检查网络或联系管理员");
-            });
-        }
-
-// 1. 定义生成前缀的函数 (独立函数)
+  fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(keyword)}`)
+    .then(res => res.json())
+    .then(results => {
+      const container = document.getElementById("searchResults");
+      container.innerHTML = "";
+      
+      // 1. 无结果情况
+      if (results.length === 0) {
+        container.textContent = "未找到相关记录";
+        return;
+      }
+      
+      // 2. 单条或多条结果情况 - 创建下拉选择菜单
+      container.innerHTML = "<p>请选择需要查看的记录：</p>";
+      
+      // 创建下拉选择框
+      const select = document.createElement("select");
+      select.id = "resultSelect";
+      select.className = "result-dropdown";
+      
+      // 添加默认选项
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = "请选择一个记录";
+      select.appendChild(defaultOption);
+      
+      // 按时间排序（最新在前）
+      results.sort((a, b) => new Date(b[0]) - new Date(a[0]));
+      
+      // 填充下拉选项
+      results.forEach((result, index) => {
+        const name = result[1];
+        const phone = result[2];
+        const date = new Date(result[0]).toLocaleString();
+        
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = `${name} - ${phone} (${date})`;
+        select.appendChild(option);
+      });
+      
+      // 添加下拉框到容器
+      container.appendChild(select);
+      
+      // 3. 添加选择事件处理
+      select.addEventListener("change", () => {
+        const selectedIndex = select.value;
+        if (selectedIndex === "") return;
+        
+        const selectedResult = results[selectedIndex];
+        clearForm();
+        setTimeout(() => loadEntry(selectedResult), 50);
+        container.innerHTML = `<p>已加载记录：${selectedResult[1]} - ${selectedResult[2]}</p>`;
+      });
+      
+      // 4. 单条结果自动选择
+      if (results.length === 1) {
+        setTimeout(() => {
+          select.value = 0;
+          select.dispatchEvent(new Event("change"));
+        }, 100);
+      }
+    })
+    .catch(err => {
+      alert("查询失败");
+      console.error(err);
+    });
+}// 1. 定义生成前缀的函数 (独立函数)
 function generatePrefixedPhone(phone, festival) {
     const yearCode = String(new Date().getFullYear()).slice(-1);
     let prefix = "";
@@ -501,7 +553,6 @@ function buildPayload() {
     return data;
 }
 
-// 3. 定义提交函数 (彻底修复版)
 async function submitUserData() {
     const submitBtn = document.getElementById("btnSubmit");
     
@@ -520,17 +571,23 @@ async function submitUserData() {
     submitBtn.innerText = "⏳ 正在计算编号...";
 
     try {
-        // ✅ 核心修复：强制提取纯数字手机号
-        // 逻辑：移除所有非数字字符。
-        // 效果：无论是 "5y019..." 还是 "6y5y019..."，都会变成 "019..."
-        const pureNumber = rawInputPhone.replace(/\D/g, '');
+        // ✅ 第一步：暴力清洗，只保留数字
+        // 这一步会把 "6y5y019...+2" 变成 "65019..." (全是数字)
+        let allDigits = rawInputPhone.replace(/\D/g, '');
+
+        // ✅ 第二步：智能提取马来西亚手机号 (10-11位)
+        // 逻辑：找到第一个 "01"，然后往后取 10 到 11 位
+        // 正则解释：01 开头，后面跟 8 或 9 个数字 (总共 10 或 11 位)
+        const match = allDigits.match(/01\d{8,9}/);
         
-        if (pureNumber.length < 8) {
-            alert("手机号格式错误，请检查");
+        if (!match) {
+            alert("无法识别手机号格式，请检查是否包含正确数字");
             submitBtn.disabled = false;
             submitBtn.innerText = "📤 重新提交";
             return;
         }
+
+        const pureNumber = match[0]; // 提取出的纯净手机号，如 0198863232
 
         // 4. 生成今年基础前缀
         const yearCode = String(new Date().getFullYear()).slice(-1);
@@ -542,10 +599,9 @@ async function submitUserData() {
         else prefix = `${yearCode}x`;
 
         // 5. 构建用于查询的基础号码 (今年前缀 + 纯数字)
-        // 此时 basePhone 绝对是干净的，例如 "6y0198893200"
         const basePhone = `${prefix}${pureNumber}`;
 
-        // 6. 查询后端 (用干净的号码去搜)
+        // 6. 查询后端
         const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${basePhone}`);
         const existingRows = await searchRes.json();
         
@@ -554,14 +610,13 @@ async function submitUserData() {
         const count = existingRows.length;
 
         if (count === 0) {
-            finalPhone = basePhone; // 第一次 -> 6y019...
+            finalPhone = basePhone;       // 第1笔：不加后缀 (例如 6y019...)
         } else {
-            finalPhone = `${basePhone}+${count + 1}`; // 重复 -> 6y019...+2
+            finalPhone = `${basePhone}+${count}`; // 第2笔起：+1, +2, +3...
         }
-
         // 8. 收集数据并提交
         const payload = buildPayload();
-        payload.phone = finalPhone; // 强制覆盖为干净的最终号码
+        payload.phone = finalPhone;
         payload.action = "create";
 
         submitBtn.innerText = "⏳ 写入数据中...";
@@ -589,7 +644,6 @@ async function submitUserData() {
         submitBtn.innerText = "📤 重新提交";
     }
 }
-
 // 4. 页面初始化
 document.addEventListener("DOMContentLoaded", function() {
     initGroups();
