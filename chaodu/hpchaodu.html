@@ -501,7 +501,7 @@ function buildPayload() {
     return data;
 }
 
-// 3. 定义提交函数 (融合版 + 强力清洗逻辑)
+// 3. 定义提交函数 (彻底修复版)
 async function submitUserData() {
     const submitBtn = document.getElementById("btnSubmit");
     
@@ -509,7 +509,6 @@ async function submitUserData() {
     if (submitBtn.disabled) return;
 
     const festival = document.getElementById("festival").value;
-    // 获取输入框的值（可能是脏数据，如 5y019... 或 6y5y019...）
     const rawInputPhone = document.getElementById("phoneNumber").value.trim();
 
     // 2. 基础验证
@@ -521,14 +520,17 @@ async function submitUserData() {
     submitBtn.innerText = "⏳ 正在计算编号...";
 
     try {
-        // ✅ 核心步骤：强力清洗手机号
-        // \D 表示非数字字符，g 表示全局匹配。
-        // 这将把 "6y5y0198893200" 变成 "0198893200"
-        // 也将把 "5y0198893200" 变成 "0198893200"
-        const purePhoneNumber = rawInputPhone.replace(/\D/g, '');
-
-        // 再次验证清洗后的号码是否为空（防止用户输入乱码）
-        if (!purePhoneNumber) return alert("手机号格式错误，请检查");
+        // ✅ 核心修复：强制提取纯数字手机号
+        // 逻辑：移除所有非数字字符。
+        // 效果：无论是 "5y019..." 还是 "6y5y019..."，都会变成 "019..."
+        const pureNumber = rawInputPhone.replace(/\D/g, '');
+        
+        if (pureNumber.length < 8) {
+            alert("手机号格式错误，请检查");
+            submitBtn.disabled = false;
+            submitBtn.innerText = "📤 重新提交";
+            return;
+        }
 
         // 4. 生成今年基础前缀
         const yearCode = String(new Date().getFullYear()).slice(-1);
@@ -539,10 +541,11 @@ async function submitUserData() {
         else if (festival === "感恩护法") prefix = `${yearCode}b`;
         else prefix = `${yearCode}x`;
 
-        // 5. 构建用于查询的基础号码 (今年前缀 + 纯手机号)
-        const basePhone = `${prefix}${purePhoneNumber}`;
+        // 5. 构建用于查询的基础号码 (今年前缀 + 纯数字)
+        // 此时 basePhone 绝对是干净的，例如 "6y0198893200"
+        const basePhone = `${prefix}${pureNumber}`;
 
-        // 6. 查询后端 (使用纯净的 basePhone 查询)
+        // 6. 查询后端 (用干净的号码去搜)
         const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${basePhone}`);
         const existingRows = await searchRes.json();
         
@@ -551,17 +554,14 @@ async function submitUserData() {
         const count = existingRows.length;
 
         if (count === 0) {
-            finalPhone = basePhone; // 首次提交 -> 6y019...
+            finalPhone = basePhone; // 第一次 -> 6y019...
         } else {
-            finalPhone = `${basePhone}+${count + 1}`; // 重复提交 -> 6y019...+2
+            finalPhone = `${basePhone}+${count + 1}`; // 重复 -> 6y019...+2
         }
 
         // 8. 收集数据并提交
         const payload = buildPayload();
-        
-        // 注意：这里我们覆盖 phone 字段
-        // buildPayload 可能会读取输入框里的脏数据，所以必须在这里强制覆盖为 finalPhone
-        payload.phone = finalPhone; 
+        payload.phone = finalPhone; // 强制覆盖为干净的最终号码
         payload.action = "create";
 
         submitBtn.innerText = "⏳ 写入数据中...";
