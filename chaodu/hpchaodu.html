@@ -79,80 +79,91 @@
 
 <script>
   // --- 1. 配置与状态 ---
-  // 为每个产品添加一个 key，方便在查询回显时匹配数据
   const products = [
-    { name: "祈福令牌", price: 30, key: 'token' },
-    { name: "小护摩片", price: 15, key: 'fire' },
-    { name: "金 3", price: 3, key: 'pg3' },
-    { name: "纸金 6", price: 6, key: 'pg6' }
+    { name: "祈福令牌", price: 30, className: 'token' }, // 使用 className 作为 input 的类名
+    { name: "小护摩片", price: 15, className: 'fire' },
+    { name: "纸金 3", price: 3, className: 'pg3' },
+    { name: "纸金 6", price: 6, className: 'pg6' }
   ];
   let cardCount = 0;
 
-  // --- 2. 界面交互逻辑 ---
+  // --- 2. 创建卡片的函数 (使用你提供的结构，并整合 products 数组) ---
+  function createPrayerCard(data = {}) {
+    cardCount++; // 每次创建新卡片时计数器+1
+    const index = cardCount; 
+    const div = document.createElement('div');
+    div.className = 'card prayer-card p-3';
+
+    // 准备初始数量值 (兼容旧数据结构和新数据结构)
+    const productValues = {};
+    products.forEach(prod => {
+        // 优先使用 data[prod.className] (新结构)，否则尝试 data[prod.key] (旧结构或你示例中的结构)，最后默认为 0
+        productValues[prod.className] = data[prod.className] || data[prod.key] || 0; 
+    });
+
+    // 构建 HTML，使用 products 数组动态生成商品行
+    let productRowsHtml = '<div class="row g-3 mt-2">';
+    products.forEach(prod => {
+        productRowsHtml += `
+          <div class="col-md-3">
+            <label>${prod.name}</label>
+            <input type="number" class="form-control ${prod.className}" value="${productValues[prod.className]}" data-price="${prod.price}" oninput="calculateTotal()">
+          </div>
+        `;
+    });
+    productRowsHtml += '</div>';
+
+    div.innerHTML = `
+      <div style="position:absolute; top:5px; right:10px; cursor:pointer;" onclick="this.parentElement.remove(); calculateTotal()">❌</div>
+      <h6 class="mb-3">🧍‍♀️ 第 ${index} 位祈福者</h6>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label>姓名</label>
+          <input type="text" class="form-control name" value="${data.name || ''}" oninput="calculateTotal()">
+        </div>
+        <div class="col-md-8">
+          <label>现居地址</label>
+          <input type="text" class="form-control address" value="${data.address || ''}">
+        </div>
+      </div>
+      ${productRowsHtml} 
+    `;
+
+    return div;
+  }
+
+
+  // --- 3. 界面交互逻辑 ---
   window.onload = function() { addCard(); };
 
   function addCard(data = {}) {
-    cardCount++;
     const container = document.getElementById('cards-container');
-    const cardDiv = document.createElement('div');
-    cardDiv.className = 'card prayer-card p-3';
-    cardDiv.id = 'card-' + cardCount;
-
-    // 填充数据（用于查询回显）
-    const nameVal = data.name || '';
-    const addrVal = data.address || '';
-
-    // 修正：使用 prod.key 来获取对应的数据值
-    let html = `
-      <div class="row g-2 align-items-end">
-        <div class="col-12 mb-2">
-          <label class="form-label fw-bold text-primary">第 ${cardCount} 位 善信姓名</label>
-          <input type="text" class="form-control name-input" placeholder="请输入姓名" value="${nameVal}" oninput="calculateTotal()">
-        </div>
-        <div class="col-12 mb-2">
-           <input type="text" class="form-control addr-input" placeholder="地址 (可选)" value="${addrVal}">
-        </div>
-        ${products.map((prod, i) => `
-          <div class="col-3 item-col">
-            <label class="item-label">${prod.name}</label>
-            <input type="number" min="0" value="${data[prod.key] || 0}" class="qty-input form-control" data-price="${prod.price}" oninput="calculateTotal()">
-          </div>
-        `).join('')}
-        <div class="col-12 mt-3">
-          <button class="btn btn-outline-danger btn-sm w-100" onclick="removeCard('card-${cardCount}')">删除</button>
-        </div>
-      </div>
-    `;
-    cardDiv.innerHTML = html;
-    container.appendChild(cardDiv);
-    calculateTotal(); // 添加卡片后重新计算
+    const cardElement = createPrayerCard(data);
+    container.appendChild(cardElement);
+    calculateTotal(); // 添加后重新计算
   }
 
-  function removeCard(id) {
-    const el = document.getElementById(id);
-    if(el) { 
-        el.remove(); 
-        calculateTotal(); // 删除卡片后重新计算
-    }
-  }
+  // Note: removeCard function is now handled inline via onclick="this.parentElement.remove(); calculateTotal()" in the card template
 
-  // --- 3. 核心计算逻辑 (修复空卡片) ---
+  // --- 4. 核心计算逻辑 (修复空卡片) ---
   function calculateTotal() {
     let total = 0;
     const cards = document.querySelectorAll('.prayer-card');
 
     cards.forEach(card => {
-      const nameInput = card.querySelector('.name-input');
-      const nameVal = nameInput ? nameInput.value.trim() : ''; // 增加防御性检查
-      const qtyInputs = card.querySelectorAll('.qty-input');
+      const nameInput = card.querySelector('.name');
+      const nameVal = nameInput ? nameInput.value.trim() : '';
+      
       let cardSum = 0;
       let hasQty = false;
 
-      qtyInputs.forEach(input => {
-        const qty = parseInt(input.value) || 0;
-        const price = parseFloat(input.getAttribute('data-price'));
-        cardSum += qty * price;
-        if(qty > 0) hasQty = true;
+      products.forEach(prod => {
+          const input = card.querySelector(`.${prod.className}`);
+          if (input) {
+              const qty = parseInt(input.value) || 0;
+              cardSum += qty * prod.price;
+              if(qty > 0) hasQty = true;
+          }
       });
 
       // 判定：如果姓名空 且 数量全0，则不计入
@@ -163,7 +174,7 @@
     document.getElementById('grandTotal').innerText = total.toFixed(2);
   }
 
-  // --- 4. 提交逻辑 (完整版) ---
+  // --- 5. 提交逻辑 (完整版) ---
   async function submitForm() {
     const btn = document.getElementById('submitBtn');
     const festival = document.getElementById('festival').value;
@@ -209,37 +220,31 @@
       const prayers = [];
       const cards = document.querySelectorAll('.prayer-card');
       cards.forEach(card => {
-        const nameInput = card.querySelector('.name-input');
-        const addrInput = card.querySelector('.addr-input'); // 使用新添加的class
-        const name = nameInput ? nameInput.value.trim() : ''; // 增加防御性检查
+        const nameInput = card.querySelector('.name');
+        const addrInput = card.querySelector('.address');
+        const name = nameInput ? nameInput.value.trim() : '';
         const address = addrInput ? addrInput.value.trim() : '';
-        const inputs = card.querySelectorAll('.qty-input');
         
-        // 获取数量
-        const quantities = Array.from(inputs).map(input => parseInt(input.value) || 0);
-        const totalQty = quantities.reduce((sum, qty) => sum + qty, 0);
+        let totalQty = 0;
+        const prayerData = { name: name, address: address }; // 初始化基础数据
+
+        // 遍历产品，获取数量并累加总价和总数量
+        products.forEach(prod => {
+            const input = card.querySelector(`.${prod.className}`);
+            if (input) {
+                const qty = parseInt(input.value) || 0;
+                prayerData[prod.className] = qty; // 添加到祈祷者数据对象
+                totalQty += qty;
+            }
+        });
 
         // 判定：如果姓名空 且 总数量为0，则忽略此卡片
         if (!name && totalQty === 0) {
-             console.log("Skipping empty card:", name, quantities); // Debug log
+             console.log("Skipping empty card:", name, totalQty); // Debug log
              return; 
         }
 
-        // 累加到总数（这里再次确认总额计算逻辑与此处一致）
-        // let cardSum = 0;
-        // inputs.forEach((input, idx) => {
-        //     cardSum += quantities[idx] * parseFloat(input.getAttribute('data-price'));
-        // });
-        // totalDebug += cardSum; 
-
-        prayers.push({
-          name: name,
-          address: address, // 修正：使用正确的 address 变量
-          token: quantities[0], // 使用数组索引获取
-          fire: quantities[1],
-          pg3: quantities[2],
-          pg6: quantities[3]
-        });
+        prayers.push(prayerData);
       });
 
       console.log("Final prayers array:", prayers); // Debug log
@@ -281,7 +286,7 @@
     }
   }
 
-  // --- 5. 查询逻辑 ---
+  // --- 6. 查询逻辑 ---
   async function searchPhone() {
     const keyword = document.getElementById('searchInput').value.trim();
     if (!keyword) return alert("请输入手机号");
@@ -302,7 +307,7 @@
       const container = document.getElementById('cards-container');
       container.innerHTML = ""; // 清空现有
       if (record.prayers && record.prayers.length > 0) {
-        record.prayers.forEach(p => addCard(p));
+        record.prayers.forEach(p => addCard(p)); // 使用更新后的 addCard，它会调用 createPrayerCard
       }
       calculateTotal(); // 查询回填后重新计算总额
 
