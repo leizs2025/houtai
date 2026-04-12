@@ -405,77 +405,77 @@ return `${year}-${month}-${day}`;
 
 // 9. 查询函数 (修改过的)
 function searchPhone() {
-const keyword = document.getElementById("searchInput").value.trim();
-if (!keyword) {
-alert("请输入手机号");
-return;
-}
+    const keyword = document.getElementById("searchInput").value.trim();
+    if (!keyword) {
+        alert("请输入手机号");
+        return;
+    }
 
-document.getElementById("formContainer").style.display = "block";
-document.getElementById("searchResults").innerHTML = "正在加载数据...";
+    document.getElementById("formContainer").style.display = "block";
+    document.getElementById("searchResults").innerHTML = "正在加载数据...";
 
-fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(keyword)}`)
-.then(res => res.json())
-.then(results => {
-const resultDiv = document.getElementById("searchResults");
+    fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(keyword)}`)
+    .then(res => res.json())
+    .then(results => {
+        const resultDiv = document.getElementById("searchResults");
 
-if (results.length === 0) {
-resultDiv.innerHTML = "未找到记录，您将创建一条新记录";
-clearForm();
-document.getElementById("mainName").removeAttribute("readonly");
-document.getElementById("phoneNumber").removeAttribute("readonly");
-} 
-else if (results.length === 1) {
-resultDiv.innerHTML = "✅ 查询到记录，请核对并补录新名单";
-loadEntry(results[0]); 
+        if (results.length === 0) {
+            resultDiv.innerHTML = "未找到记录，您将创建一条新记录";
+            clearForm();
+            document.getElementById("mainName").removeAttribute("readonly");
+            document.getElementById("phoneNumber").removeAttribute("readonly");
+        } 
+        else if (results.length === 1) {
+            resultDiv.innerHTML = "✅ 查询到记录，请核对并补录新名单";
+            loadEntry(results[0]); 
 
-// 🔒 锁定关键字段
-document.getElementById("mainName").setAttribute("readonly", true);
-document.getElementById("phoneNumber").setAttribute("readonly", true);
+            // 🔒 锁定关键字段
+            document.getElementById("mainName").setAttribute("readonly", true);
+            document.getElementById("phoneNumber").setAttribute("readonly", true);
 
-alert("已自动填充旧数据。请勿修改姓名/电话，如需修改请联系管理员。");
-}
-else {
-// 多条结果处理
-resultDiv.innerHTML = `<p>找到 ${results.length} 条匹配记录，请选择：</p>`;
+            alert("已自动填充旧数据。请勿修改姓名/电话，如需修改请联系管理员。");
+        }
+        else {
+            // 多条结果处理
+            resultDiv.innerHTML = `<p>找到 ${results.length} 条匹配记录，请选择：</p>`;
+            
+            // 创建选择列表
+            const select = document.createElement("select");
+            select.className = "result-dropdown";
+            select.innerHTML = "<option value=''>请选择一个记录</option>";
 
-// 创建选择列表
-const select = document.createElement("select");
-select.className = "result-dropdown";
-select.innerHTML = "<option value=''>请选择一个记录</option>";
+            // 填充选项
+            results.forEach((result, index) => {
+                const name = result[1] || "未知";
+                const phone = result[2] || "未知";
+                const address = result[3] || "未知";
+                const option = document.createElement("option");
+                option.value = index;
+                option.textContent = `${name} - ${phone} (${address})`;
+                select.appendChild(option);
+            });
 
-// 填充选项
-results.forEach((result, index) => {
-const name = result[1] || "未知";
-const phone = result[2] || "未知";
-const address = result[3] || "未知";
-const option = document.createElement("option");
-option.value = index;
-option.textContent = `${name} - ${phone} (${address})`;
-select.appendChild(option);
-});
+            resultDiv.appendChild(select);
 
-resultDiv.appendChild(select);
+            // 选择事件处理
+            select.addEventListener("change", function() {
+                const idx = this.value;
+                if (idx === "") return;
 
-// 选择事件处理
-select.addEventListener("change", function() {
-const idx = this.value;
-if (idx === "") return;
+                resultDiv.innerHTML = "✅ 已选择记录，正在加载数据...";
+                loadEntry(results[parseInt(idx)]);
 
-resultDiv.innerHTML = "✅ 已选择记录，正在加载数据...";
-loadEntry(results[parseInt(idx)]);
-
-// 🔒 锁定关键字段
-document.getElementById("mainName").setAttribute("readonly", true);
-document.getElementById("phoneNumber").setAttribute("readonly", true);
-});
-}
-})
-.catch(err => {
-console.error(err);
-alert("查询失败，请检查网络或联系管理员");
-});
-}
+                // 🔒 锁定关键字段
+                document.getElementById("mainName").setAttribute("readonly", true);
+                document.getElementById("phoneNumber").setAttribute("readonly", true);
+            });
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        alert("查询失败，请检查网络或联系管理员");
+    });
+}}
 // 1. 定义生成前缀的函数 (独立函数)
 function generatePrefixedPhone(phone, festival) {
 const yearCode = String(new Date().getFullYear()).slice(-1);
