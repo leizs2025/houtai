@@ -15,189 +15,197 @@
     .item-label {
       font-size: 0.75rem;
       font-weight: 700;
-      color: #d63384; /* 醒目颜色 */
-      text-transform: uppercase;
+      color: #d63384; 
+      text-align: center; /* 标签居中 */
       margin-bottom: 2px;
-      margin-top: 5px;
       display: block;
     }
 
-    /* 紧凑底部栏 */
+    /* 输入框容器：用于控制宽度和居中 */
+    .input-group-smaller {
+      display: flex;
+      justify-content: center; /* 内容居中 */
+      align-items: center;
+      width: 100%;
+    }
+
+    /* 缩短输入框宽度 */
+    .short-input {
+      width: 80px; /* 固定宽度，比默认的100%短很多 */
+      text-align: center;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: bold;
+      padding: 0.375rem 0.5rem;
+    }
+    
+    /* 底部栏优化 */
     .bottom-bar {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
+      bottom: 0; left: 0; right: 0;
       background: #fff;
       padding: 10px 15px;
-      border-top: 1px solid #ddd;
+      border-top: 1px solid #eee;
       box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
       z-index: 1000;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .total-price { font-size: 1.2rem; font-weight: bold; color: #d63384; margin: 0; }
-    .submit-btn { font-size: 0.9rem; padding: 8px 20px; border-radius: 8px; }
   </style>
 </head>
 <body>
 
-<div class="container py-4">
+<div class="container py-3">
   <div class="text-center mb-4">
-    <h3 class="header-title">🙏 祈福登记</h3>
-    <p class="text-muted small">请填写资料与供奉数量</p>
+    <h3 class="header-title">🙏 祈福登记系统</h3>
   </div>
 
-  <!-- 祈福者列表 -->
-  <div id="prayerList">
-    <!-- 卡片将通过JS动态生成 -->
+  <div id="cardsContainer">
+    <!-- 卡片将通过JS生成在这里 -->
   </div>
 
-  <div class="d-grid gap-2 mt-3">
-    <button class="btn btn-outline-primary btn-sm" onclick="addPrayerCard()">+ 添加一位祈福者</button>
+  <div class="d-grid">
+    <button class="btn btn-outline-primary btn-sm" onclick="addCard()">
+      + 添加一位祈福者
+    </button>
   </div>
 </div>
 
-<!-- 底部固定栏 -->
+<!-- 底部总额栏 -->
 <div class="bottom-bar">
   <div>
-    <small class="text-muted d-block">预计总额 (RM)</small>
-    <span class="total-price" id="totalDisplay">0.00</span>
+    <small class="text-muted">预计总额 (RM)</small>
+    <h5 class="mb-0 text-primary fw-bold" id="totalAmount">0.00</h5>
   </div>
-  <button class="btn btn-primary submit-btn" onclick="submitForm()">提交登记</button>
+  <button class="btn btn-success btn-sm px-4" onclick="submitData()">提交登记</button>
 </div>
 
 <script>
-  // 全局配置：商品单价
-  const PRICES = {
-    lingPai: 30,   // 祈福令牌
-    huMo: 15,      // 小护摩片
-    gold3: 3,      // 金3
-    gold6: 6       // 纸金6
+  // 价格配置
+  const prices = {
+    ling: 3,   // 祈福令牌
+    hmo: 3,    // 小护摩片
+    gold: 3,   // 金
+    paper: 6   // 纸金
   };
 
-  let prayerCount = 0;
+  let cardCount = 0;
 
-  // 初始化第一张卡片
+  // 初始化
   window.onload = function() {
-    addPrayerCard();
+    addCard(); // 默认添加一张
   };
 
   // 添加卡片
-  function addPrayerCard() {
-    prayerCount++;
-    const container = document.getElementById('prayerList');
+  function addCard() {
+    cardCount++;
+    const container = document.getElementById('cardsContainer');
     
-    const cardHTML = `
-      <div class="card mb-3 prayer-card p-3" id="card-${prayerCount}">
-        <div class="d-flex justify-content-between align-items-start mb-2">
-          <h5 class="card-title text-primary fs-6 fw-bold">👤 第 ${prayerCount} 位</h5>
-          ${prayerCount > 1 ? '<button type="button" class="btn-close btn-close-sm" onclick="removeCard(' + prayerCount + ')"></button>' : ''}
+    const card = document.createElement('div');
+    card.className = 'card mb-3 prayer-card fade-in';
+    card.id = 'card-' + cardCount;
+    
+    card.innerHTML = `
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="text-primary fw-bold mb-0">🙇‍♀️ 第 ${cardCount} 位</h6>
+          <button type="button" class="btn-close btn-close-sm" onclick="removeCard('card-${cardCount}')"></button>
         </div>
-
-        <!-- 姓名 -->
-        <input type="text" class="form-control mb-2" placeholder="姓名 (必填)" id="name-${prayerCount}">
         
-        <!-- 地址 -->
-        <input type="text" class="form-control mb-2" placeholder="地址 (可选)" id="address-${prayerCount}">
-
-        <div class="row g-2">
-          <!-- 商品1：祈福令牌 -->
-          <div class="col-6">
-            <label class="item-label">祈福令牌 (RM30)</label>
-            <input type="number" class="form-control item-input" value="0" min="0" oninput="calculateTotal()" id="lingpai-${prayerCount}">
+        <div class="mb-2">
+          <input type="text" class="form-control name-input" placeholder="输入姓名 (必填)" oninput="calculateTotal()">
+        </div>
+        
+        <div class="mb-2">
+          <input type="text" class="form-control" placeholder="地址/备注 (选填)">
+        </div>
+        
+        <div class="row g-2 text-center">
+          <!-- 祈福令牌 -->
+          <div class="col-6 col-md-3">
+            <label class="item-label">祈福令牌</label>
+            <div class="input-group-smaller">
+              <input type="number" class="form-control short-input item-ling" value="0" min="0" oninput="calculateTotal()">
+            </div>
           </div>
           
-          <!-- 商品2：小护摩片 -->
-          <div class="col-6">
-            <label class="item-label">小护摩片 (RM15)</label>
-            <input type="number" class="form-control item-input" value="0" min="0" oninput="calculateTotal()" id="humo-${prayerCount}">
-          </div>
-        </div>
-
-        <div class="row g-2 mt-1">
-          <!-- 商品3：金3 -->
-          <div class="col-6">
-            <label class="item-label">金 3 (RM3)</label>
-            <input type="number" class="form-control item-input" value="0" min="0" oninput="calculateTotal()" id="gold3-${prayerCount}">
+          <!-- 小护摩片 -->
+          <div class="col-6 col-md-3">
+            <label class="item-label">小护摩片</label>
+            <div class="input-group-smaller">
+              <input type="number" class="form-control short-input item-hmo" value="0" min="0" oninput="calculateTotal()">
+            </div>
           </div>
           
-          <!-- 商品4：纸金6 -->
-          <div class="col-6">
-            <label class="item-label">纸金 6 (RM6)</label>
-            <input type="number" class="form-control item-input" value="0" min="0" oninput="calculateTotal()" id="gold6-${prayerCount}">
+          <!-- 金 -->
+          <div class="col-6 col-md-3">
+            <label class="item-label">金 (RM3)</label>
+            <div class="input-group-smaller">
+              <input type="number" class="form-control short-input item-gold" value="0" min="0" oninput="calculateTotal()">
+            </div>
+          </div>
+          
+          <!-- 纸金 -->
+          <div class="col-6 col-md-3">
+            <label class="item-label">纸金 (RM6)</label>
+            <div class="input-group-smaller">
+              <input type="number" class="form-control short-input item-paper" value="0" min="0" oninput="calculateTotal()">
+            </div>
           </div>
         </div>
+        
       </div>
     `;
     
-    container.insertAdjacentHTML('beforeend', cardHTML);
+    container.appendChild(card);
   }
 
-  // 删除卡片
+  // 移除卡片
   function removeCard(id) {
-    const card = document.getElementById(`card-${id}`);
-    if (card) {
-      card.remove();
-      calculateTotal(); // 删除后重新计算
+    const el = document.getElementById(id);
+    if (el) {
+      el.remove();
+      calculateTotal(); // 移除后重新计算
     }
   }
 
-  // 计算总额 (核心逻辑修改)
+  // 计算总额（核心逻辑修复）
   function calculateTotal() {
     let total = 0;
     const cards = document.querySelectorAll('.prayer-card');
-
+    
     cards.forEach(card => {
-      // 获取卡片内的所有输入框
-      const nameInput = card.querySelector('input[placeholder="姓名 (必填)"]');
-      const inputs = card.querySelectorAll('.item-input');
+      // 1. 获取姓名
+      const nameVal = card.querySelector('.name-input').value.trim();
       
-      // 获取数值
-      const nameVal = nameInput.value.trim();
-      const lingPaiVal = parseInt(inputs[0].value) || 0;
-      const huMoVal = parseInt(inputs[1].value) || 0;
-      const gold3Val = parseInt(inputs[2].value) || 0;
-      const gold6Val = parseInt(inputs[3].value) || 0;
-
-      // 🔥 严格空卡片判断逻辑：
-      // 如果 姓名为空 且 所有商品数量都为0，则视为“无效卡片”，不计入总额
-      const isCardEmpty = !nameVal && lingPaiVal === 0 && huMoVal === 0 && gold3Val === 0 && gold6Val === 0;
-
-      if (!isCardEmpty) {
-        // 只有非空卡片才计算金额
-        total += (lingPaiVal * PRICES.lingPai) + 
-                 (huMoVal * PRICES.huMo) + 
-                 (gold3Val * PRICES.gold3) + 
-                 (gold6Val * PRICES.gold6);
+      // 2. 获取所有商品的数量
+      const lingVal = parseInt(card.querySelector('.item-ling').value) || 0;
+      const hmoVal = parseInt(card.querySelector('.item-hmo').value) || 0;
+      const goldVal = parseInt(card.querySelector('.item-gold').value) || 0;
+      const paperVal = parseInt(card.querySelector('.item-paper').value) || 0;
+      
+      // 3. 判断是否为空卡片
+      // 逻辑：如果 姓名是空的 并且 所有商品数量都是0，则视为无效卡片，跳过计算
+      const isAllZero = (lingVal === 0 && hmoVal === 0 && goldVal === 0 && paperVal === 0);
+      
+      if (nameVal === "" && isAllZero) {
+        // 这张卡片完全空白，不计入总额
+        return; 
       }
+      
+      // 4. 计算有效卡片的价格
+      total += (lingVal * prices.ling);
+      total += (hmoVal * prices.hmo);
+      total += (goldVal * prices.gold);
+      total += (paperVal * prices.paper);
     });
-
-    // 更新显示
-    document.getElementById('totalDisplay').innerText = total.toFixed(2);
+    
+    document.getElementById('totalAmount').innerText = total.toFixed(2);
   }
 
-  // 提交表单 (模拟)
-  async function submitForm() {
-    const btn = document.querySelector('.submit-btn');
-    const originalText = btn.innerText;
-    
-    // 简单防抖
-    if (btn.disabled) return;
-    
-    // 这里可以加入你的手机号验证和提交逻辑
-    // ...
-    
-    btn.disabled = true;
-    btn.innerText = "⏳ 提交中...";
-    
-    // 模拟延时
-    setTimeout(() => {
-      alert("提交成功！总额: RM " + document.getElementById('totalDisplay').innerText);
-      btn.disabled = false;
-      btn.innerText = originalText;
-    }, 1500);
+  function submitData() {
+    alert("登记成功！总额: RM " + document.getElementById('totalAmount').innerText);
   }
 </script>
 
