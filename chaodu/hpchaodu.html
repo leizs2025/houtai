@@ -17,6 +17,25 @@
         
         /* 增加查询区域的视觉区分 */
         .search-box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .result-dropdown {
+    width: 100%;
+    padding: 8px 12px;
+    margin: 10px 0;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+}
+
+.result-dropdown:hover {
+    border-color: #4096ff;
+}
+
+.result-dropdown:focus {
+    outline: none;
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
     </style>
 </head>
 <body>
@@ -401,62 +420,62 @@ function searchPhone() {
         return;
       }
       
-      // 2. 单条结果情况 - 自动加载
-      if (results.length === 1) {
-        clearForm();
-        setTimeout(() => loadEntry(results[0]), 50);
-        container.textContent = "已自动加载唯一匹配记录";
-        return;
-      }
+      // 2. 单条或多条结果情况 - 创建下拉选择菜单
+      container.innerHTML = "<p>请选择需要查看的记录：</p>";
       
-      // 3. 多条结果情况 - 创建选择界面
-      container.innerHTML = "<p>找到多条匹配记录，请选择：</p>";
+      // 创建下拉选择框
+      const select = document.createElement("select");
+      select.id = "resultSelect";
+      select.className = "result-dropdown";
       
-      // 创建结果列表容器
-      const listContainer = document.createElement("div");
-      listContainer.className = "result-list-container";
+      // 添加默认选项
+      const defaultOption = document.createElement("option");
+      defaultOption.value = "";
+      defaultOption.textContent = "请选择一个记录";
+      select.appendChild(defaultOption);
       
-      // 生成结果列表（按时间排序，最新在前）
-      results.sort((a, b) => new Date(b[0]) - new Date(a[0])); // 假设第0项是时间戳
+      // 按时间排序（最新在前）
+      results.sort((a, b) => new Date(b[0]) - new Date(a[0]));
       
+      // 填充下拉选项
       results.forEach((result, index) => {
-        const listItem = document.createElement("div");
-        listItem.className = "result-item";
-        
-        // 提取关键信息（假设第1项是姓名，第2项是手机号）
         const name = result[1];
         const phone = result[2];
-        const date = new Date(result[0]).toLocaleString(); // 格式化日期
+        const date = new Date(result[0]).toLocaleString();
         
-        listItem.innerHTML = `
-          <div class="result-header">
-            <span class="result-index">${index + 1}.</span>
-            <span class="result-name">${name}</span>
-          </div>
-          <div class="result-details">
-            <div><strong>手机号：</strong>${phone}</div>
-            <div><strong>提交时间：</strong>${date}</div>
-          </div>
-        `;
-        
-        // 添加点击选择事件
-        listItem.addEventListener("click", () => {
-          clearForm();
-          setTimeout(() => loadEntry(result), 50);
-          container.innerHTML = `<p>已选择记录：${name} - ${phone}</p>`;
-        });
-        
-        listContainer.appendChild(listItem);
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = `${name} - ${phone} (${date})`;
+        select.appendChild(option);
       });
       
-      container.appendChild(listContainer);
+      // 添加下拉框到容器
+      container.appendChild(select);
+      
+      // 3. 添加选择事件处理
+      select.addEventListener("change", () => {
+        const selectedIndex = select.value;
+        if (selectedIndex === "") return;
+        
+        const selectedResult = results[selectedIndex];
+        clearForm();
+        setTimeout(() => loadEntry(selectedResult), 50);
+        container.innerHTML = `<p>已加载记录：${selectedResult[1]} - ${selectedResult[2]}</p>`;
+      });
+      
+      // 4. 单条结果自动选择
+      if (results.length === 1) {
+        setTimeout(() => {
+          select.value = 0;
+          select.dispatchEvent(new Event("change"));
+        }, 100);
+      }
     })
     .catch(err => {
       alert("查询失败");
       console.error(err);
     });
-}
-// 1. 定义生成前缀的函数 (独立函数)
+}// 1. 定义生成前缀的函数 (独立函数)
 function generatePrefixedPhone(phone, festival) {
     const yearCode = String(new Date().getFullYear()).slice(-1);
     let prefix = "";
