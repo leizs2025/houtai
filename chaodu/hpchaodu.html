@@ -414,6 +414,9 @@ function searchPhone() {
       const container = document.getElementById("searchResults");
       container.innerHTML = "";
       
+      // --- 调试开始：检查 results 到底是什么 ---
+      console.log("🔍 后端返回的原始数据 (请检查浏览器控制台 F12):", results);
+      
       if (results.length === 0) {
         container.textContent = "未找到相关记录";
         return;
@@ -425,24 +428,29 @@ function searchPhone() {
       select.className = "result-dropdown";
       select.innerHTML = "<option value=''>请选择一个记录</option>";
 
-      results.sort((a, b) => new Date(b.timestamp || b[0]) - new Date(a.timestamp || a[0]));
-
+      // 注意：这里尝试兼容对象数组或普通数组
       results.forEach((result, index) => {
-        // 🔴 调试：检查数据是否存在
         let name = "未知";
         let phone = "未知";
-        
-        // 尝试从两种可能的结构中取值
-        if (Array.isArray(result)) {
+        let timestamp = "";
+
+        // 逻辑：尝试从对象或数组中提取数据
+        if (result.name && result.phone) {
+          name = result.name;
+          phone = result.phone;
+          timestamp = result.timestamp;
+        } else if (Array.isArray(result)) {
           name = result[1] || "未知";
           phone = result[2] || "未知";
-        } else {
-          name = result.name || result[1] || "未知";
-          phone = result.phone || result[2] || "未知";
+          timestamp = result[0] || "";
         }
 
-        const date = new Date(result.timestamp || result[0]).toLocaleString();
-        select.innerHTML += `<option value="${index}">${name} - ${phone} (${date})</option>`;
+        // 如果时间戳无效，使用当前时间防止报错
+        const date = timestamp ? new Date(timestamp).toLocaleString() : "未知时间";
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = `${name} - ${phone} (${date})`;
+        select.appendChild(option);
       });
 
       container.appendChild(select);
@@ -453,46 +461,45 @@ function searchPhone() {
         const idx = this.value;
         if (idx === "") return;
 
-        const selectedData = results[parseInt(idx)];
-        
-        // 🛠️ 核心修复：强制转换为 loadEntry 能识别的 Array 格式
-        // loadEntry 期望一个数组，索引位置固定。如果后端返回的是对象，我们需要把它“拍平”成数组。
-        let rowData;
-        
-        if (Array.isArray(selectedData)) {
-          // 情况1：后端返回的就是数组，直接使用
-          rowData = selectedData;
-        } else {
-          // 情况2：后端返回的是对象，我们需要模拟数组结构
-          // 注意：这里需要根据你实际的后端返回字段名调整，这是最常见的字段映射
-          rowData = [];
-          rowData[0] = selectedData.timestamp || ""; // 时间
-          rowData[1] = selectedData.name || "";      // 姓名
-          rowData[2] = selectedData.phone || "";     // 手机号
-          rowData[3] = selectedData.address || "";   // 地址
-          rowData[230] = selectedData.donation || "0"; // 供养金额 (索引230)
-          rowData[231] = selectedData.festival || "";  // 法会类别 (索引231)
-          
-          // 🔴 这里需要特别注意：
-          // loadEntry 还会读取索引 4-83 (祖先), 84-128 (水子) 等
-          // 如果你的后端没有返回这些长数组，loadEntry 会报错或空白。
-          // 如果你发现还是空白，请在控制台 (F12) 检查 selectedData 里是否有这些数据。
-        }
+        const rawData = results[parseInt(idx)];
+        console.log("👉 选中的原始数据 rawData:", rawData); // 打印原始数据
 
-        // ✅ 最终调用
-        clearForm();
-        
-        // 延迟确保 DOM 稳定
-        setTimeout(() => {
-          try {
-            loadEntry(rowData);
-            container.innerHTML = `<p>✅ 已加载：${rowData[1]} 的记录</p>`;
-          } catch (e) {
-            // 🔴 调试用：如果报错，弹出错误信息
-            alert("加载数据时出错: " + e.message + "\n请检查控制台数据结构");
-            console.error("传给 loadEntry 的数据:", rowData);
-          }
-        }, 100);
+        // 🛠️ 核心修复：构建 loadEntry 专用的 Array
+        // loadEntry 需要一个非常长的 Array，索引位置固定。
+        // 我们创建一个长度足够的空数组
+        const rowData = new Array(240).fill(""); 
+
+        try {
+          // 填入通用信息 (索引 0-3)
+          rowData[0] = rawData.timestamp || rawData[0] || new Date().toISOString();
+          rowData[1] = rawData.name || rawData[1] || "无名氏";
+          rowData[2] = rawData.phone || rawData[2] || keyword; // 使用搜索词作为备选
+          rowData[3] = rawData.address || rawData[3] || "";
+
+          // 填入法会和金额 (索引 230-231)
+          rowData[230] = rawData.donation || rawData[230] || "0";
+          rowData[231] = rawData.festival || rawData[231] || "清明节";
+
+          // 🔴 关键：如果 rawData 包含详细的列表数据（祖先、水子等），
+          // 它们通常在 rawData.data 或 rawData[4] 开始。
+          // 如果下面的代码不工作，请在控制台看 rawData 里哪里有数据，并赋值给 rowData[4]...
+          
+          // --- 调试：强制在页面上显示数据，看是否能拿到 ---
+          // 如果 rowData[1] 有名字，这里会显示
+          container.innerHTML = `<p style="color: green;">✅ 准备加载：${rowData[1]} 的数据</p>`;
+          
+          // --- 执行加载 ---
+          clearForm();
+          setTimeout(() => {
+            console.log("📤 正在向 loadEntry 传递数据:", rowData);
+            loadEntry(rowData); // 调用你的函数
+            alert(`加载尝试完成！请检查表单。\n如果表单为空，请按 F12 查看控制台打印的 rowData 结构。`);
+          }, 100);
+
+        } catch (e) {
+          console.error("❌ loadEntry 执行出错:", e);
+          alert("加载失败: " + e.message + "\n请检查控制台网络请求和数据结构");
+        }
       });
       // --- END 逻辑 ---
 
@@ -501,8 +508,8 @@ function searchPhone() {
       }
     })
     .catch(err => {
-      alert("查询失败: " + err.message);
-      console.error(err);
+      console.error("🌐 查询请求失败:", err);
+      alert("查询失败: " + err.message + "\n请检查控制台网络选项卡");
     });
 }
         // 1. 定义生成前缀的函数 (独立函数)
