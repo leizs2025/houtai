@@ -423,28 +423,47 @@
             });
         }
 
-           // 1. 定义生成前缀的函数
-        function generatePrefixedPhone(phone, festival) {
-            const yearCode = String(new Date().getFullYear()).slice(-1);
-            let prefix = "";
-            if (festival === "清明节") prefix = `${yearCode}m`;
-            else if (festival === "中元节") prefix = `${yearCode}y`;
-            else if (festival === "不空羂索") prefix = `${yearCode}q`;
-            else if (festival === "感恩护法") prefix = `${yearCode}b`;
-            return prefix + phone;
-        }
+// 1. 定义生成前缀的函数 (独立函数)
+function generatePrefixedPhone(phone, festival) {
+    const yearCode = String(new Date().getFullYear()).slice(-1);
+    let prefix = "";
+    if (festival === "清明节") prefix = `${yearCode}m`;
+    else if (festival === "中元节") prefix = `${yearCode}y`;
+    else if (festival === "不空羂索") prefix = `${yearCode}q`;
+    else if (festival === "感恩护法") prefix = `${yearCode}b`;
+    else prefix = `${yearCode}x`;
+    return prefix + phone;
+}
 
-        // 2. 定义数据收集函数 (你提供的 buildPayload)
-        function buildPayload() {
-            // ... (你提供的 buildPayload 完整代码) ...
-            // (这里省略代码以节省空间，请保留你原本的 buildPayload 内容)
-             const getVal = id => document.getElementById(id)?.value?.trim() || "";
-             // ...
-             return data;
-        }
+// 2. 定义数据收集函数 (独立函数)
+// 注意：这里我保留了你之前逻辑的骨架，但你需要确认是否包含所有字段
+// 如果你有更完整的 buildPayload，请替换到这里，但必须保持它是独立函数
+function buildPayload() {
+    const getVal = id => document.getElementById(id)?.value?.trim() || "";
+    const getGroupData = (groupId, fieldCount) => {
+        const container = document.getElementById(groupId);
+        return Array.from(container?.children || []).map(card => {
+            const data = {};
+            card.querySelectorAll("[data-key]").forEach(el => {
+                data[el.dataset.key] = el.value;
+            });
+            return data;
+        }).flat();
+    };
 
-        // 3. 定义提交函数 (使用刚才确认的新代码)
-// --- 最终版：提交用户数据 (智能叠加逻辑) ---
+    // 这里只是一个示例结构，你需要确保它和后端要求的字段匹配
+    // 如果你有旧的完整 buildPayload 代码，请务必粘贴在这里替换
+    return {
+        name: getVal("mainName"),
+        phone: getVal("phoneNumber"), // 这个会被 submit 中的 finalPhone 覆盖
+        address: getVal("address"),
+        festival: getVal("festival"),
+        donation: getVal("donation"),
+        // ... 其他字段
+    };
+}
+
+// 3. 定义提交函数 (独立函数)
 async function submitUserData() {
     const submitBtn = document.getElementById("btnSubmit");
     
@@ -463,7 +482,7 @@ async function submitUserData() {
     submitBtn.innerText = "⏳ 正在计算编号...";
 
     try {
-        // 4. 生成基础前缀 (例如 6m)
+        // 4. 生成基础前缀
         const yearCode = String(new Date().getFullYear()).slice(-1);
         let prefix = "";
         if (festival === "清明节") prefix = `${yearCode}m`;
@@ -472,10 +491,10 @@ async function submitUserData() {
         else if (festival === "感恩护法") prefix = `${yearCode}b`;
         else prefix = `${yearCode}x`;
 
-        // 5. 构建基础号码 (例如 6m0168570383)
+        // 5. 构建基础号码
         const basePhone = `${prefix}${phoneNumber}`;
 
-        // 6. 查询后端，看是否已经存在这个号码
+        // 6. 查询后端
         const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${basePhone}`);
         const existingRows = await searchRes.json();
         
@@ -487,15 +506,13 @@ async function submitUserData() {
             // 情况A：第一次提交，直接使用基础号码 (不加 +1)
             finalPhone = basePhone;
         } else {
-            // 情况B：重复提交，自动叠加后缀 (例如 +2, +3)
-            // 注意：这里用 count + 1 是为了接在最后一个号码后面
-            // 如果已有 1 条，说明那是第1个，现在生成第2个 (+2)
+            // 情况B：重复提交，自动叠加后缀
             finalPhone = `${basePhone}+${count + 1}`;
         }
 
         // 8. 收集数据并提交
-        const payload = buildPayload();
-        payload.phone = finalPhone; // 使用计算好的最终号码
+        const payload = buildPayload(); // 此时能正确找到外部的 buildPayload
+        payload.phone = finalPhone; 
         payload.action = "create";
 
         submitBtn.innerText = "⏳ 写入数据中...";
@@ -511,7 +528,6 @@ async function submitUserData() {
         if (data.success) {
             alert(`✅ 提交成功！\n您的编号是：${finalPhone}`);
             submitBtn.innerText = "✅ 成功";
-            // clearForm(); 
         } else {
             alert("❌ 提交失败: " + data.message);
             submitBtn.disabled = false;
@@ -523,12 +539,12 @@ async function submitUserData() {
         submitBtn.disabled = false;
         submitBtn.innerText = "📤 重新提交";
     }
+    // 结束 submitUserData 函数
 }
 
-        // 4. 页面初始化
-        document.addEventListener("DOMContentLoaded", function() {
-            initGroups();
-        });
-    </script>
+// 4. 页面初始化
+document.addEventListener("DOMContentLoaded", function() {
+    initGroups();
+});    </script>
 </body>
 </html>
