@@ -200,47 +200,20 @@
     document.getElementById('grandTotal').innerText = total.toFixed(2);
   }
 
-  // --- 5. 提交逻辑 ---
-  async function submitForm() {
-    const btn = document.getElementById('submitBtn');
-    const festival = document.getElementById('dharmaType').value;
-    const mainName = document.getElementById('mainName').value.trim();
-    const phoneRaw = document.getElementById('phoneNumber').value.trim(); // 获取只读的手机号
-    const sponsorAmount = parseFloat(document.getElementById('sponsorAmount').value) || 0;
+  // --- 5. 获取当前表单数据的函数 (基于源代码 forceInsertNewEntry) ---
+  function getCurrentFormData() {
+    // 从页面收集主要信息
+    const formData = {
+        festival: document.getElementById('dharmaType').value,
+        mainName: document.getElementById('mainName').value.trim(),
+        phoneNumber: document.getElementById('phoneNumber').value.trim(), // 使用只读的手机号
+        sponsorAmount: parseFloat(document.getElementById('sponsorAmount').value) || 0,
+        // 从所有卡片中收集祈福者信息
+        prayers: []
+    };
 
-    if (!mainName) return alert("请输入主祈者姓名");
-    if (!phoneRaw) return alert("请输入手机号");
-    if (btn.disabled) return;
-
-    btn.disabled = true;
-    btn.innerText = "⏳ 生成编号中...";
-
-    try {
-      let digits = phoneRaw.replace(/\D/g, ''); // 使用只读的手机号
-      const match = digits.match(/01\d{8,9}/);
-      if (!match) throw new Error("手机号格式不正确");
-      const cleanPhone = match[0];
-
-      const yearCode = String(new Date().getFullYear()).slice(-1);
-      let prefix = "x";
-      if (festival === "清明节") prefix = "m";
-      else if (festival === "中元节") prefix = "y";
-      else if (festival === "不空羂索") prefix = "q";
-      else if (festival === "感恩护法") prefix = "b";
-
-      const baseId = `${yearCode}${prefix}${cleanPhone}`;
-
-      const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${baseId}`);
-      const existing = await searchRes.json();
-      
-      let finalId = baseId;
-      if (existing && existing.length > 0) {
-        finalId = `${baseId}+${existing.length + 1}`;
-      }
-
-      const prayers = [];
-      const cards = document.querySelectorAll('#prayersContainer .prayer-card');
-      cards.forEach(card => {
+    const cards = document.querySelectorAll('#prayersContainer .prayer-card');
+    cards.forEach(card => {
         const nameInput = card.querySelector('.name');
         const addrInput = card.querySelector('.address');
         const name = nameInput ? nameInput.value.trim() : '';
@@ -260,34 +233,67 @@
              return; 
         }
 
-        prayers.push({ name, address, ...quantities }); // 展开 quantities 对象
-      });
+        formData.prayers.push({ name, address, ...quantities }); // 展开 quantities 对象
+    });
 
-      if (prayers.length === 0) throw new Error("请至少填写一位祈福者（姓名不为空或数量不全为0）");
+    return formData;
+  }
 
+  // --- 6. 提交逻辑 (修正以匹配源代码结构) ---
+  async function submitForm() {
+    const btn = document.getElementById('submitBtn');
+    // const festival = document.getElementById('dharmaType').value; // 不再单独获取
+    // const mainName = document.getElementById('mainName').value.trim(); // 不再单独获取
+    const phoneRaw = document.getElementById('phoneNumber').value.trim(); // 获取只读的手机号
+    // const sponsorAmount = parseFloat(document.getElementById('sponsorAmount').value) || 0; // 不再单独获取
+
+    if (!phoneRaw) return alert("请输入手机号");
+    if (btn.disabled) return;
+
+    btn.disabled = true;
+    btn.innerText = "⏳ 提交中...";
+
+    try {
+      // 获取表单数据
+      const body = getCurrentFormData();
+      if (!body.mainName || !body.phoneNumber) {
+        alert("⚠️ 主祈者姓名与手机号必填");
+        btn.disabled = false;
+        btn.innerText = "提交登记";
+        return;
+      }
+
+      // 构造符合源代码期望的请求体
       const payload = {
-        receiptNumber: finalId,
-        mainName: mainName,
-        phoneNumber: cleanPhone, // 使用只读的手机号
-        festival: festival,
-        totalAmount: parseFloat(document.getElementById('grandTotal').innerText),
-        sponsorAmount: sponsorAmount,
-        prayers: prayers,
-        timestamp: new Date().toISOString()
+        ...body, // 展开表单数据
+        method: "POST",
+        admin: localStorage.getItem("admin") || "未登录", // 可以设置一个默认值或从别处获取
+        total: currentTotalAmount || 0 // 使用计算出的总额
       };
 
-      const res = await fetch('https://form.gealarm2012.workers.dev/admin-qifu', {
+      console.log("Sending payload:", payload); // 打印发送的数据
+
+      const res = await fetch('https://form.gealarm2012.workers.dev/admin-qifu', { // 确认此URL与源代码一致
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json'
+            // 如果源代码中有其他必需的头部，需要在这里添加
+        },
         body: JSON.stringify(payload)
       });
 
+      console.log("Response status:", res.status); // 打印响应状态码
+
       const result = await res.json();
+      console.log("Parsed result:", result); // 打印解析后的结果
+
       if (result.success) {
-        alert(`✅ 提交成功！\n编号: ${finalId}`);
-        location.reload();
+        alert(`✅ 提交成功！`);
+        // location.reload(); // 成功后可以选择清空表单而不是刷新页面
+        startNewEntry(); // 如果存在此函数，可以调用来清空表单
       } else {
-        alert("❌ 提交失败: " + (result.message || "未知错误"));
+        // 新增失败，但后端有明确错误信息
+        alert(`❌ 提交失败：${result.message || '未知错误'}`);
       }
 
     } catch (err) {
@@ -298,7 +304,20 @@
     }
   }
 
-  // --- 6. 日期格式化函数 ---
+  // --- 7. (可选) 清空表单的函数 ---
+  window.startNewEntry = function() {
+    document.getElementById('mainName').value = '';
+    document.getElementById('phoneNumber').value = '';
+    document.getElementById('phoneNumber').readOnly = false; // 解锁手机号以便下次输入
+    document.getElementById('sponsorAmount').value = '';
+    document.getElementById('prayersContainer').innerHTML = '';
+    addCard(); // 添加一张新卡片
+    updateDonationBreakdown(); // 更新总额
+    document.getElementById('resultSelector').innerHTML = ''; // 清空查询结果
+    document.getElementById('searchInput').value = ''; // 清空搜索框
+  };
+
+  // --- 8. 日期格式化函数 ---
   function padDate(input) {
     if (!input) return "";
     const date = new Date(input);
@@ -309,7 +328,7 @@
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  // --- 7. 表单渲染函数 (基于原始代码，移除字段并锁定手机号) ---
+  // --- 9. 表单渲染函数 (基于原始代码，移除字段并锁定手机号) ---
   window.renderForm = function (entry) {
     const container = document.getElementById("prayersContainer");
     if (!container) return alert("页面未加载完成，请刷新");
@@ -355,7 +374,7 @@
     updateDonationBreakdown();
   };
 
-  // --- 8. 精确查询逻辑 (基于原始代码) ---
+  // --- 10. 精确查询逻辑 (基于原始代码) ---
   window.searchPhone = function () {
     const keyword = document.getElementById("searchInput").value.trim();
     if (!keyword) return alert("请输入手机号关键字");
@@ -416,7 +435,7 @@
       });
   };
 
-  // --- 9. 模糊查询逻辑 (新增) ---
+  // --- 11. 模糊查询逻辑 (新增) ---
   async function handleSearchInput() {
     const keyword = document.getElementById('searchInput').value.trim();
     
