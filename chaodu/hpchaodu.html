@@ -444,64 +444,86 @@
         }
 
         // 3. 定义提交函数 (使用刚才确认的新代码)
-        function submitUserData() {
-            const submitBtn = document.getElementById("btnSubmit");
-            
-            // 1. 防重复提交
-            if (submitBtn.disabled) return;
+// --- 最终版：提交用户数据 (智能叠加逻辑) ---
+async function submitUserData() {
+    const submitBtn = document.getElementById("btnSubmit");
+    
+    // 1. 防重复提交
+    if (submitBtn.disabled) return;
 
-            const festival = document.getElementById("festival").value;
-            const phoneNumber = document.getElementById("phoneNumber").value.trim();
+    const festival = document.getElementById("festival").value;
+    const phoneNumber = document.getElementById("phoneNumber").value.trim();
 
-            // 2. 验证
-            if (!festival) return alert("请先选择法会类别");
-            if (!phoneNumber) return alert("请输入手机号");
+    // 2. 基础验证
+    if (!festival) return alert("请先选择法会类别");
+    if (!phoneNumber) return alert("请输入手机号");
 
-            // 3. 生成新手机号
-            const newPrefixedPhone = generatePrefixedPhone(phoneNumber, festival);
-            
-            try {
-                // 4. 收集数据
-                const payload = buildPayload();
-                
-                // 5. 关键覆盖：强制使用带前缀的手机号
-                payload.phone = newPrefixedPhone;
-                payload.action = "create";
+    // 3. 锁定按钮
+    submitBtn.disabled = true;
+    submitBtn.innerText = "⏳ 正在计算编号...";
 
-                // 6. 锁定按钮
-                submitBtn.disabled = true;
-                submitBtn.innerText = "⏳ 提交中...";
+    try {
+        // 4. 生成基础前缀 (例如 6m)
+        const yearCode = String(new Date().getFullYear()).slice(-1);
+        let prefix = "";
+        if (festival === "清明节") prefix = `${yearCode}m`;
+        else if (festival === "中元节") prefix = `${yearCode}y`;
+        else if (festival === "不空羂索") prefix = `${yearCode}q`;
+        else if (festival === "感恩护法") prefix = `${yearCode}b`;
+        else prefix = `${yearCode}x`;
 
-                // 7. 发送真实请求
-                fetch("https://form.gealarm2012.workers.dev/admin-chaodu", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                })
-                .then(res => res.json())
-                .then(data => {
-                    alert(data.message); // 显示后端返回的消息
-                    if (data.success !== false) { // 只要不是失败，就视为成功
-                        submitBtn.innerText = "✅ 提交成功！感谢随喜";
-                        clearForm(); // 清空表单
-                    } else {
-                        // 如果后端返回失败，恢复按钮
-                        submitBtn.disabled = false;
-                        submitBtn.innerText = "📤 重新提交";
-                    }
-                })
-                .catch(err => {
-                    alert("提交失败: " + err.message);
-                    submitBtn.disabled = false;
-                    submitBtn.innerText = "📤 重新提交";
-                });
+        // 5. 构建基础号码 (例如 6m0168570383)
+        const basePhone = `${prefix}${phoneNumber}`;
 
-            } catch (error) {
-                alert("数据处理出错: " + error.message);
-                submitBtn.disabled = false;
-                submitBtn.innerText = "📤 重新提交";
-            }
+        // 6. 查询后端，看是否已经存在这个号码
+        const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${basePhone}`);
+        const existingRows = await searchRes.json();
+        
+        // 7. 智能生成最终号码
+        let finalPhone = "";
+        const count = existingRows.length;
+
+        if (count === 0) {
+            // 情况A：第一次提交，直接使用基础号码 (不加 +1)
+            finalPhone = basePhone;
+        } else {
+            // 情况B：重复提交，自动叠加后缀 (例如 +2, +3)
+            // 注意：这里用 count + 1 是为了接在最后一个号码后面
+            // 如果已有 1 条，说明那是第1个，现在生成第2个 (+2)
+            finalPhone = `${basePhone}+${count + 1}`;
         }
+
+        // 8. 收集数据并提交
+        const payload = buildPayload();
+        payload.phone = finalPhone; // 使用计算好的最终号码
+        payload.action = "create";
+
+        submitBtn.innerText = "⏳ 写入数据中...";
+
+        const response = await fetch("https://form.gealarm2012.workers.dev/admin-chaodu", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(`✅ 提交成功！\n您的编号是：${finalPhone}`);
+            submitBtn.innerText = "✅ 成功";
+            // clearForm(); 
+        } else {
+            alert("❌ 提交失败: " + data.message);
+            submitBtn.disabled = false;
+            submitBtn.innerText = "📤 重新提交";
+        }
+
+    } catch (error) {
+        alert("系统错误: " + error.message);
+        submitBtn.disabled = false;
+        submitBtn.innerText = "📤 重新提交";
+    }
+}
 
         // 4. 页面初始化
         document.addEventListener("DOMContentLoaded", function() {
