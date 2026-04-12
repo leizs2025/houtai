@@ -404,40 +404,44 @@
         }
 
         // 9. 查询函数 (修改过的)
-function searchPhone() {
-  const keyword = document.getElementById("searchInput").value.trim();
-  if (!keyword) return;
+        function searchPhone() {
+            const keyword = document.getElementById("searchInput").value.trim();
+            if (!keyword) {
+                alert("请输入手机号");
+                return;
+            }
 
-  fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(keyword)}`)
-    .then(res => res.json())
-    .then(results => {
-      const container = document.getElementById("searchResults");
-      container.innerHTML = "";
-      if (results.length === 1) {
-        clearForm();
-        setTimeout(() => loadEntry(results[0]), 50);
-      } else if (results.length > 1) {
-        const select = document.createElement("select");
-        select.className = "form-select mt-2";
-        select.onchange = e => {
-          const selected = results.find(r => r[2] === e.target.value);
-          if (selected) {
-            clearForm();
-            setTimeout(() => loadEntry(selected), 50);
-          }
-        };
-        select.innerHTML = '<option value="">选择查询结果</option>' +
-          results.map(r => `<option value="${r[2]}">${r[1]} - ${r[2]}</option>`).join("");
-        container.appendChild(select);
-      } else {
-        container.textContent = "未找到相关记录";
-      }
-    })
-    .catch(err => {
-      alert("查询失败");
-      console.error(err);
-    });
-}
+            document.getElementById("formContainer").style.display = "block";
+            document.getElementById("searchResults").innerHTML = "正在加载数据...";
+
+            fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(keyword)}`)
+            .then(res => res.json())
+            .then(results => {
+                const resultDiv = document.getElementById("searchResults");
+
+                if (results.length === 0) {
+                    resultDiv.innerHTML = "未找到记录，您将创建一条新记录";
+                    clearForm();
+                    document.getElementById("mainName").removeAttribute("readonly");
+                    document.getElementById("phoneNumber").removeAttribute("readonly");
+                } 
+                else if (results.length >= 1) {
+                    resultDiv.innerHTML = "✅ 查询到记录，请核对并补录新名单";
+                    loadEntry(results[0]); 
+
+                    // 🔒 锁定关键字段
+                    document.getElementById("mainName").setAttribute("readonly", true);
+                    document.getElementById("phoneNumber").setAttribute("readonly", true);
+
+                    alert("已自动填充旧数据。请勿修改姓名/电话，如需修改请联系管理员。");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("查询失败，请检查网络或联系管理员");
+            });
+        }
+
         // 1. 定义生成前缀的函数 (独立函数)
 function generatePrefixedPhone(phone, festival) {
     const yearCode = String(new Date().getFullYear()).slice(-1);
