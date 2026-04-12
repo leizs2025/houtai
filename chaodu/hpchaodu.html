@@ -10,301 +10,196 @@
     .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: none; }
     .header-title { color: #0d6efd; font-weight: bold; }
     .prayer-card { border-left: 5px solid #0d6efd; background-color: #fff; }
-    .form-label { font-size: 0.8rem; font-weight: 600; color: #444; margin-bottom: 2px; }
-    .form-control, .form-select { border-radius: 8px; font-size: 0.95rem; }
     
-    /* 紧凑的底部总额栏 */
+    /* 商品名称标签样式 */
+    .item-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #d63384; /* 醒目颜色 */
+      text-transform: uppercase;
+      margin-bottom: 2px;
+      margin-top: 5px;
+      display: block;
+    }
+
+    /* 紧凑底部栏 */
     .bottom-bar {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: #fff; padding: 10px 15px;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #fff;
+      padding: 10px 15px;
       border-top: 1px solid #ddd;
       box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-      display: flex; justify-content: space-between; align-items: center;
       z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
-    .total-price { font-size: 1.2rem; font-weight: bold; color: #d9534f; margin: 0; }
-    .btn-submit { font-size: 1rem; padding: 8px 20px; border-radius: 8px; }
-    
-    /* 删除按钮样式 */
-    .btn-remove { position: absolute; top: 10px; right: 10px; color: #999; background: none; border: none; font-size: 1.2rem; }
-    .btn-remove:hover { color: #d9534f; }
+    .total-price { font-size: 1.2rem; font-weight: bold; color: #d63384; margin: 0; }
+    .submit-btn { font-size: 0.9rem; padding: 8px 20px; border-radius: 8px; }
   </style>
 </head>
 <body>
 
-<div class="container py-3">
-  <!-- 顶部查询栏 -->
-  <div class="card p-3 mb-3">
-    <div class="input-group">
-      <input type="text" id="searchInput" class="form-control" placeholder="输入手机号查询历史记录">
-      <button class="btn btn-outline-primary" type="button" onclick="searchPhone()">🔍 查询</button>
-    </div>
+<div class="container py-4">
+  <div class="text-center mb-4">
+    <h3 class="header-title">🙏 祈福登记</h3>
+    <p class="text-muted small">请填写资料与供奉数量</p>
   </div>
 
-  <!-- 主表单 -->
-  <div class="card p-3">
-    <h5 class="header-title mb-3">📝 登记资料</h5>
-    
-    <div class="mb-3">
-      <label class="form-label">法会类别</label>
-      <select id="festival" class="form-select">
-        <option value="清明节">清明节</option>
-        <option value="中元节">中元节</option>
-        <option value="不空羂索">不空羂索</option>
-        <option value="感恩护法">感恩护法</option>
-        <option value="其他">其他</option>
-      </select>
-    </div>
+  <!-- 祈福者列表 -->
+  <div id="prayerList">
+    <!-- 卡片将通过JS动态生成 -->
+  </div>
 
-    <div class="mb-3">
-      <label class="form-label">主祈者姓名</label>
-      <input type="text" id="mainName" class="form-control" placeholder="请输入主祈者姓名">
-    </div>
-
-    <div class="mb-3">
-      <label class="form-label">手机号码</label>
-      <input type="tel" id="phoneNumber" class="form-control" placeholder="请输入手机号">
-    </div>
-
-    <hr>
-    <h6 class="text-primary">祈福名单</h6>
-    <div id="prayersContainer" class="mt-3">
-      <!-- 祈福者卡片将通过 JS 动态插入这里 -->
-    </div>
-
-    <button class="btn btn-outline-primary btn-sm w-100 mt-2" onclick="addPrayerCard()">+ 新增一位祈福者</button>
+  <div class="d-grid gap-2 mt-3">
+    <button class="btn btn-outline-primary btn-sm" onclick="addPrayerCard()">+ 添加一位祈福者</button>
   </div>
 </div>
 
-<!-- 底部固定总额栏 -->
+<!-- 底部固定栏 -->
 <div class="bottom-bar">
   <div>
     <small class="text-muted d-block">预计总额 (RM)</small>
-    <span id="totalAmount" class="total-price">0.00</span>
+    <span class="total-price" id="totalDisplay">0.00</span>
   </div>
-  <button class="btn btn-primary btn-submit" onclick="submitForm()" id="submitBtn">提交登记</button>
+  <button class="btn btn-primary submit-btn" onclick="submitForm()">提交登记</button>
 </div>
 
 <script>
-  // 初始化：页面加载时添加第一张空卡片
-  document.addEventListener('DOMContentLoaded', () => {
+  // 全局配置：商品单价
+  const PRICES = {
+    lingPai: 30,   // 祈福令牌
+    huMo: 15,      // 小护摩片
+    gold3: 3,      // 金3
+    gold6: 6       // 纸金6
+  };
+
+  let prayerCount = 0;
+
+  // 初始化第一张卡片
+  window.onload = function() {
     addPrayerCard();
-  });
+  };
 
-  // 1. 添加祈福者卡片
-  function addPrayerCard(name = '', address = '', t=0, f=0, p3=0, p6=0) {
-    const container = document.getElementById('prayersContainer');
-    const index = container.children.length + 1;
-
-    const div = document.createElement('div');
-    div.className = 'card prayer-card p-3 mb-3 position-relative';
+  // 添加卡片
+  function addPrayerCard() {
+    prayerCount++;
+    const container = document.getElementById('prayerList');
     
-    // HTML 结构：包含显式的 Label 标签
-    div.innerHTML = `
-      <button type="button" class="btn-remove" onclick="removeCard(this)">✕</button>
-      <h6 class="mb-3 text-primary">👤 第 ${index} 位</h6>
-      
-      <div class="mb-2">
-        <input type="text" class="form-control name" placeholder="姓名 (例如: 张三)" value="${name}">
-      </div>
-      <div class="mb-3">
-        <input type="text" class="form-control address" placeholder="现居地址 (可选)" value="${address}">
-      </div>
+    const cardHTML = `
+      <div class="card mb-3 prayer-card p-3" id="card-${prayerCount}">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h5 class="card-title text-primary fs-6 fw-bold">👤 第 ${prayerCount} 位</h5>
+          ${prayerCount > 1 ? '<button type="button" class="btn-close btn-close-sm" onclick="removeCard(' + prayerCount + ')"></button>' : ''}
+        </div>
 
-      <div class="row g-2">
-        <!-- 第一行商品 -->
-        <div class="col-6">
-          <label class="form-label">祈福令牌 (RM5)</label>
-          <input type="number" class="form-control item-token" value="${t}" min="0" oninput="calculateTotal()">
-        </div>
-        <div class="col-6">
-          <label class="form-label">小护摩片 (RM1)</label>
-          <input type="number" class="form-control item-fire" value="${f}" min="0" oninput="calculateTotal()">
-        </div>
+        <!-- 姓名 -->
+        <input type="text" class="form-control mb-2" placeholder="姓名 (必填)" id="name-${prayerCount}">
         
-        <!-- 第二行商品 -->
-        <div class="col-6 mt-2">
-          <label class="form-label">纸金 3 (RM3)</label>
-          <input type="number" class="form-control item-pg3" value="${p3}" min="0" oninput="calculateTotal()">
+        <!-- 地址 -->
+        <input type="text" class="form-control mb-2" placeholder="地址 (可选)" id="address-${prayerCount}">
+
+        <div class="row g-2">
+          <!-- 商品1：祈福令牌 -->
+          <div class="col-6">
+            <label class="item-label">祈福令牌 (RM30)</label>
+            <input type="number" class="form-control item-input" value="0" min="0" oninput="calculateTotal()" id="lingpai-${prayerCount}">
+          </div>
+          
+          <!-- 商品2：小护摩片 -->
+          <div class="col-6">
+            <label class="item-label">小护摩片 (RM15)</label>
+            <input type="number" class="form-control item-input" value="0" min="0" oninput="calculateTotal()" id="humo-${prayerCount}">
+          </div>
         </div>
-        <div class="col-6 mt-2">
-          <label class="form-label">纸金 6 (RM6)</label>
-          <input type="number" class="form-control item-pg6" value="${p6}" min="0" oninput="calculateTotal()">
+
+        <div class="row g-2 mt-1">
+          <!-- 商品3：金3 -->
+          <div class="col-6">
+            <label class="item-label">金 3 (RM3)</label>
+            <input type="number" class="form-control item-input" value="0" min="0" oninput="calculateTotal()" id="gold3-${prayerCount}">
+          </div>
+          
+          <!-- 商品4：纸金6 -->
+          <div class="col-6">
+            <label class="item-label">纸金 6 (RM6)</label>
+            <input type="number" class="form-control item-input" value="0" min="0" oninput="calculateTotal()" id="gold6-${prayerCount}">
+          </div>
         </div>
       </div>
     `;
-    container.appendChild(div);
-    updateIndices();
-    calculateTotal();
+    
+    container.insertAdjacentHTML('beforeend', cardHTML);
   }
 
-  // 2. 删除卡片
-  function removeCard(btn) {
-    const card = btn.closest('.card');
-    card.remove();
-    updateIndices();
-    calculateTotal();
+  // 删除卡片
+  function removeCard(id) {
+    const card = document.getElementById(`card-${id}`);
+    if (card) {
+      card.remove();
+      calculateTotal(); // 删除后重新计算
+    }
   }
 
-  // 更新卡片序号
-  function updateIndices() {
-    const cards = document.querySelectorAll('#prayersContainer .card');
-    cards.forEach((card, index) => {
-      card.querySelector('h6').innerText = `👤 第 ${index + 1} 位`;
-    });
-  }
-
-  // 3. 计算总额 (核心逻辑：跳过空卡片)
+  // 计算总额 (核心逻辑修改)
   function calculateTotal() {
     let total = 0;
-    const cards = document.querySelectorAll('#prayersContainer .card');
+    const cards = document.querySelectorAll('.prayer-card');
 
     cards.forEach(card => {
-      const name = card.querySelector('.name').value.trim();
-      const token = parseInt(card.querySelector('.item-token').value) || 0;
-      const fire = parseInt(card.querySelector('.item-fire').value) || 0;
-      const pg3 = parseInt(card.querySelector('.item-pg3').value) || 0;
-      const pg6 = parseInt(card.querySelector('.item-pg6').value) || 0;
+      // 获取卡片内的所有输入框
+      const nameInput = card.querySelector('input[placeholder="姓名 (必填)"]');
+      const inputs = card.querySelectorAll('.item-input');
+      
+      // 获取数值
+      const nameVal = nameInput.value.trim();
+      const lingPaiVal = parseInt(inputs[0].value) || 0;
+      const huMoVal = parseInt(inputs[1].value) || 0;
+      const gold3Val = parseInt(inputs[2].value) || 0;
+      const gold6Val = parseInt(inputs[3].value) || 0;
 
-      // 核心修复：如果 姓名、令牌、护摩、纸金3、纸金6 全部为空/0，则忽略此卡片
-      if (!name && token === 0 && fire === 0 && pg3 === 0 && pg6 === 0) {
-        return; // 跳过本次循环，不计入总额
+      // 🔥 严格空卡片判断逻辑：
+      // 如果 姓名为空 且 所有商品数量都为0，则视为“无效卡片”，不计入总额
+      const isCardEmpty = !nameVal && lingPaiVal === 0 && huMoVal === 0 && gold3Val === 0 && gold6Val === 0;
+
+      if (!isCardEmpty) {
+        // 只有非空卡片才计算金额
+        total += (lingPaiVal * PRICES.lingPai) + 
+                 (huMoVal * PRICES.huMo) + 
+                 (gold3Val * PRICES.gold3) + 
+                 (gold6Val * PRICES.gold6);
       }
-
-      total += (token * 5) + (fire * 1) + (pg3 * 3) + (pg6 * 6);
     });
 
-    document.getElementById('totalAmount').innerText = total.toFixed(2);
+    // 更新显示
+    document.getElementById('totalDisplay').innerText = total.toFixed(2);
   }
 
-  // 4. 智能手机号清洗
-  function cleanPhoneNumber(raw) {
-    if (!raw) return "";
-    // 只保留数字
-    let digits = raw.replace(/\D/g, '');
-    // 处理马来西亚号码：如果是 601 开头，转为 01
-    if (digits.startsWith('601')) {
-      digits = '0' + digits.substring(2);
-    }
-    // 确保是 01 开头，长度 10-11 位
-    const match = digits.match(/01\d{8,9}/);
-    return match ? match[0] : digits;
-  }
-
-  // 5. 生成唯一编号逻辑 (含查询防重)
-  async function generateUniquePhoneId(phone, festival) {
-    const yearCode = String(new Date().getFullYear()).slice(-1); // 取年份最后一位，如 2026 -> "6"
-    let prefix = "";
-    if (festival === "清明节") prefix = `${yearCode}m`;
-    else if (festival === "中元节") prefix = `${yearCode}y`;
-    else if (festival === "不空羂索") prefix = `${yearCode}q`;
-    else if (festival === "感恩护法") prefix = `${yearCode}b`;
-    else prefix = `${yearCode}x`;
-
-    const basePhone = prefix + phone;
-
-    try {
-      // 查询后端是否已存在
-      const res = await fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${basePhone}`);
-      const data = await res.json();
-      const count = Array.isArray(data) ? data.length : 0;
-      
-      // 如果存在，加后缀；不存在则直接用基础号
-      return count === 0 ? basePhone : `${basePhone}+${count + 1}`;
-    } catch (e) {
-      console.error("查询编号失败", e);
-      return basePhone; // 出错时降级处理
-    }
-  }
-
-  // 6. 查询历史记录
-  async function searchPhone() {
-    const keyword = document.getElementById('searchInput').value.trim();
-    if (!keyword) return alert("请输入手机号");
-
-    const cleanKey = cleanPhoneNumber(keyword);
-    // 简单查询：这里假设按手机号模糊搜索，实际可能需要根据业务调整
-    // 为了演示，这里仅做前端提示，实际应调用后端API填充表单
-    alert(`正在查询 ${cleanKey} 的历史记录... (此处需连接后端API)`);
-  }
-
-  // 7. 提交表单
+  // 提交表单 (模拟)
   async function submitForm() {
-    const btn = document.getElementById('submitBtn');
-    const festival = document.getElementById('festival').value;
-    const mainName = document.getElementById('mainName').value.trim();
-    const phoneRaw = document.getElementById('phoneNumber').value.trim();
-
-    if (!mainName) return alert("请输入主祈者姓名");
-    if (!phoneRaw) return alert("请输入手机号");
-
-    // 锁定按钮
+    const btn = document.querySelector('.submit-btn');
+    const originalText = btn.innerText;
+    
+    // 简单防抖
+    if (btn.disabled) return;
+    
+    // 这里可以加入你的手机号验证和提交逻辑
+    // ...
+    
     btn.disabled = true;
-    btn.innerText = "处理中...";
-
-    try {
-      const cleanPhone = cleanPhoneNumber(phoneRaw);
-      if (!cleanPhone) throw new Error("手机号格式不正确");
-
-      // 生成带防重逻辑的最终编号
-      const finalPhoneId = await generateUniquePhoneId(cleanPhone, festival);
-
-      // 收集数据
-      const prayers = [];
-      const cards = document.querySelectorAll('#prayersContainer .card');
-      
-      cards.forEach(card => {
-        const name = card.querySelector('.name').value.trim();
-        const address = card.querySelector('.address').value.trim();
-        const token = parseInt(card.querySelector('.item-token').value) || 0;
-        const fire = parseInt(card.querySelector('.item-fire').value) || 0;
-        const pg3 = parseInt(card.querySelector('.item-pg3').value) || 0;
-        const pg6 = parseInt(card.querySelector('.item-pg6').value) || 0;
-
-        // 同样，空卡片不提交
-        if (!name && token === 0 && fire === 0 && pg3 === 0 && pg6 === 0) return;
-
-        prayers.push({ name, address, token, fire, pg3, pg6 });
-      });
-
-      if (prayers.length === 0) throw new Error("请至少添加一位有效的祈福者");
-
-      const totalAmount = parseFloat(document.getElementById('totalAmount').innerText);
-
-      // 构造发送数据
-      const payload = {
-        receiptNumber: finalPhoneId, // 使用生成的编号作为收据号
-        mainName: mainName,
-        phoneNumber: cleanPhone,
-        festival: festival,
-        totalAmount: totalAmount,
-        prayers: prayers,
-        timestamp: new Date().toISOString()
-      };
-
-      // 发送到后端
-      const res = await fetch('https://form.gealarm2012.workers.dev/admin-qifu', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const result = await res.json();
-      
-      if (result.success) {
-        alert(`✅ 提交成功！\n收据编号: ${finalPhoneId}`);
-        location.reload(); // 重置页面
-      } else {
-        alert("❌ 提交失败: " + (result.message || "未知错误"));
-      }
-
-    } catch (err) {
-      alert("❌ 错误: " + err.message);
-    } finally {
+    btn.innerText = "⏳ 提交中...";
+    
+    // 模拟延时
+    setTimeout(() => {
+      alert("提交成功！总额: RM " + document.getElementById('totalDisplay').innerText);
       btn.disabled = false;
-      btn.innerText = "提交登记";
-    }
+      btn.innerText = originalText;
+    }, 1500);
   }
 </script>
+
 </body>
 </html>
