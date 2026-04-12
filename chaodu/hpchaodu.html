@@ -11,43 +11,16 @@
     .header-title { color: #0d6efd; font-weight: bold; }
     .prayer-card { border-left: 5px solid #0d6efd; background-color: #fff; }
 
-    /* ✅ 修复：商品名称更清晰 */
+    /* --- 核心修改：紧凑的输入布局 --- */
     .item-col { text-align: center; padding: 0 5px; }
-    .item-label {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #0d6efd;
-      margin-bottom: 6px;
-      display: block;
-    }
-
-    .qty-input {
-      width: 60px;
-      height: 40px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      text-align: center;
-      border-radius: 8px;
-      margin: 0 auto;
-      display: block;
-    }
-
-    .footer-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background-color: #fff;
-      padding: 15px;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-      z-index: 1000;
-    }
-
-    .total-amount {
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #d63384;
-    }
+    /* 商品名称样式 */
+    .item-label { font-size: 0.75rem; font-weight: 800; color: #d63384; margin-bottom: 4px; display: block; }
+    /* 窄输入框样式 */
+    .qty-input { width: 60px; height: 40px; font-size: 1.1rem; font-weight: bold; text-align: center; border-radius: 8px; margin: 0 auto; display: block; }
+    
+    /* 底部栏 */
+    .footer-bar { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #fff; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; }
+    .total-amount { font-size: 1.5rem; font-weight: bold; color: #d63384; }
   </style>
 </head>
 <body>
@@ -105,16 +78,17 @@
 </div>
 
 <script>
-  // ✅ 修复：给商品增加 key，避免 undefined
+  // --- 1. 配置与状态 ---
+  // 为每个产品添加一个 key，方便在查询回显时匹配数据
   const products = [
-    { name: "祈福令牌", price: 30, key: "token" },
-    { name: "小护摩片", price: 15, key: "fire" },
-    { name: "金 3", price: 3, key: "pg3" },
-    { name: "纸金 6", price: 6, key: "pg6" }
+    { name: "祈福令牌", price: 30, key: 'token' },
+    { name: "小护摩片", price: 15, key: 'fire' },
+    { name: "金 3", price: 3, key: 'pg3' },
+    { name: "纸金 6", price: 6, key: 'pg6' }
   ];
-
   let cardCount = 0;
 
+  // --- 2. 界面交互逻辑 ---
   window.onload = function() { addCard(); };
 
   function addCard(data = {}) {
@@ -124,26 +98,24 @@
     cardDiv.className = 'card prayer-card p-3';
     cardDiv.id = 'card-' + cardCount;
 
+    // 填充数据（用于查询回显）
     const nameVal = data.name || '';
     const addrVal = data.address || '';
 
+    // 修正：使用 prod.key 来获取对应的数据值
     let html = `
       <div class="row g-2 align-items-end">
         <div class="col-12 mb-2">
           <label class="form-label fw-bold text-primary">第 ${cardCount} 位 善信姓名</label>
-          <input type="text" class="form-control name-input" placeholder="请输入姓名" value="${nameVal}">
+          <input type="text" class="form-control name-input" placeholder="请输入姓名" value="${nameVal}" oninput="calculateTotal()">
         </div>
         <div class="col-12 mb-2">
-           <input type="text" class="form-control" placeholder="地址 (可选)" value="${addrVal}">
+           <input type="text" class="form-control addr-input" placeholder="地址 (可选)" value="${addrVal}">
         </div>
         ${products.map((prod, i) => `
           <div class="col-3 item-col">
             <label class="item-label">${prod.name}</label>
-            <input type="number" min="0"
-              value="${data[prod.key] || 0}"
-              class="qty-input form-control"
-              data-price="${prod.price}"
-              oninput="calculateTotal()">
+            <input type="number" min="0" value="${data[prod.key] || 0}" class="qty-input form-control" data-price="${prod.price}" oninput="calculateTotal()">
           </div>
         `).join('')}
         <div class="col-12 mt-3">
@@ -153,35 +125,25 @@
     `;
     cardDiv.innerHTML = html;
     container.appendChild(cardDiv);
-
-    calculateTotal();
-    removeEmptyCards(); // ✅ 新增：自动清理空白卡片
+    calculateTotal(); // 添加卡片后重新计算
   }
 
   function removeCard(id) {
     const el = document.getElementById(id);
-    if(el) { el.remove(); calculateTotal(); }
+    if(el) { 
+        el.remove(); 
+        calculateTotal(); // 删除卡片后重新计算
+    }
   }
 
-  // ✅ 新增：真正移除空白卡片
-  function removeEmptyCards() {
-    const cards = document.querySelectorAll('.prayer-card');
-    cards.forEach(card => {
-      const name = card.querySelector('.name-input').value.trim();
-      const qtyInputs = card.querySelectorAll('.qty-input');
-      const hasQty = Array.from(qtyInputs).some(input => (parseInt(input.value) || 0) > 0);
-      if (!name && !hasQty) {
-        card.remove();
-      }
-    });
-  }
-
+  // --- 3. 核心计算逻辑 (修复空卡片) ---
   function calculateTotal() {
     let total = 0;
     const cards = document.querySelectorAll('.prayer-card');
 
     cards.forEach(card => {
-      const nameVal = card.querySelector('.name-input').value.trim();
+      const nameInput = card.querySelector('.name-input');
+      const nameVal = nameInput ? nameInput.value.trim() : ''; // 增加防御性检查
       const qtyInputs = card.querySelectorAll('.qty-input');
       let cardSum = 0;
       let hasQty = false;
@@ -193,33 +155,38 @@
         if(qty > 0) hasQty = true;
       });
 
+      // 判定：如果姓名空 且 数量全0，则不计入
       if (nameVal !== "" || hasQty) {
         total += cardSum;
       }
     });
-
     document.getElementById('grandTotal').innerText = total.toFixed(2);
   }
 
+  // --- 4. 提交逻辑 (完整版) ---
   async function submitForm() {
     const btn = document.getElementById('submitBtn');
     const festival = document.getElementById('festival').value;
     const mainName = document.getElementById('mainName').value.trim();
     const phoneRaw = document.getElementById('phoneNumber').value.trim();
 
+    // 基础验证
     if (!mainName) return alert("请输入主祈者姓名");
     if (!phoneRaw) return alert("请输入手机号");
     if (btn.disabled) return;
 
+    // 锁定按钮
     btn.disabled = true;
     btn.innerText = "⏳ 生成编号中...";
 
     try {
+      // A. 清洗手机号
       let digits = phoneRaw.replace(/\D/g, '');
-      const match = digits.match(/01\d{8,9}/);
+      const match = digits.match(/01\d{8,9}/); // 匹配马来西亚号码
       if (!match) throw new Error("手机号格式不正确");
       const cleanPhone = match[0];
 
+      // B. 生成唯一编号 (防重逻辑)
       const yearCode = String(new Date().getFullYear()).slice(-1);
       let prefix = "x";
       if (festival === "清明节") prefix = "m";
@@ -229,45 +196,68 @@
 
       const baseId = `${yearCode}${prefix}${cleanPhone}`;
 
+      // 查询后端是否已存在
       const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${baseId}`);
       const existing = await searchRes.json();
-
+      
       let finalId = baseId;
       if (existing && existing.length > 0) {
         finalId = `${baseId}+${existing.length + 1}`;
       }
 
-      // ✅ 提交前清理空白卡片
-      removeEmptyCards();
-
+      // C. 收集数据
       const prayers = [];
       const cards = document.querySelectorAll('.prayer-card');
       cards.forEach(card => {
-        const name = card.querySelector('.name-input').value.trim();
+        const nameInput = card.querySelector('.name-input');
+        const addrInput = card.querySelector('.addr-input'); // 使用新添加的class
+        const name = nameInput ? nameInput.value.trim() : ''; // 增加防御性检查
+        const address = addrInput ? addrInput.value.trim() : '';
         const inputs = card.querySelectorAll('.qty-input');
-        if (!name && Array.from(inputs).every(i => (parseInt(i.value)||0) === 0)) return;
+        
+        // 获取数量
+        const quantities = Array.from(inputs).map(input => parseInt(input.value) || 0);
+        const totalQty = quantities.reduce((sum, qty) => sum + qty, 0);
+
+        // 判定：如果姓名空 且 总数量为0，则忽略此卡片
+        if (!name && totalQty === 0) {
+             console.log("Skipping empty card:", name, quantities); // Debug log
+             return; 
+        }
+
+        // 累加到总数（这里再次确认总额计算逻辑与此处一致）
+        // let cardSum = 0;
+        // inputs.forEach((input, idx) => {
+        //     cardSum += quantities[idx] * parseFloat(input.getAttribute('data-price'));
+        // });
+        // totalDebug += cardSum; 
 
         prayers.push({
           name: name,
-          address: card.querySelector('input[placeholder="地址 (可选)"]').value.trim(),
-          token: parseInt(inputs[0].value) || 0,
-          fire: parseInt(inputs[1].value) || 0,
-          pg3: parseInt(inputs[2].value) || 0,
-          pg6: parseInt(inputs[3].value) || 0
+          address: address, // 修正：使用正确的 address 变量
+          token: quantities[0], // 使用数组索引获取
+          fire: quantities[1],
+          pg3: quantities[2],
+          pg6: quantities[3]
         });
       });
 
-      if (prayers.length === 0) throw new Error("请至少填写一位祈福者");
+      console.log("Final prayers array:", prayers); // Debug log
 
+      if (prayers.length === 0) throw new Error("请至少填写一位祈福者（姓名不为空或数量不全为0）");
+
+      // D. 发送请求
       const payload = {
         receiptNumber: finalId,
         mainName: mainName,
         phoneNumber: cleanPhone,
         festival: festival,
-        totalAmount: parseFloat(document.getElementById('grandTotal').innerText),
+        totalAmount: parseFloat(document.getElementById('grandTotal').innerText), // 使用界面上计算好的总额
         prayers: prayers,
         timestamp: new Date().toISOString()
       };
+
+      console.log("Payload being sent:", payload); // Debug log
 
       const res = await fetch('https://form.gealarm2012.workers.dev/admin-qifu', {
         method: 'POST',
@@ -284,12 +274,14 @@
       }
 
     } catch (err) {
+      console.error("Submission error:", err); // Debug log
       alert("❌ 错误: " + err.message);
       btn.disabled = false;
       btn.innerText = "提交登记";
     }
   }
 
+  // --- 5. 查询逻辑 ---
   async function searchPhone() {
     const keyword = document.getElementById('searchInput').value.trim();
     if (!keyword) return alert("请输入手机号");
@@ -297,23 +289,25 @@
     try {
       const res = await fetch(`https://form.gealarm2012.workers.dev/admin-qifu?search=${keyword}`);
       const data = await res.json();
-
+      
       if (!data || data.length === 0) return alert("未找到记录");
 
+      // 简单处理：取第一条填充（实际项目中可能需要选择）
       const record = data[0];
       document.getElementById('mainName').value = record.mainName || "";
       document.getElementById('festival').value = record.festival || "清明节";
       document.getElementById('phoneNumber').value = record.phoneNumber || "";
 
+      // 填充列表
       const container = document.getElementById('cards-container');
-      container.innerHTML = "";
+      container.innerHTML = ""; // 清空现有
       if (record.prayers && record.prayers.length > 0) {
         record.prayers.forEach(p => addCard(p));
       }
-      calculateTotal();
-      removeEmptyCards();
+      calculateTotal(); // 查询回填后重新计算总额
 
     } catch (e) {
+      console.error("Search error:", e); // Debug log
       alert("查询出错");
     }
   }
