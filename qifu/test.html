@@ -405,104 +405,75 @@
 
         // 9. 查询函数 (修改过的)
 function searchPhone() {
-  const keyword = document.getElementById("searchInput").value.trim();
-  if (!keyword) return;
+    const keyword = document.getElementById("searchInput").value.trim();
+    if (!keyword) {
+        alert("请输入手机号");
+        return;
+    }
 
-  fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(keyword)}`)
+    document.getElementById("formContainer").style.display = "block";
+    document.getElementById("searchResults").innerHTML = "正在加载数据...";
+
+    fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(keyword)}`)
     .then(res => res.json())
     .then(results => {
-      const container = document.getElementById("searchResults");
-      container.innerHTML = "";
-      
-      if (results.length === 0) {
-        container.textContent = "未找到相关记录";
-        return;
-      }
+        const resultDiv = document.getElementById("searchResults");
 
-      // --- UI: 创建下拉框 ---
-      container.innerHTML = "<p>请选择需要查看的记录：</p>";
-      const select = document.createElement("select");
-      select.className = "result-dropdown";
-      select.innerHTML = "<option value=''>请选择一个记录</option>";
+        if (results.length === 0) {
+            resultDiv.innerHTML = "未找到记录，您将创建一条新记录";
+            clearForm();
+            document.getElementById("mainName").removeAttribute("readonly");
+            document.getElementById("phoneNumber").removeAttribute("readonly");
+        } 
+        else if (results.length === 1) {
+            resultDiv.innerHTML = "✅ 查询到记录，请核对并补录新名单";
+            loadEntry(results[0]); 
 
-      results.sort((a, b) => new Date(b.timestamp || b[0]) - new Date(a.timestamp || a[0]));
+            // 🔒 锁定关键字段
+            document.getElementById("mainName").setAttribute("readonly", true);
+            document.getElementById("phoneNumber").setAttribute("readonly", true);
 
-      results.forEach((result, index) => {
-        // 🔴 调试：检查数据是否存在
-        let name = "未知";
-        let phone = "未知";
-        
-        // 尝试从两种可能的结构中取值
-        if (Array.isArray(result)) {
-          name = result[1] || "未知";
-          phone = result[2] || "未知";
-        } else {
-          name = result.name || result[1] || "未知";
-          phone = result.phone || result[2] || "未知";
+            alert("已自动填充旧数据。请勿修改姓名/电话，如需修改请联系管理员。");
         }
+        else {
+            // 多条结果处理
+            resultDiv.innerHTML = `<p>找到 ${results.length} 条匹配记录，请选择：</p>`;
+            
+            // 创建选择列表
+            const select = document.createElement("select");
+            select.className = "result-dropdown";
+            select.innerHTML = "<option value=''>请选择一个记录</option>";
 
-        const date = new Date(result.timestamp || result[0]).toLocaleString();
-        select.innerHTML += `<option value="${index}">${name} - ${phone} (${date})</option>`;
-      });
+            // 填充选项
+            results.forEach((result, index) => {
+                const name = result[1] || "未知";
+                const phone = result[2] || "未知";
+                const address = result[3] || "未知";
+                const option = document.createElement("option");
+                option.value = index;
+                option.textContent = `${name} - ${phone} (${address})`;
+                select.appendChild(option);
+            });
 
-      container.appendChild(select);
-      // --- END UI ---
+            resultDiv.appendChild(select);
 
-      // --- 逻辑: 选择处理 ---
-      select.addEventListener("change", function() {
-        const idx = this.value;
-        if (idx === "") return;
+            // 选择事件处理
+            select.addEventListener("change", function() {
+                const idx = this.value;
+                if (idx === "") return;
 
-        const selectedData = results[parseInt(idx)];
-        
-        // 🛠️ 核心修复：强制转换为 loadEntry 能识别的 Array 格式
-        // loadEntry 期望一个数组，索引位置固定。如果后端返回的是对象，我们需要把它“拍平”成数组。
-        let rowData;
-        
-        if (Array.isArray(selectedData)) {
-          // 情况1：后端返回的就是数组，直接使用
-          rowData = selectedData;
-        } else {
-          // 情况2：后端返回的是对象，我们需要模拟数组结构
-          // 注意：这里需要根据你实际的后端返回字段名调整，这是最常见的字段映射
-          rowData = [];
-          rowData[0] = selectedData.timestamp || ""; // 时间
-          rowData[1] = selectedData.name || "";      // 姓名
-          rowData[2] = selectedData.phone || "";     // 手机号
-          rowData[3] = selectedData.address || "";   // 地址
-          rowData[230] = selectedData.donation || "0"; // 供养金额 (索引230)
-          rowData[231] = selectedData.festival || "";  // 法会类别 (索引231)
-          
-          // 🔴 这里需要特别注意：
-          // loadEntry 还会读取索引 4-83 (祖先), 84-128 (水子) 等
-          // 如果你的后端没有返回这些长数组，loadEntry 会报错或空白。
-          // 如果你发现还是空白，请在控制台 (F12) 检查 selectedData 里是否有这些数据。
+                resultDiv.innerHTML = "✅ 已选择记录，正在加载数据...";
+                loadEntry(results[parseInt(idx)]);
+
+                // 🔒 锁定关键字段
+                document.getElementById("mainName").setAttribute("readonly", true);
+                document.getElementById("phoneNumber").setAttribute("readonly", true);
+            });
         }
-
-        // ✅ 最终调用
-        clearForm();
-        
-        // 延迟确保 DOM 稳定
-        setTimeout(() => {
-          try {
-            loadEntry(rowData);
-            container.innerHTML = `<p>✅ 已加载：${rowData[1]} 的记录</p>`;
-          } catch (e) {
-            // 🔴 调试用：如果报错，弹出错误信息
-            alert("加载数据时出错: " + e.message + "\n请检查控制台数据结构");
-            console.error("传给 loadEntry 的数据:", rowData);
-          }
-        }, 100);
-      });
-      // --- END 逻辑 ---
-
-      if (results.length === 1) {
-        select.dispatchEvent(new Event("change"));
-      }
     })
     .catch(err => {
-      alert("查询失败: " + err.message);
-      console.error(err);
+        console.error(err);
+        alert("查询失败，请检查网络或联系管理员");
     });
 }
         // 1. 定义生成前缀的函数 (独立函数)
@@ -602,12 +573,9 @@ async function submitUserData() {
 
     try {
         // ✅ 第一步：暴力清洗，只保留数字
-        // 这一步会把 "6y5y019...+2" 变成 "65019..." (全是数字)
         let allDigits = rawInputPhone.replace(/\D/g, '');
 
         // ✅ 第二步：智能提取马来西亚手机号 (10-11位)
-        // 逻辑：找到第一个 "01"，然后往后取 10 到 11 位
-        // 正则解释：01 开头，后面跟 8 或 9 个数字 (总共 10 或 11 位)
         const match = allDigits.match(/01\d{8,9}/);
         
         if (!match) {
@@ -617,7 +585,7 @@ async function submitUserData() {
             return;
         }
 
-        const pureNumber = match[0]; // 提取出的纯净手机号，如 0198863232
+        const pureNumber = match[0];
 
         // 4. 生成今年基础前缀
         const yearCode = String(new Date().getFullYear()).slice(-1);
@@ -628,7 +596,7 @@ async function submitUserData() {
         else if (festival === "感恩护法") prefix = `${yearCode}b`;
         else prefix = `${yearCode}x`;
 
-        // 5. 构建用于查询的基础号码 (今年前缀 + 纯数字)
+        // 5. 构建用于查询的基础号码
         const basePhone = `${prefix}${pureNumber}`;
 
         // 6. 查询后端
@@ -640,10 +608,11 @@ async function submitUserData() {
         const count = existingRows.length;
 
         if (count === 0) {
-            finalPhone = basePhone;       // 第1笔：不加后缀 (例如 6y019...)
+            finalPhone = basePhone;
         } else {
-            finalPhone = `${basePhone}+${count}`; // 第2笔起：+1, +2, +3...
+            finalPhone = `${basePhone}+${count + 1}`;
         }
+
         // 8. 收集数据并提交
         const payload = buildPayload();
         payload.phone = finalPhone;
@@ -662,6 +631,44 @@ async function submitUserData() {
         if (result.success) {
             alert(`✅ 提交成功！\n您的编号是：${finalPhone}`);
             submitBtn.innerText = "✅ 成功";
+            
+            // 🔔 添加20秒后自动清除表单功能
+            const timerElement = document.getElementById("clearTimer") || createTimerElement();
+            let countdown = 20;
+            
+            // 显示倒计时提示
+            timerElement.textContent = `表单将在 ${countdown} 秒后自动清除`;
+            timerElement.style.display = "block";
+            
+            // 禁用提交按钮防止重复提交
+            submitBtn.disabled = true;
+            
+            // 设置20秒倒计时
+            const timer = setInterval(() => {
+                countdown--;
+                timerElement.textContent = `表单将在 ${countdown} 秒后自动清除`;
+                
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    clearForm(); // 调用清除表单函数
+                    timerElement.textContent = "表单已成功清除";
+                    
+                    // 2秒后隐藏提示
+                    setTimeout(() => {
+                        timerElement.style.display = "none";
+                    }, 2000);
+                }
+            }, 1000);
+            
+            // 如果用户在倒计时期间进行其他操作，取消自动清除
+            document.getElementById("searchInput").addEventListener("input", () => {
+                clearInterval(timer);
+                timerElement.textContent = "操作已取消，表单不会自动清除";
+                setTimeout(() => {
+                    timerElement.style.display = "none";
+                }, 2000);
+            });
+            
         } else {
             alert("❌ 提交失败: " + result.message);
             submitBtn.disabled = false;
@@ -673,6 +680,15 @@ async function submitUserData() {
         submitBtn.disabled = false;
         submitBtn.innerText = "📤 重新提交";
     }
+}
+
+// 辅助函数：创建倒计时提示元素
+function createTimerElement() {
+    const timerElement = document.createElement("div");
+    timerElement.id = "clearTimer";
+    timerElement.className = "timer-notification";
+    document.getElementById("formContainer").appendChild(timerElement);
+    return timerElement;
 }
 // 4. 页面初始化
 document.addEventListener("DOMContentLoaded", function() {
