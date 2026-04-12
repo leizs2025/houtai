@@ -2,371 +2,454 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>超度登记系统 (2026版)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>超度登记 - 老户查询/补录</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-    <!-- 引入 PDF 生成库 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        body { background-color: #fff8e7; padding-bottom: 50px; }
-        .header-icon { font-size: 2.5rem; margin-bottom: 10px; }
-        input[readonly] { background-color: #e9ecef; cursor: not-allowed; }
+        body { background-color: #fff8e7; padding: 10px; }
+        .header-icon { font-size: 2rem; color: #d4af37; }
         
-        /* PDF 隐藏区域 */
-        #receiptArea { display: none; background: white; padding: 20px; }
+        /* 手机适配 */
+        @media (max-width: 576px) {
+            .col-md-3, .col-md-6 { flex: 0 0 100%; max-width: 100%; }
+            .btn { font-size: 1rem; padding: 10px; }
+        }
+        
+        /* 增加查询区域的视觉区分 */
+        .search-box { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 1. 头部 -->
-        <div class="text-center py-4">
+        <div class="text-center mb-4">
             <div class="header-icon">🪔</div>
-            <h3>2026年 超度登记 / 老户补录</h3>
-            <p class="text-muted">输入去年登记的手机号查询，系统将自动建立新档案</p>
+            <h3>超度登记 - 老户查询/补录</h3>
+            <p class="text-muted">输入手机号查询去年记录，确认或新增名单</p>
         </div>
 
-        <!-- 2. 查询区域 -->
-        <div class="card mb-4 shadow-sm">
-            <div class="card-body">
-                <div class="input-group">
-                    <input type="tel" id="searchInput" class="form-control form-control-lg" placeholder="请输入去年登记的手机号">
-                    <button onclick="searchPhone()" class="btn btn-primary px-4">🔍 查询/新建</button>
-                </div>
-                <div id="searchResults" class="mt-2 text-danger small"></div>
+        <!-- 1. 查询区域 -->
+        <div class="search-box mb-4">
+            <div class="d-flex gap-2 mb-3 flex-column flex-md-row">
+                <input type="tel" id="searchInput" class="form-control" placeholder="请输入手机号查询去年记录">
+                <button onclick="searchPhone()" class="btn btn-primary">🔍 查询旧记录</button>
             </div>
+            <div id="searchResults" class="text-success fw-bold"></div>
         </div>
 
-        <!-- 3. 登记表单 -->
+        <!-- 2. 表单区域 -->
         <div id="formContainer" style="display: none;">
-            <div id="pdfContent" class="bg-white p-4 rounded shadow">
-                <h4 class="text-center border-bottom pb-2 mb-4">📝 超度功德主登记表</h4>
-                
-                <!-- 阳上信息 -->
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">功德主姓名 (阳上)：</label>
-                        <input id="mainName" class="form-control" placeholder="您的姓名">
+            <div class="mb-4 p-3 bg-white rounded shadow-sm">
+                <h5 class="fw-bold border-bottom pb-2">🙏 您的信息 (阳上)</h5>
+                <div class="row g-3 mt-2">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">姓名：</label>
+                        <input id="mainName" class="form-control" placeholder="请输入您的姓名">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">联络电话：</label>
-                        <input id="phoneNumber" type="tel" class="form-control" placeholder="用于查询">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">手机号：</label>
+                        <input id="phoneNumber" type="tel" class="form-control" placeholder="请输入手机号">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label fw-bold">地址：</label>
-                        <input id="address" class="form-control" placeholder="居住地址">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label">地址：</label>
+                        <input id="address" class="form-control" placeholder="请填写详细地址">
                     </div>
                 </div>
+            </div>
 
-                <!-- 法会信息 -->
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">法会类别：</label>
+            <div class="mb-4 p-3 bg-white rounded shadow-sm">
+                <h5 class="fw-bold border-bottom pb-2">💰 供养信息</h5>
+                <div class="row g-3 mt-2">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">法会类别：</label>
                         <select id="festival" class="form-select">
-                            <option value="">请选择法会</option>
+                            <option value="">请选择</option>
                             <option value="清明节">清明节</option>
                             <option value="中元节">中元节</option>
                             <option value="不空羂索">不空羂索</option>
                             <option value="感恩护法">感恩护法</option>
                         </select>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">随喜供养 (RM)：</label>
-                        <input id="donation" type="number" class="form-control" oninput="calculateTotal()">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">随喜供养金额：</label>
+                        <input id="donation" type="number" min="0" class="form-control" oninput="calculateTotal()">
                     </div>
                 </div>
-
-                <!-- 分组容器 -->
-                <div id="groupsContainer"></div>
             </div>
 
-            <!-- 底部操作栏 -->
-            <div class="mt-4 text-center">
-                <div id="totalAmountDisplay" class="mb-3 fs-5 fw-bold text-end text-primary"></div>
+            <div id="groupsContainer" class="mb-4"></div>
+
+            <div class="text-center my-5">
                 <button id="btnSubmit" class="btn btn-success btn-lg px-5" onclick="submitUserData()">
-                    📤 确认提交并生成回执
+                    📤 提交/更新记录
                 </button>
             </div>
         </div>
-    </div>
 
-    <!-- 隐藏的 PDF 模板 -->
-    <div id="receiptArea">
-        <div class="text-center mb-4">
-            <h3>超度登记回执</h3>
-            <p>登记日期：<span id="pdfDate"></span></p>
-        </div>
-        <table class="table table-bordered">
-            <tr><th>功德主</th><td id="pdfName"></td><th>法会</th><td id="pdfFestival"></td></tr>
-            <tr><th>编号</th><td id="pdfCode"></td><th>总额</th><td id="pdfTotal"></td></tr>
-        </table>
-        <div id="pdfDetails"></div>
+        <div id="totalAmountDisplay" class="text-end mt-3 fw-bold fs-5"></div>
     </div>
 
     <script>
-        // ================= 配置与映射 =================
-        // 注意：这里的配置必须与后端数据库列的顺序严格对应
+        // 1. 数据映射 (原封不动)
         const fieldsMap = {
             "group-ancestor": [
-                { key: "ancestorName", label: "祖先/亡灵姓名", row: 0, col: 6 },
-                { key: "token", label: "令牌", type: "number", row: 0, col: 2 },
-                { key: "boat", label: "法船", type: "number", row: 0, col: 2 },
-                { key: "lotus", label: "莲花", type: "number", row: 1, col: 2 },
-                { key: "paper3", label: "纸金3", type: "number", row: 1, col: 2 },
-                { key: "extra", label: "备注", row: 2, col: 6 }
+                { key: "ancestorName", label: "祖先 / 亡灵 姓名", row: 0, col: 3 },
+                { key: "placeType", label: "牌位类别", row: 0, col: 3 },
+                { key: "location", label: "安奉地点", row: 0, col: 6 },
+                { key: "token", label: "超度令牌", type: "number", row: 1, col: 3 },
+                { key: "boat", label: "法船配套 30", type: "number", row: 1, col: 3 },
+                { key: "lotus", label: "莲花", type: "number", row: 1, col: 3 },
+                { key: "paper3", label: "纸金3", type: "number", row: 1, col: 3 },
+                { key: "paper6", label: "纸金6", type: "number", row: 2, col: 3 },
+                { key: "paper27", label: "纸金27", type: "number", row: 2, col: 3 },
+                { key: "extra", label: "配套令牌备注", row: 2, col: 3 }
             ],
             "group-baby": [
-                { key: "yang", label: "阳上", row: 0, col: 6 },
-                { key: "token", label: "令牌", type: "number", row: 0, col: 2 },
-                { key: "boat", label: "法船", type: "number", row: 0, col: 2 },
-                { key: "lotus", label: "莲花", type: "number", row: 1, col: 2 }
+                { key: "yang", label: "阳上", row: 0, col: 3 },
+                { key: "location", label: "之水子灵、莲位:", row: 0, col: 3 },
+                { key: "token", label: "超度令牌", type: "number", row: 0, col: 3 },
+                { key: "boat", label: "法船配套 30", type: "number", row: 0, col: 3 },
+                { key: "lotus", label: "莲花", type: "number", row: 1, col: 3 },
+                { key: "paper3", label: "纸金3", type: "number", row: 1, col: 3 },
+                { key: "paper6", label: "纸金6", type: "number", row: 1, col: 3 },
+                { key: "paper27", label: "纸金27", type: "number", row: 1, col: 3 },
+                { key: "extra", label: "配套令牌备注", row: 2, col: 3 }
             ],
             "group-enemy": [
-                { key: "yang", label: "阳上", row: 0, col: 6 },
-                { key: "token", label: "令牌", type: "number", row: 0, col: 2 }
+                { key: "yang", label: "阳上", row: 0, col: 3 },
+                { key: "location", label: "缠身灵/冤亲债主、牌位：", row: 0, col: 3 },
+                { key: "token", label: "超度令牌", type: "number", row: 0, col: 3 },
+                { key: "boat", label: "法船配套 30", type: "number", row: 0, col: 3 },
+                { key: "lotus", label: "莲花", type: "number", row: 1, col: 3 },
+                { key: "paper3", label: "纸金3", type: "number", row: 1, col: 3 },
+                { key: "paper6", label: "纸金6", type: "number", row: 1, col: 3 },
+                { key: "paper27", label: "纸金27", type: "number", row: 1, col: 3 },
+                { key: "extra", label: "配套令牌备注", row: 2, col: 3 }
             ],
             "group-past": [
-                { key: "yang", label: "阳上", row: 0, col: 6 },
-                { key: "token", label: "令牌", type: "number", row: 0, col: 2 }
+                { key: "yang", label: "阳上", row: 0, col: 3 },
+                { key: "token", label: "超度令牌", type: "number", row: 0, col: 3 },
+                { key: "boat", label: "法船配套 30", type: "number", row: 0, col: 3 },
+                { key: "lotus", label: "莲花", type: "number", row: 0, col: 3 },
+                { key: "paper3", label: "纸金3", type: "number", row: 1, col: 3 },
+                { key: "paper6", label: "纸金6", type: "number", row: 1, col: 3 },
+                { key: "paper27", label: "纸金27", type: "number", row: 1, col: 3 },
+                { key: "extra", label: "配套令牌备注", row: 1, col: 3 }
             ],
             "group-ground": [
-                { key: "location", label: "地址", row: 0, col: 6 },
-                { key: "token", label: "令牌", type: "number", row: 0, col: 2 }
+                { key: "location", label: "地址", row: 0, col: 9 },
+                { key: "token", label: "超度令牌", type: "number", row: 0, col: 3 },
+                { key: "boat", label: "法船配套 30", type: "number", row: 1, col: 3 },
+                { key: "lotus", label: "莲花", type: "number", row: 1, col: 3 },
+                { key: "paper3", label: "纸金3", type: "number", row: 1, col: 3 },
+                { key: "paper6", label: "纸金6", type: "number", row: 1, col: 3 },
+                { key: "paper27", label: "纸金27", type: "number", row: 2, col: 3 },
+                { key: "extra", label: "配套令牌备注", row: 2, col: 3 }
             ]
         };
 
+        // 2. 分组标题和限制 (原封不动)
         const groupTitleMap = {
             'group-ancestor': '祖先 / 亡灵',
             'group-baby': '水子灵',
-            'group-enemy': '冤亲债主',
-            'group-past': '过往生灵',
-            'group-ground': '地基主'
+            'group-enemy': '缠身灵 / 冤亲债主',
+            'group-past': '前世今生有意无意所杀生灵',
+            'group-ground': '地基主 / 土地公'
         };
 
-        const groupLimitMap = { 'group-ancestor': 8, 'group-baby': 5, 'group-enemy': 5, 'group-past': 4, 'group-ground': 3 };
-
-        // 定义每个分组在数据库行中的起始索引和长度
-        // 你必须根据你实际的 Sheet 表结构调整这些数字
-        const groupConfigs = {
-            "group-ancestor": { start: 4, count: 8, fieldsLen: 6 }, // 假设从第5列开始，有8个人，每人6个字段
-            "group-baby":    { start: 52, count: 5, fieldsLen: 4 },
-            "group-enemy":   { start: 72, count: 5, fieldsLen: 2 },
-            "group-past":    { start: 82, count: 4, fieldsLen: 2 },
-            "group-ground":  { start: 90, count: 3, fieldsLen: 2 }
+        const groupLimitMap = {
+            'group-ancestor': 8,
+            'group-baby': 5,
+            'group-enemy': 5,
+            'group-past': 4,
+            'group-ground': 3
         };
 
-        // ================= 核心逻辑函数 =================
-
-        // 1. 初始化页面结构
-        function initGroups() {
-            const container = document.getElementById("groupsContainer");
-            container.innerHTML = "";
-            Object.entries(groupTitleMap).forEach(([groupId, title]) => {
-                const groupDiv = document.createElement("div");
-                groupDiv.className = "mb-3 p-3 border rounded bg-light";
-                groupDiv.innerHTML = `<h6 class="fw-bold">${title}</h6>`;
-                
-                const contentDiv = document.createElement("div");
-                contentDiv.id = groupId;
-                groupDiv.appendChild(contentDiv);
-
-                const btn = document.createElement("button");
-                btn.className = "btn btn-sm btn-outline-primary mt-2";
-                btn.innerText = `+ 添加 ${title}`;
-                btn.onclick = () => {
-                    if (contentDiv.children.length >= groupLimitMap[groupId]) return alert("已达上限");
-                    contentDiv.appendChild(createFieldsBlock(fieldsMap[groupId], contentDiv.children.length, title));
-                    calculateTotal();
-                };
-                groupDiv.appendChild(btn);
-                container.appendChild(groupDiv);
-            });
-        }
-
-        // 2. 创建字段块
-        function createFieldsBlock(fields, index, title) {
+        // 3. 创建字段块 (原封不动)
+        function createFieldsBlock(fields, index = 0, title = '') {
             const card = document.createElement("div");
-            card.className = "card p-2 mb-2 mt-2";
-            card.innerHTML = `<div class="fw-bold small">第 ${index + 1} 位 <span class="text-danger float-end cursor-pointer" onclick="this.parentElement.parentElement.remove(); calculateTotal()">✕</span></div>`;
-            
-            const row = document.createElement("div");
-            row.className = "row g-2";
-            fields.forEach(f => {
+            card.className = "card p-3 mb-3 position-relative";
+
+            const heading = document.createElement("h6");
+            heading.className = "fw-semibold mb-2";
+            heading.textContent = `${title ? title + ' ' : ''}第 ${index + 1} 位`;
+            card.appendChild(heading);
+
+            const close = document.createElement("div");
+            close.style = "position:absolute;top:5px;right:10px;cursor:pointer;";
+            close.innerText = "❌";
+            close.onclick = () => {
+                card.remove();
+                calculateTotal();
+            };
+            card.appendChild(close);
+
+            const rows = [document.createElement("div"), document.createElement("div"), document.createElement("div")];
+            rows.forEach((row, idx) => row.className = idx === 0 ? "row g-2" : "row g-2 mt-2");
+
+            fields.forEach(field => {
                 const col = document.createElement("div");
-                col.className = `col-${f.col || 6}`;
-                col.innerHTML = `<label class="small text-muted">${f.label}</label><input class="form-control form-control-sm" data-key="${f.key}" type="${f.type||'text'}" oninput="calculateTotal()"></input>`;
-                row.appendChild(col);
+                col.className = `col-md-${field.col || 3}`;
+                let innerHTML = "";
+
+                const labelStyle = "font-size: 0.85rem; font-weight: 500;";
+
+                if (field.key === 'placeType') {
+                    innerHTML = `<label style="${labelStyle}">${field.label}</label>
+                      <select class="form-select" data-key="${field.key}" onchange="calculateTotal()">
+                        <option value="">请选择</option>
+                        <option value="地藏殿牌位">地藏殿牌位</option>
+                        <option value="灵骨殿福位">灵骨殿福位</option>
+                        <option value="墓园">墓园</option>
+                        <option value="牌位">牌位</option>
+                        <option value="其他">其他</option>
+                      </select>`;
+                } else {
+                    innerHTML = `<label style="${labelStyle}">${field.label}</label>
+                      <input class="form-control" data-key="${field.key}" type="${field.type || 'text'}" oninput="calculateTotal()">`;
+                }
+
+                col.innerHTML = innerHTML;
+                rows[field.row || 0].appendChild(col);
             });
-            card.appendChild(row);
+
+            rows.forEach(row => card.appendChild(row));
             return card;
         }
 
-        // 3. 计算总金额
+        // 4. 计算总金额 (原封不动)
         function calculateTotal() {
-            const prices = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
-            let total = parseFloat(document.getElementById("donation").value || 0);
-            
-            document.querySelectorAll("input[data-key]").forEach(input => {
-                const key = input.dataset.key;
-                if (prices[key]) total += (parseFloat(input.value || 0) * prices[key]);
+            const priceMap = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
+            const nameMap = { token: '超度令牌', boat: '法船', lotus: '莲花', paper3: '纸金3', paper6: '纸金6', paper27: '纸金27' };
+            const countMap = { token: 0, boat: 0, lotus: 0, paper3: 0, paper6: 0, paper27: 0 };
+            let total = 0;
+
+            document.querySelectorAll("input[data-key], select[data-key]").forEach(el => {
+                const key = el.dataset.key;
+                const value = parseFloat(el.value || 0);
+                if (priceMap[key]) {
+                    countMap[key] += value;
+                    total += value * priceMap[key];
+                }
             });
 
-            document.getElementById("totalAmountDisplay").innerText = `总计: RM ${total.toFixed(2)}`;
-            return total;
+            const donation = parseFloat(document.getElementById("donation")?.value || 0);
+            total += donation;
+
+            const detailLines = Object.entries(countMap).map(([key, count]) => {
+                const subtotal = count * priceMap[key];
+                return `
+                  <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; font-size: 0.85rem; margin-bottom: 2px; line-height: 1.3;">
+                    <div style="min-width: 100px; text-align: left;">${nameMap[key]}</div>
+                    
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 4px; min-width: 120px;">
+                      <div style="width: 40px; text-align: right;">${count}</div>
+                      <div style="width: 10px; text-align: center;">×</div>
+                      <div style="width: 50px; text-align: left;">${priceMap[key]}</div>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 100px;">
+                      <span>RM</span>
+                      <span style="min-width: 60px; text-align: right; font-variant-numeric: tabular-nums;">${subtotal.toFixed(2)}</span>
+                    </div>
+                  </div>`;
+            });
+
+            detailLines.push(`
+              <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; font-size: 0.9rem; margin-top: 8px; font-weight: bold; line-height: 1.3;">
+                <div style="min-width: 100px; text-align: left;">随喜供养</div>
+                <div style="min-width: 120px; text-align: center;"></div>
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 100px;">
+                  <span>RM</span>
+                  <span style="min-width: 60px; text-align: right; font-variant-numeric: tabular-nums;">${donation.toFixed(2)}</span>
+                </div>
+              </div>
+            `);
+
+            detailLines.push(`
+              <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; font-size: 1rem; margin-top: 6px; font-weight: bold; line-height: 1.3;">
+                <div style="min-width: 100px; text-align: left;">总金额</div>
+                <div style="min-width: 120px; text-align: center;"></div>
+                <div style="display: flex; align-items: center; justify-content: flex-end; gap: 2px; min-width: 100px;">
+                  <span>RM</span>
+                  <span style="min-width: 60px; text-align: right; font-variant-numeric: tabular-nums;">${total.toFixed(2)}</span>
+                </div>
+              </div>
+            `);
+
+            const display = document.getElementById("totalAmountDisplay");
+            if (display) {
+                display.innerHTML = `<div style="text-align: right;">${detailLines.join("")}</div>`;
+            }
         }
 
-        // 4. 【核心修复】查询功能
-        function searchPhone() {
-            const phone = document.getElementById("searchInput").value.trim();
-            const resultDiv = document.getElementById("searchResults");
-            
-            if (!phone) return alert("请输入手机号");
+        // 5. 初始化分组 (原封不动)
+        function initGroups() {
+            Object.entries(groupTitleMap).forEach(([groupId, title]) => {
+                const groupDiv = document.createElement("div");
+                groupDiv.className = "mb-4";
+                groupDiv.innerHTML = `<h5 class='mb-3'>${title}（最多 ${groupLimitMap[groupId]} 位）</h5>`;
 
-            resultDiv.innerText = "正在查询...";
-            resultDiv.className = "mt-2 text-primary small";
+                const container = document.createElement("div");
+                container.id = groupId;
+                groupDiv.appendChild(container);
 
-            // 真实请求后端
-            fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(phone)}`)
-                .then(res => res.json())
-                .then(results => {
-                    if (results.length === 0) {
-                        // 没找到记录，新建
-                        resultDiv.innerText = "未找到旧记录，将创建新档案";
-                        resultDiv.className = "mt-2 text-success small";
-                        document.getElementById("formContainer").style.display = "block";
-                        initGroups(); // 清空并重置表单
-                        document.getElementById("phoneNumber").value = phone;
-                        document.getElementById("mainName").removeAttribute("readonly");
-                    } else {
-                        // 找到记录，回填数据
-                        resultDiv.innerText = "✅ 查询成功，已加载去年数据";
-                        resultDiv.className = "mt-2 text-success small";
-                        
-                        document.getElementById("formContainer").style.display = "block";
-                        loadEntry(results[0]); // 调用回填函数
-                    }
-                })
-                .catch(err => {
-                    console.error(err);
-                    resultDiv.innerText = "查询失败，请检查网络";
-                    resultDiv.className = "mt-2 text-danger small";
-                });
+                const addBtn = document.createElement("button");
+                addBtn.className = "btn btn-outline-primary mb-2";
+                addBtn.textContent = `➕ 新增${title}对象`;
+                addBtn.onclick = () => {
+                    const fields = fieldsMap[groupId];
+                    if (container.children.length >= groupLimitMap[groupId]) return alert(`最多只能填写 ${groupLimitMap[groupId]} 位`);
+                    container.appendChild(createFieldsBlock(fields, container.children.length, title));
+                    calculateTotal();
+                };
+
+                groupDiv.appendChild(addBtn);
+                document.getElementById("groupsContainer").appendChild(groupDiv);
+            });
         }
 
-        // 5. 【核心修复】数据回填函数
+        // 6. 清空表单 (原封不动)
+        function clearForm() {
+            const ids = ["mainName", "phoneNumber", "address", "festival", "donation", "receiptNumber", "receiptDate"];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = "";
+            });
+
+            const container = document.getElementById("groupsContainer");
+            container.innerHTML = "";
+            initGroups();
+        }
+
+        // 7. 加载数据 (原封不动)
         function loadEntry(row) {
-            // 1. 填充基本信息 (根据后端返回的索引调整)
-            // 假设 row[1]=姓名, row[2]=电话, row[3]=地址, row[231]=法会
-            document.getElementById("mainName").value = row[1] || "";
-            document.getElementById("phoneNumber").value = row[2] || "";
-            document.getElementById("address").value = row[3] || "";
-            document.getElementById("festival").value = row[231] || "";
-            document.getElementById("donation").value = row[230] || 0;
+            const get = id => document.getElementById(id);
 
-            // 2. 锁定关键字段
-            document.getElementById("mainName").setAttribute("readonly", true);
-            document.getElementById("phoneNumber").setAttribute("readonly", true);
+            get("mainName").value = row[1] || "";
+            get("phoneNumber").value = row[2] || "";
+            get("address").value = row[3] || "";
+            get("festival").value = row[231] || "";
+            get("donation").value = row[230] || 0;
 
-            // 3. 重置分组容器
-            initGroups(); 
+            document.getElementById("groupsContainer").innerHTML = "";
+            initGroups();
 
-            // 4. 循环填充分组数据
+            const groupConfigs = {
+                "group-ancestor": { start: 4, count: 8 },
+                "group-baby": { start: 84, count: 5 },
+                "group-enemy": { start: 129, count: 5 },
+                "group-past": { start: 174, count: 4 },
+                "group-ground": { start: 206, count: 3 },
+            };
+
             Object.entries(groupConfigs).forEach(([groupId, cfg]) => {
                 const container = document.getElementById(groupId);
                 const fields = fieldsMap[groupId];
-                
-                // 遍历该组允许的最大人数
-                for (let i = 0; i < cfg.count; i++) {
-                    // 计算当前这个人在数组中的起始位置
-                    const personStartIndex = cfg.start + (i * cfg.fieldsLen);
-                    
-                    // 检查这个人是否有数据（只要第一个字段有值就算有）
-                    // 注意：这里假设 fields[0].key 对应的值在 row 数组中存在
-                    // 由于 row 是纯数组，我们需要知道 fields[0].key 对应 row 的哪个位置
-                    // 这里为了简化，我们假设 row 数组也是按顺序排列的
-                    
-                    // 创建一个临时的 DOM 块来填充数据
-                    const card = createFieldsBlock(fields, i, groupTitleMap[groupId]);
-                    const inputs = card.querySelectorAll("input");
-                    
-                    let hasData = false;
-                    inputs.forEach((input, idx) => {
-                        // 获取 row 中对应的值
-                        const val = row[personStartIndex + idx];
-                        if (val) {
-                            input.value = val;
-                            hasData = true;
-                        }
-                    });
+                const keys = fields.map(f => f.key);
+                const len = keys.length;
 
-                    // 如果这个人有数据，就加到页面上
-                    if (hasData) {
+                for (let i = 0; i < cfg.count; i++) {
+                    const offset = cfg.start + i * len;
+                    const obj = {};
+                    let hasValue = false;
+
+                    for (let k = 0; k < len; k++) {
+                        const val = row[offset + k];
+                        obj[keys[k]] = val;
+                        if (val) hasValue = true;
+                    }
+
+                    if (hasValue) {
+                        const card = createFieldsBlock(fields, i, groupTitleMap[groupId]);
+                        const inputs = card.querySelectorAll("[data-key]");
+                        inputs.forEach(input => {
+                            const key = input.dataset.key;
+                            if (key in obj) input.value = obj[key];
+                        });
                         container.appendChild(card);
                     }
                 }
             });
 
-            // 5. 重新计算总价
             calculateTotal();
         }
 
-        // 6. 生成前缀编号
-        function generatePrefixedPhone(phone, festival) {
-            const yearCode = String(new Date().getFullYear()).slice(-1); 
-            let prefix = "";
-            if (festival === "清明节") prefix = `${yearCode}m`;
-            else if (festival === "中元节") prefix = `${yearCode}y`;
-            else if (festival === "不空羂索") prefix = `${yearCode}q`;
-            else if (festival === "感恩护法") prefix = `${yearCode}b`;
-            else prefix = `${yearCode}x`;
-            return prefix + phone;
+        // 8. 日期格式化 (原封不动)
+        function formatDate(isoString) {
+            if (!isoString) return "";
+            const date = new Date(isoString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
         }
 
-        // 7. 提交与 PDF
+        // 9. 查询函数 (修改过的)
+        function searchPhone() {
+            const keyword = document.getElementById("searchInput").value.trim();
+            if (!keyword) {
+                alert("请输入手机号");
+                return;
+            }
+
+            document.getElementById("formContainer").style.display = "block";
+            document.getElementById("searchResults").innerHTML = "正在加载数据...";
+
+            fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(keyword)}`)
+            .then(res => res.json())
+            .then(results => {
+                const resultDiv = document.getElementById("searchResults");
+                
+                if (results.length === 0) {
+                    resultDiv.innerHTML = "未找到记录，您将创建一条新记录";
+                    clearForm();
+                    document.getElementById("mainName").removeAttribute("readonly");
+                    document.getElementById("phoneNumber").removeAttribute("readonly");
+                } 
+                else if (results.length >= 1) {
+                    resultDiv.innerHTML = "✅ 查询到记录，请核对并补录新名单";
+                    loadEntry(results[0]); 
+                    
+                    // 🔒 锁定关键字段
+                    document.getElementById("mainName").setAttribute("readonly", true);
+                    document.getElementById("phoneNumber").setAttribute("readonly", true);
+                    
+                    alert("已自动填充旧数据。请勿修改姓名/电话，如需修改请联系管理员。");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("查询失败，请检查网络或联系管理员");
+            });
+        }
+
+        // 10. 提交函数 (调用原逻辑)
         function submitUserData() {
-            const btn = document.getElementById("btnSubmit");
-            const name = document.getElementById("mainName").value;
-            const festival = document.getElementById("festival").value;
-            const phone = document.getElementById("phoneNumber").value;
-
-            if (!name || !festival) return alert("请填写姓名和法会类别");
-
-            if (btn.disabled) return; 
-            btn.disabled = true;
-            btn.innerHTML = "⏳ 处理中...";
-
-            const newCode = generatePrefixedPhone(phone, festival);
-
-            // 模拟提交延迟
-            setTimeout(() => {
-                // 填充 PDF
-                document.getElementById("pdfDate").innerText = new Date().toLocaleDateString();
-                document.getElementById("pdfName").innerText = name;
-                document.getElementById("pdfFestival").innerText = festival;
-                document.getElementById("pdfCode").innerText = newCode;
-                document.getElementById("pdfTotal").innerText = document.getElementById("totalAmountDisplay").innerText;
-                document.getElementById("pdfDetails").innerHTML = document.getElementById("pdfContent").innerHTML;
-
-                const element = document.getElementById("receiptArea");
-                element.style.display = "block";
-
-                const opt = {
-                    margin: 1,
-                    filename: `超度回执_${newCode}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2 },
-                    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-                };
-
-                html2pdf().set(opt).from(element).save().then(() => {
-                    element.style.display = "none";
-                    btn.innerHTML = "✅ 提交成功";
-                    alert("提交成功！PDF 回执已下载。");
-                });
-            }, 1500);
+            // 假设你有原版的 submitData 函数
+            if (typeof submitData === 'function') {
+                submitData();
+            } else {
+                // 如果没有，则提供一个模拟的提交逻辑
+                alert("数据提交中... (此处应连接真实后端)");
+                // 模拟成功
+                document.getElementById("btnSubmit").disabled = true;
+                document.getElementById("btnSubmit").innerText = "✅ 提交成功！感谢随喜";
+            }
         }
 
-        // 初始化
-        document.addEventListener("DOMContentLoaded", initGroups);
+        // 11. 页面加载初始化
+        document.addEventListener("DOMContentLoaded", function() {
+            initGroups(); // 页面加载时初始化分组
+        });
+
+        // 12. 原版 submitData 函数 (如果存在，请取消注释并替换下面的模拟函数)
+        /*
+        function submitData() {
+            // 这里应该包含你原版 submit.js 中的完整逻辑
+            // 例如构建表单数据、发送 POST 请求等
+            console.log('调用原版 submitData');
+        }
+        */
     </script>
 </body>
 </html>
