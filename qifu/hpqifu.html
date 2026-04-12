@@ -17,6 +17,13 @@
       max-height: 300px;
       overflow-y: auto;
     }
+    .search-result-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .search-result-item:hover {
+        background-color: #f8f9fa;
+    }
   </style>
 </head>
 <body>
@@ -27,8 +34,8 @@
   <!-- 顶部查询栏 -->
   <div class="card p-3 mb-3">
     <div class="input-group">
-      <input type="text" id="searchInput" class="form-control" placeholder="输入手机号查询历史记录">
-      <button class="btn btn-outline-primary" type="button" onclick="searchPhone()">🔍 查询</button>
+      <input type="text" id="searchInput" class="form-control" placeholder="输入手机号/姓名查询历史记录" oninput="handleSearchInput()">
+      <button class="btn btn-outline-primary" type="button" onclick="performSearch()">🔍 查询</button>
       <!-- 下拉菜单 -->
       <ul id="searchResultsDropdown" class="dropdown-menu w-100"></ul>
     </div>
@@ -87,6 +94,7 @@
   
   let cardCounter = 1; // 用于生成唯一的卡片索引
   let allRecords = []; // 存储所有查询到的记录，用于模糊匹配
+  let debounceTimer = null; // 防抖定时器
 
   // --- 2. 创建卡片的函数 (已更新为紧凑版) ---
   window.createPrayerBlock = function (data = {}, index = 1) {
@@ -282,8 +290,51 @@
     }
   }
 
-  // --- 6. 查询逻辑 (已更新，使用精确查询) ---
-  async function searchPhone() {
+  // --- 6. 模糊查询逻辑 (新增) ---
+  async function handleSearchInput() {
+    const keyword = document.getElementById('searchInput').value.trim();
+    
+    // 清除之前的防抖定时器
+    clearTimeout(debounceTimer);
+
+    if (!keyword) {
+        hideDropdown();
+        return;
+    }
+
+    // 设置新的防抖定时器
+    debounceTimer = setTimeout(async () => {
+        try {
+            // 获取所有记录
+            const res = await fetch(`https://form.gealarm2012.workers.dev/admin-qifu`);
+            allRecords = await res.json();
+
+            if (!allRecords || allRecords.length === 0) {
+                hideDropdown();
+                return;
+            }
+
+            // 模糊匹配
+            const matches = allRecords.filter(record => 
+                record.phoneNumber.includes(keyword) || 
+                (record.mainName && record.mainName.toLowerCase().includes(keyword.toLowerCase()))
+            );
+
+            if (matches.length > 0) {
+                showDropdown(matches);
+            } else {
+                hideDropdown();
+            }
+
+        } catch (e) {
+            console.error("Fuzzy search error:", e);
+            hideDropdown();
+        }
+    }, 300); // 300ms 防抖延迟
+  }
+
+  // 执行精确查询 (当点击查询按钮时)
+  async function performSearch() {
     const keyword = document.getElementById('searchInput').value.trim();
     if (!keyword) return alert("请输入手机号");
 
@@ -303,19 +354,29 @@
       hideDropdown(); // 确保下拉列表隐藏
 
     } catch (e) {
-      console.error("Search error:", e);
+      console.error("Exact search error:", e);
       alert("查询出错");
       hideDropdown(); // 确保下拉列表隐藏
     }
   }
 
-  // 显示下拉列表 (仅用于模糊查询，当前未启用)
+  // 显示下拉列表
   function showDropdown(records) {
     const dropdown = document.getElementById('searchResultsDropdown');
     dropdown.innerHTML = ''; // 清空
     records.forEach(record => {
       const li = document.createElement('li');
-      li.innerHTML = `<a class="dropdown-item" href="#" onclick="populateFormAndHideDropdown('${record.receiptNumber}')">${record.mainName} (${record.phoneNumber}) - ${record.festival}</a>`;
+      // 创建一个带样式的链接项
+      const link = document.createElement('a');
+      link.className = 'dropdown-item search-result-item';
+      link.href = '#'; // 防止页面跳转
+      link.textContent = `${record.mainName} (${record.phoneNumber}) - ${record.festival}`;
+      link.onclick = (e) => {
+          e.preventDefault(); // 阻止默认行为
+          populateForm(record);
+          hideDropdown(); // 选中后隐藏下拉
+      };
+      li.appendChild(link);
       dropdown.appendChild(li);
     });
     dropdown.classList.add('show'); // Bootstrap 显示下拉菜单的类
@@ -351,15 +412,6 @@
       });
     }
     updateDonationBreakdown(); // 查询回填后重新计算总额
-  }
-
-  // 填充表单并隐藏下拉 (用于模糊查询，当前未启用)
-  function populateFormAndHideDropdown(receiptNumber) {
-    const record = allRecords.find(r => r.receiptNumber === receiptNumber);
-    if (record) {
-        populateForm(record);
-    }
-    hideDropdown();
   }
 
   // 点击其他地方隐藏下拉
