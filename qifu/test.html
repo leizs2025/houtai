@@ -35,7 +35,7 @@
         // 你提供的 createPrayerBlock 函数
 window.createPrayerBlock = function (data = {}, index = 1) {
     const div = document.createElement("div");
-    div.className = "card p-3 mb-3 position-relative prayer-card";
+    div.className = "card p-3 position-relative prayer-card"; // 移除了 mb-3，由外部容器管理卡片间距
 
     const tokenVal = data.token !== undefined ? data.token : 0;
     const fireVal = data.fire !== undefined ? data.fire : 0;
@@ -44,40 +44,39 @@ window.createPrayerBlock = function (data = {}, index = 1) {
 
     div.innerHTML = `
         <div style="position:absolute; top:5px; right:10px; cursor:pointer;" onclick="this.parentElement.remove(); updateDonationBreakdown()">❌</div>
-        <h6 class="mb-3">🧍‍♀️ 第 ${index} 位祈福者</h6>
-        <div class="row g-3">
+        <h6 class="mb-2">🧍‍♀️ 第 ${index} 位祈福者</h6> <!-- 调整标题下边距 -->
+        <div class="row g-1"> <!-- 改为 g-1 或 g-2 -->
           <div class="col-md-4">
-            <label>姓名</label>
-            <input type="text" class="form-control name" value="${data.name || ''}" oninput="updateDonationBreakdown()">
+            <label class="form-label small">姓名</label> <!-- 添加 small 类使标签字体稍小 -->
+            <input type="text" class="form-control form-control-sm" value="${data.name || ''}" oninput="updateDonationBreakdown()"> <!-- 添加 form-control-sm 使输入框稍小 -->
           </div>
           <div class="col-md-8">
-            <label>现居地址</label>
-            <input type="text" class="form-control address" value="${data.address || ''}">
+            <label class="form-label small">现居地址</label> <!-- 添加 small 类 -->
+            <input type="text" class="form-control form-control-sm" value="${data.address || ''}"> <!-- 添加 form-control-sm -->
           </div>
         </div>
-        <div class="row g-3 mt-2">
-          <div class="col-6 col-md-3"> <!-- 调整此处 -->
-            <label>${PRODUCTS_CONFIG.token.name}</label>
-            <input type="number" class="form-control token" value="${tokenVal}" min="0" oninput="updateDonationBreakdown()">
+        <div class="row g-1 mt-1"> <!-- 改为 g-1, mt-1 -->
+          <div class="col-6 col-md-3">
+            <label class="form-label small">${PRODUCTS_CONFIG.token.name}</label> <!-- 添加 small 类 -->
+            <input type="number" class="form-control form-control-sm token" value="${tokenVal}" min="0" oninput="updateDonationBreakdown()"> <!-- 添加 form-control-sm -->
           </div>
-          <div class="col-6 col-md-3"> <!-- 调整此处 -->
-            <label>${PRODUCTS_CONFIG.fire.name}</label>
-            <input type="number" class="form-control fire" value="${fireVal}" min="0" oninput="updateDonationBreakdown()">
+          <div class="col-6 col-md-3">
+            <label class="form-label small">${PRODUCTS_CONFIG.fire.name}</label>
+            <input type="number" class="form-control form-control-sm fire" value="${fireVal}" min="0" oninput="updateDonationBreakdown()">
           </div>
-          <div class="col-6 col-md-3"> <!-- 调整此处 -->
-            <label>${PRODUCTS_CONFIG.pg3.name}</label>
-            <input type="number" class="form-control pg3" value="${pg3Val}" min="0" oninput="updateDonationBreakdown()">
+          <div class="col-6 col-md-3">
+            <label class="form-label small">${PRODUCTS_CONFIG.pg3.name}</label>
+            <input type="number" class="form-control form-control-sm pg3" value="${pg3Val}" min="0" oninput="updateDonationBreakdown()">
           </div>
-          <div class="col-6 col-md-3"> <!-- 调整此处 -->
-            <label>${PRODUCTS_CONFIG.pg6.name}</label>
-            <input type="number" class="form-control pg6" value="${pg6Val}" min="0" oninput="updateDonationBreakdown()">
+          <div class="col-6 col-md-3">
+            <label class="form-label small">${PRODUCTS_CONFIG.pg6.name}</label>
+            <input type="number" class="form-control form-control-sm pg6" value="${pg6Val}" min="0" oninput="updateDonationBreakdown()">
           </div>
         </div>
       `;
 
     return div;
 };
-
         function addTestCard() {
             const container = document.getElementById('test-container');
             const testCard = createPrayerBlock({name: "测试姓名", token: 1, fire: 2}, 1);
