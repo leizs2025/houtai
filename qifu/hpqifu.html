@@ -66,15 +66,7 @@
     </div>
     <div class="mb-3">
       <label class="form-label fw-bold">手机号码</label>
-      <input type="tel" id="phoneNumber" class="form-control" placeholder="012-3456789">
-    </div>
-    <div class="mb-3">
-      <label class="form-label fw-bold">收据编号</label>
-      <input type="text" id="receiptNumber" class="form-control" readonly>
-    </div>
-    <div class="mb-3">
-      <label class="form-label fw-bold">收据日期</label>
-      <input type="date" id="receiptDate" class="form-control">
+      <input type="tel" id="phoneNumber" class="form-control" placeholder="012-3456789" readonly>
     </div>
     <div class="mb-3">
       <label class="form-label fw-bold">赞助金额 (RM)</label>
@@ -105,8 +97,8 @@
   // --- 1. 配置与状态 ---
   // 定义商品及其价格，用于计算总额
   const PRODUCTS_CONFIG = {
-    token: { name: "祈福令牌", price: 30 },
-    fire: { name: "小护摩片", price: 15 },
+    token: { name: "祈福令牌", price: 5 },
+    fire: { name: "小护摩片", price: 1 },
     pg3: { name: "纸金 3", price: 3 },
     pg6: { name: "纸金 6", price: 6 }
   };
@@ -175,7 +167,7 @@
       updateDonationBreakdown(); // 添加后立即计算
   }
 
-  // --- 4. 核心计算逻辑 (基于原始代码) ---
+  // --- 4. 核心计算逻辑 (基于原始代码并修复) ---
   function updateDonationBreakdown() {
     let token = 0, fire = 0, pg3 = 0, pg6 = 0;
     const cards = document.querySelectorAll('#prayersContainer .prayer-card');
@@ -213,7 +205,7 @@
     const btn = document.getElementById('submitBtn');
     const festival = document.getElementById('dharmaType').value;
     const mainName = document.getElementById('mainName').value.trim();
-    const phoneRaw = document.getElementById('phoneNumber').value.trim();
+    const phoneRaw = document.getElementById('phoneNumber').value.trim(); // 获取只读的手机号
     const sponsorAmount = parseFloat(document.getElementById('sponsorAmount').value) || 0;
 
     if (!mainName) return alert("请输入主祈者姓名");
@@ -224,7 +216,7 @@
     btn.innerText = "⏳ 生成编号中...";
 
     try {
-      let digits = phoneRaw.replace(/\D/g, '');
+      let digits = phoneRaw.replace(/\D/g, ''); // 使用只读的手机号
       const match = digits.match(/01\d{8,9}/);
       if (!match) throw new Error("手机号格式不正确");
       const cleanPhone = match[0];
@@ -276,7 +268,7 @@
       const payload = {
         receiptNumber: finalId,
         mainName: mainName,
-        phoneNumber: cleanPhone,
+        phoneNumber: cleanPhone, // 使用只读的手机号
         festival: festival,
         totalAmount: parseFloat(document.getElementById('grandTotal').innerText),
         sponsorAmount: sponsorAmount,
@@ -317,7 +309,7 @@
     return `${yyyy}-${mm}-${dd}`;
   }
 
-  // --- 7. 表单渲染函数 (基于原始代码) ---
+  // --- 7. 表单渲染函数 (基于原始代码，移除字段并锁定手机号) ---
   window.renderForm = function (entry) {
     const container = document.getElementById("prayersContainer");
     if (!container) return alert("页面未加载完成，请刷新");
@@ -328,10 +320,9 @@
     formBlock.classList.remove("d-none");
 
     document.getElementById("mainName").value = entry.mainName || "";
-    document.getElementById("phoneNumber").value = entry.phoneNumber || "";
+    document.getElementById("phoneNumber").value = entry.phoneNumber || ""; // 填充手机号
+    document.getElementById("phoneNumber").readOnly = true; // 锁定手机号
     document.getElementById("dharmaType").value = entry.festival || entry.dharmaType || ""; // 兼容字段名
-    document.getElementById("receiptNumber").value = entry.receiptNumber || "";
-    document.getElementById("receiptDate").value = padDate(entry.timestamp || entry.receiptDate);
     document.getElementById("sponsorAmount").value = entry.sponsorAmount || "";
 
     container.innerHTML = "";
