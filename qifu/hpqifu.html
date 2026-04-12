@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🙏 祈福登记系统</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #fdf6e3; padding-bottom: 80px; }
+    .card { border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: none; }
+    .header-title { color: #0d6efd; font-weight: bold; }
+    .prayer-card { border-left: 5px solid #0d6efd; }
+    .total-box { background: #e9ecef; padding: 15px; border-radius: 10px; text-align: right; }
+    .total-price { color: #d63384; font-size: 1.5rem; font-weight: bold; }
+    /* 移动端优化 */
+    .form-control-lg, .btn-lg { font-size: 1rem; }
+    @media (max-width: 576px) {
+      .container { padding-left: 15px; padding-right: 15px; }
+      .btn-action { width: 100%; margin-bottom: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container py-4">
+    <!-- 顶部查询区 -->
+    <div class="card p-3 mb-4 bg-white">
+      <div class="input-group">
+        <input type="tel" id="searchInput" class="form-control form-control-lg" placeholder="输入手机号查询历史记录">
+        <button class="btn btn-primary btn-lg" onclick="searchPhone()">🔍 查询</button>
+      </div>
+      <div id="resultSelector" class="mt-2 text-muted small"></div>
+    </div>
+
+    <!-- 主表单区 -->
+    <div id="adminForm" class="card p-3 mb-4 d-none">
+      <h4 class="header-title mb-3">📝 祈福资料</h4>
+      
+      <form id="prayerForm">
+        <div class="mb-3">
+          <label class="form-label fw-bold">📱 手机号</label>
+          <input type="tel" id="phoneNumber" class="form-control form-control-lg" placeholder="必填" required>
+          <div class="form-text">支持格式: 012-3456789 / 60123456789</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">👤 填写者姓名 (主祈者)</label>
+          <input type="text" id="mainName" class="form-control form-control-lg" placeholder="必填" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">🕯️ 法会类别</label>
+          <input class="form-control form-control-lg" list="dharmaList" id="dharmaType" placeholder="选择或输入" required>
+          <datalist id="dharmaList">
+            <option value="清明节">
+            <option value="中元节">
+            <option value="春节祈福">
+            <option value="佛诞节">
+            <option value="不空羂索">
+            <option value="感恩护法">
+          </datalist>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold">💰 随喜赞助 (RM)</label>
+          <input type="number" id="sponsorAmount" class="form-control form-control-lg" min="0" value="0" oninput="updateDonationBreakdown()">
+        </div>
+      </form>
+    </div>
+
+    <!-- 祈福名单动态区 -->
+    <div id="prayersContainer" class="d-none">
+      <!-- JS 动态生成内容 -->
+    </div>
+
+    <!-- 底部操作栏 -->
+    <div class="fixed-bottom bg-white p-3 shadow-lg border-top">
+      <div class="container">
+        <div class="total-box mb-2">
+          <small class="text-muted">预计总额:</small>
+          <div class="total-price">RM <span id="displayTotal">0.00</span></div>
+        </div>
+        <div class="d-grid gap-2">
+          <button onclick="addPrayer()" class="btn btn-outline-primary btn-lg">➕ 新增祈福者</button>
+          <button id="submitBtn" onclick="forceInsertNewEntry()" class="btn btn-success btn-lg">✅ 提交保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript 逻辑 -->
+  <script>
+    // --- 1. 全局状态 ---
+    window.selectedEntry = null;
+    window.currentTotalAmount = 0;
+
+    // --- 2. 核心逻辑：智能手机号清洗 ---
+    function cleanPhoneNumber(rawInput) {
+        if (!rawInput) return null;
+        
+        // 1. 暴力清洗，只保留数字
+        let allDigits = rawInput.replace(/\D/g, '');
+
+        // 2. 智能提取马来西亚手机号 (01开头，后面跟8-9位数字)
+        // 如果用户输入 60123456789，正则也能匹配到 0123456789 (如果前面没处理)
+        // 这里我们优先匹配 01 开头的
+        let match = allDigits.match(/01\d{8,9}/);
+        
+        // 如果没找到 01 开头，尝试找 601 开头并转换
+        if (!match) {
+            const match60 = allDigits.match(/601\d{8,9}/);
+            if (match60) {
+                return "0" + match60[0].substring(1); // 把 601... 变成 01...
+            }
+        }
+        
+        return match ? match[0] : null;
+    }
+
+    // --- 3. 核心逻辑：生成唯一编号 ---
+    async function generateUniquePhoneId(phone, festival) {
+        const pureNumber = cleanPhoneNumber(phone);
+        if (!pureNumber) throw new Error("手机号格式错误");
+
+        // 生成前缀
+        const yearCode = String(new Date().getFullYear()).slice(-1);
+        let prefix = "";
+        if (festival === "清明节") prefix = `${yearCode}m`;
+        else if (festival === "中元节") prefix = `${yearCode}y`;
+        else if (festival === "不空羂索") prefix = `${yearCode}q`;
+        else if (festival === "感恩护法") prefix = `${yearCode}b`;
+        else prefix = `${yearCode}x`; // 默认或其他
+
+        const basePhone = `${prefix}${pureNumber}`;
+
+        // 查询后端是否存在
+        try {
+            const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-qifu?search=${basePhone}`);
+            const existingRows = await searchRes.json();
+            
+            let finalPhone = "";
+            const count = existingRows.length;
+
+            if (count === 0) {
+                finalPhone = basePhone; // 第一次提交
+            } else {
+                finalPhone = `${basePhone}+${count + 1}`; // 追加 +2, +3...
+            }
+            return finalPhone;
+        } catch (e) {
+            console.error("查询编号失败", e);
+            return basePhone; // 如果查询失败，至少返回基础编号
+        }
+    }
+
+    // --- 4. 查询功能 (保持原有) ---
+    window.searchPhone = function () {
+      const keyword = document.getElementById("searchInput").value.trim();
+      if (!keyword) return alert("请输入手机号");
+
+      fetch(`https://form.gealarm2012.workers.dev/admin-qifu?search=${encodeURIComponent(keyword)}`)
+        .then(res => res.json())
+        .then(data => {
+          const selector = document.getElementById("resultSelector");
+          selector.innerHTML = "";
+
+          if (!data || data.length === 0) {
+            alert("未找到该手机号的记录");
+            return;
+          }
+
+          window.fullData = data;
+          if (data.length === 1) {
+            loadEntryToForm(data[0]);
+          } else {
+            const select = document.createElement("select");
+            select.className = "form-select";
+            select.innerHTML = `<option selected disabled>找到 ${data.length} 笔资料，请选择...</option>`;
+            data.forEach((item, idx) => {
+              const opt = document.createElement("option");
+              opt.value = idx;
+              opt.textContent = `${item.phoneNumber} - ${item.mainName}`;
+              select.appendChild(opt);
+            });
+            select.onchange = (e) => loadEntryToForm(data[e.target.value]);
+            selector.appendChild(select);
+          }
+        })
+        .catch(err => alert("查询失败：" + err.message));
+    };
+
+    // --- 5. 加载数据到表单 ---
+    function loadEntryToForm(entry) {
+      window.selectedEntry = entry;
+      document.getElementById("adminForm").classList.remove("d-none");
+      document.getElementById("prayersContainer").classList.remove("d-none");
+
+      document.getElementById("phoneNumber").value = entry.phoneNumber || "";
+      document.getElementById("mainName").value = entry.mainName || "";
+      document.getElementById("dharmaType").value = entry.dharmaType || "";
+      document.getElementById("sponsorAmount").value = entry.sponsorAmount || 0;
+
+      const container = document.getElementById("prayersContainer");
+      container.innerHTML = "";
+      
+      const prayers = entry.prayers || entry.data || [];
+      if (prayers.length === 0) addPrayer();
+      else prayers.forEach((p, i) => container.appendChild(createPrayerBlock(p, i + 1)));
+      
+      updateDonationBreakdown();
+    }
+
+    // --- 6. 核心功能：提交保存 (整合智能编号) ---
+    window.forceInsertNewEntry = async function () {
+      const submitBtn = document.getElementById("submitBtn");
+      const festival = document.getElementById("dharmaType").value;
+      const rawPhone = document.getElementById("phoneNumber").value.trim();
+
+      // 1. 基础验证
+      if (!festival) return alert("请先选择法会类别");
+      if (!rawPhone) return alert("请输入手机号");
+
+      // 2. 锁定按钮，防止重复点击
+      submitBtn.disabled = true;
+      submitBtn.innerText = "⏳ 正在生成编号...";
+
+      try {
+        // 3. 生成唯一编号 (包含防重逻辑)
+        const finalPhoneId = await generateUniquePhoneId(rawPhone, festival);
+        
+        // 4. 准备数据
+        const body = getCurrentFormData();
+        // 使用生成的唯一编号覆盖原始手机号
+        body.phoneNumber = finalPhoneId; 
+        
+        body.method = "POST";
+        body.admin = localStorage.getItem("admin") || "User";
+        body.total = window.currentTotalAmount || 0;
+
+        // 5. 发送请求
+        const res = await fetch("https://form.gealarm2012.workers.dev/admin-qifu", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+
+        const result = await res.json();
+        if (result.success) {
+          alert(`✅ 提交成功！\n编号: ${finalPhoneId}`);
+          startNewEntry();
+        } else {
+          alert(`❌ 提交失败：${result.message}`);
+        }
+
+      } catch (err) {
+        alert("❌ 提交异常：" + err.message);
+      } finally {
+        // 6. 恢复按钮
+        submitBtn.disabled = false;
+        submitBtn.innerText = "✅ 提交保存";
+      }
+    };
+
+    // --- 7. 数据收集与计算 ---
+    function getCurrentFormData() {
+      const prayers = [];
+      const blocks = document.querySelectorAll("#prayersContainer > div");
+      
+      blocks.forEach(div => {
+        prayers.push({
+          name: div.querySelector('.name').value,
+          address: div.querySelector('.address').value,
+          token: parseInt(div.querySelector('.token').value) || 0,
+          fire: parseInt(div.querySelector('.fire').value) || 0,
+          pg3: parseInt(div.querySelector('.pg3').value) || 0,
+          pg6: parseInt(div.querySelector('.pg6').value) || 0
+        });
+      });
+
+      return {
+        phoneNumber: document.getElementById("phoneNumber").value, // 这里会被覆盖
+        mainName: document.getElementById("mainName").value,
+        dharmaType: document.getElementById("dharmaType").value,
+        sponsorAmount: parseFloat(document.getElementById("sponsorAmount").value) || 0,
+        prayers: prayers
+      };
+    }
+
+    function updateDonationBreakdown() {
+      const data = getCurrentFormData();
+      const prayers = data.prayers;
+      
+      let tToken = 0, tFire = 0, tPg3 = 0, tPg6 = 0;
+      
+      prayers.forEach(p => {
+        tToken += p.token; tFire += p.fire; tPg3 += p.pg3; tPg6 += p.pg6;
+      });
+
+      const sponsor = data.sponsorAmount;
+      const total = (tToken * 5) + (tFire * 1) + (tPg3 * 3) + (tPg6 * 6) + sponsor;
+      
+      window.currentTotalAmount = total;
+      document.getElementById("displayTotal").innerText = total.toFixed(2);
+    }
+
+    // --- 8. 界面交互 ---
+    function createPrayerBlock(data = {}, index) {
+      const div = document.createElement("div");
+      div.className = "card p-3 mb-3 prayer-card";
+      div.innerHTML = `
+        <div class="d-flex justify-content-between mb-2">
+          <h6 class="fw-bold text-primary">🧍‍♂️ 第 ${index} 位</h6>
+          <button type="button" class="btn-close btn-sm" onclick="this.closest('.card').remove(); updateDonationBreakdown()"></button>
+        </div>
+        <div class="row g-2">
+          <div class="col-12"><input type="text" class="form-control name" placeholder="姓名" value="${data.name||''}"></div>
+          <div class="col-12"><input type="text" class="form-control address" placeholder="地址 (选填)" value="${data.address||''}"></div>
+          <div class="col-6"><input type="number" class="form-control token" placeholder="令牌(RM5)" value="${data.token||0}" oninput="updateDonationBreakdown()"></div>
+          <div class="col-6"><input type="number" class="form-control fire" placeholder="护摩(RM1)" value="${data.fire||0}" oninput="updateDonationBreakdown()"></div>
+          <div class="col-6"><input type="number" class="form-control pg3" placeholder="纸金3" value="${data.pg3||0}" oninput="updateDonationBreakdown()"></div>
+          <div class="col-6"><input type="number" class="form-control pg6" placeholder="纸金6" value="${data.pg6||0}" oninput="updateDonationBreakdown()"></div>
+        </div>
+      `;
+      return div;
+    }
+
+    window.addPrayer = function() {
+      const container = document.getElementById("prayersContainer");
+      container.classList.remove("d-none");
+      document.getElementById("adminForm").classList.remove("d-none");
+      const count = container.children.length + 1;
+      container.appendChild(createPrayerBlock({}, count));
+      updateDonationBreakdown();
+    };
+
+    function startNewEntry() {
+      document.getElementById("prayerForm").reset();
+      document.getElementById("prayersContainer").innerHTML = "";
+      document.getElementById("displayTotal").innerText = "0.00";
+      window.currentTotalAmount = 0;
+      window.selectedEntry = null;
+      addPrayer();
+    }
+    
+    startNewEntry();
+  </script>
+</body>
+</html>
