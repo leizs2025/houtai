@@ -501,7 +501,6 @@ function buildPayload() {
     return data;
 }
 
-// 3. 定义提交函数 (彻底修复版)
 async function submitUserData() {
     const submitBtn = document.getElementById("btnSubmit");
     
@@ -520,17 +519,23 @@ async function submitUserData() {
     submitBtn.innerText = "⏳ 正在计算编号...";
 
     try {
-        // ✅ 核心修复：强制提取纯数字手机号
-        // 逻辑：移除所有非数字字符。
-        // 效果：无论是 "5y019..." 还是 "6y5y019..."，都会变成 "019..."
-        const pureNumber = rawInputPhone.replace(/\D/g, '');
+        // ✅ 第一步：暴力清洗，只保留数字
+        // 这一步会把 "6y5y019...+2" 变成 "65019..." (全是数字)
+        let allDigits = rawInputPhone.replace(/\D/g, '');
+
+        // ✅ 第二步：智能提取马来西亚手机号 (10-11位)
+        // 逻辑：找到第一个 "01"，然后往后取 10 到 11 位
+        // 正则解释：01 开头，后面跟 8 或 9 个数字 (总共 10 或 11 位)
+        const match = allDigits.match(/01\d{8,9}/);
         
-        if (pureNumber.length < 8) {
-            alert("手机号格式错误，请检查");
+        if (!match) {
+            alert("无法识别手机号格式，请检查是否包含正确数字");
             submitBtn.disabled = false;
             submitBtn.innerText = "📤 重新提交";
             return;
         }
+
+        const pureNumber = match[0]; // 提取出的纯净手机号，如 0198863232
 
         // 4. 生成今年基础前缀
         const yearCode = String(new Date().getFullYear()).slice(-1);
@@ -542,10 +547,9 @@ async function submitUserData() {
         else prefix = `${yearCode}x`;
 
         // 5. 构建用于查询的基础号码 (今年前缀 + 纯数字)
-        // 此时 basePhone 绝对是干净的，例如 "6y0198893200"
         const basePhone = `${prefix}${pureNumber}`;
 
-        // 6. 查询后端 (用干净的号码去搜)
+        // 6. 查询后端
         const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${basePhone}`);
         const existingRows = await searchRes.json();
         
@@ -561,7 +565,7 @@ async function submitUserData() {
 
         // 8. 收集数据并提交
         const payload = buildPayload();
-        payload.phone = finalPhone; // 强制覆盖为干净的最终号码
+        payload.phone = finalPhone;
         payload.action = "create";
 
         submitBtn.innerText = "⏳ 写入数据中...";
@@ -589,7 +593,6 @@ async function submitUserData() {
         submitBtn.innerText = "📤 重新提交";
     }
 }
-
 // 4. 页面初始化
 document.addEventListener("DOMContentLoaded", function() {
     initGroups();
