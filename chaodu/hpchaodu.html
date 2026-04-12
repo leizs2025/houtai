@@ -435,35 +435,73 @@ function generatePrefixedPhone(phone, festival) {
     return prefix + phone;
 }
 
-// 2. 定义数据收集函数 (独立函数)
-// 注意：这里我保留了你之前逻辑的骨架，但你需要确认是否包含所有字段
-// 如果你有更完整的 buildPayload，请替换到这里，但必须保持它是独立函数
+// 2. ✅ 恢复完整版数据收集函数 (包含所有分组和计算)
 function buildPayload() {
     const getVal = id => document.getElementById(id)?.value?.trim() || "";
-    const getGroupData = (groupId, fieldCount) => {
-        const container = document.getElementById(groupId);
-        return Array.from(container?.children || []).map(card => {
-            const data = {};
-            card.querySelectorAll("[data-key]").forEach(el => {
-                data[el.dataset.key] = el.value;
-            });
-            return data;
-        }).flat();
-    };
 
-    // 这里只是一个示例结构，你需要确保它和后端要求的字段匹配
-    // 如果你有旧的完整 buildPayload 代码，请务必粘贴在这里替换
-    return {
+    const data = {
         name: getVal("mainName"),
-        phone: getVal("phoneNumber"), // 这个会被 submit 中的 finalPhone 覆盖
+        phone: getVal("phoneNumber"),
         address: getVal("address"),
         festival: getVal("festival"),
         donation: getVal("donation"),
-        // ... 其他字段
+        receiptNo: getVal("receiptNumber"),
+        receiptDate: getVal("receiptDate"),
+        ritualType: getVal("festival"),
+        admin: localStorage.getItem("admin") || "",
+        moveToTop: true,
+        totalAmount: "",
+        ancestor: [],
+        baby: [],
+        enemy: [],
+        past: [],
+        ground: []
     };
+
+    const groupIds = {
+        ancestor: "group-ancestor",
+        baby: "group-baby",
+        enemy: "group-enemy",
+        past: "group-past",
+        ground: "group-ground"
+    };
+
+    Object.entries(groupIds).forEach(([key, domId]) => {
+        const container = document.getElementById(domId);
+        if (!container) return;
+        const cards = container.querySelectorAll(".card");
+        cards.forEach(card => {
+            const obj = {};
+            card.querySelectorAll("input[data-key], select[data-key]").forEach(input => {
+                const fieldKey = input.dataset.key;
+                obj[fieldKey] = input.value?.trim() || "";
+            });
+            data[key].push(obj);
+        });
+    });
+
+    // 金额计算逻辑 (保持原样)
+    const priceMap = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
+    let total = 0;
+
+    ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
+        data[group].forEach(item => {
+            Object.entries(priceMap).forEach(([field, price]) => {
+                const value = parseFloat(item[field]);
+                if (!isNaN(value)) total += value * price;
+            });
+        });
+    });
+
+    const donationVal = parseFloat(data.donation);
+    if (!isNaN(donationVal)) total += donationVal;
+
+    data.totalAmount = total ? total.toFixed(2) : "";
+
+    return data;
 }
 
-// 3. 定义提交函数 (独立函数)
+// 3. 定义提交函数 (融合版)
 async function submitUserData() {
     const submitBtn = document.getElementById("btnSubmit");
     
@@ -482,7 +520,7 @@ async function submitUserData() {
     submitBtn.innerText = "⏳ 正在计算编号...";
 
     try {
-        // 4. 生成基础前缀
+        // 4. 生成基础前缀 (复用原有逻辑)
         const yearCode = String(new Date().getFullYear()).slice(-1);
         let prefix = "";
         if (festival === "清明节") prefix = `${yearCode}m`;
@@ -503,16 +541,14 @@ async function submitUserData() {
         const count = existingRows.length;
 
         if (count === 0) {
-            // 情况A：第一次提交，直接使用基础号码 (不加 +1)
-            finalPhone = basePhone;
+            finalPhone = basePhone; // 首次提交
         } else {
-            // 情况B：重复提交，自动叠加后缀
-            finalPhone = `${basePhone}+${count + 1}`;
+            finalPhone = `${basePhone}+${count + 1}`; // 重复提交叠加
         }
 
-        // 8. 收集数据并提交
-        const payload = buildPayload(); // 此时能正确找到外部的 buildPayload
-        payload.phone = finalPhone; 
+        // 8. ✅ 关键修复：使用完整版 Payload 并注入新号码
+        const payload = buildPayload(); // 这里收集了所有字段
+        payload.phone = finalPhone;     // 这里注入带编号的号码
         payload.action = "create";
 
         submitBtn.innerText = "⏳ 写入数据中...";
@@ -523,13 +559,13 @@ async function submitUserData() {
             body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
+        const result = await response.json();
         
-        if (data.success) {
+        if (result.success) {
             alert(`✅ 提交成功！\n您的编号是：${finalPhone}`);
             submitBtn.innerText = "✅ 成功";
         } else {
-            alert("❌ 提交失败: " + data.message);
+            alert("❌ 提交失败: " + result.message);
             submitBtn.disabled = false;
             submitBtn.innerText = "📤 重新提交";
         }
@@ -539,12 +575,12 @@ async function submitUserData() {
         submitBtn.disabled = false;
         submitBtn.innerText = "📤 重新提交";
     }
-    // 结束 submitUserData 函数
 }
 
 // 4. 页面初始化
 document.addEventListener("DOMContentLoaded", function() {
     initGroups();
-});    </script>
+});
+    </script>
 </body>
 </html>
