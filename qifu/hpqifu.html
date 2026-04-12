@@ -12,6 +12,11 @@
     .prayer-card { border-left: 5px solid #0d6efd; background-color: #fff; }
     .footer-bar { position: fixed; bottom: 0; left: 0; width: 100%; background-color: #fff; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; }
     .total-amount { font-size: 1.5rem; font-weight: bold; color: #d63384; }
+    /* 添加下拉菜单样式 */
+    .dropdown-menu {
+      max-height: 300px;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body>
@@ -22,8 +27,10 @@
   <!-- 顶部查询栏 -->
   <div class="card p-3 mb-3">
     <div class="input-group">
-      <input type="text" id="searchInput" class="form-control" placeholder="输入手机号查询历史记录">
+      <input type="text" id="searchInput" class="form-control" placeholder="输入手机号/姓名查询历史记录">
       <button class="btn btn-outline-primary" type="button" onclick="searchPhone()">🔍 查询</button>
+      <!-- 下拉菜单 -->
+      <ul id="searchResultsDropdown" class="dropdown-menu w-100"></ul>
     </div>
   </div>
 
@@ -79,6 +86,7 @@
   };
   
   let cardCounter = 1; // 用于生成唯一的卡片索引
+  let allRecords = []; // 存储所有查询到的记录，用于模糊匹配
 
   // --- 2. 创建卡片的函数 (已更新为紧凑版) ---
   window.createPrayerBlock = function (data = {}, index = 1) {
@@ -274,35 +282,100 @@
     }
   }
 
-  // --- 6. 查询逻辑 ---
+  // --- 6. 查询逻辑 (已更新) ---
   async function searchPhone() {
     const keyword = document.getElementById('searchInput').value.trim();
-    if (!keyword) return alert("请输入手机号");
+    if (!keyword) return alert("请输入手机号或姓名");
 
     try {
-      const res = await fetch(`https://form.gealarm2012.workers.dev/admin-qifu?search=${keyword}`);
-      const data = await res.json();
+      const res = await fetch(`https://form.gealarm2012.workers.dev/admin-qifu`);
+      allRecords = await res.json(); // 获取所有记录
       
-      if (!data || data.length === 0) return alert("未找到记录");
-
-      const record = data[0];
-      document.getElementById('mainName').value = record.mainName || "";
-      document.getElementById('festival').value = record.festival || "清明节";
-      document.getElementById('phoneNumber').value = record.phoneNumber || "";
-
-      const container = document.getElementById('cards-container');
-      container.innerHTML = ""; // 清空现有
-      if (record.prayers && record.prayers.length > 0) {
-        cardCounter = 1; // 重置计数器，以便索引正确
-        record.prayers.forEach(p => addCard(p));
+      if (!allRecords || allRecords.length === 0) {
+        hideDropdown();
+        return alert("未找到任何记录");
       }
-      updateDonationBreakdown(); // 查询回填后重新计算总额
+
+      // 模糊匹配
+      const matches = allRecords.filter(record => 
+        record.phoneNumber.includes(keyword) || 
+        (record.mainName && record.mainName.includes(keyword))
+      );
+
+      if (matches.length === 0) {
+        hideDropdown();
+        return alert("未找到匹配记录");
+      }
+
+      // 如果只有一条匹配记录，直接填充
+      if (matches.length === 1) {
+        populateForm(matches[0]);
+        hideDropdown();
+        return;
+      }
+
+      // 如果有多条匹配记录，显示下拉列表
+      showDropdown(matches);
 
     } catch (e) {
       console.error("Search error:", e);
       alert("查询出错");
+      hideDropdown();
     }
   }
+
+  // 显示下拉列表
+  function showDropdown(records) {
+    const dropdown = document.getElementById('searchResultsDropdown');
+    dropdown.innerHTML = ''; // 清空
+    records.forEach(record => {
+      const li = document.createElement('li');
+      li.innerHTML = `<a class="dropdown-item" href="#" onclick="populateFormAndHideDropdown('${record.receiptNumber}')">${record.mainName} (${record.phoneNumber}) - ${record.festival}</a>`;
+      dropdown.appendChild(li);
+    });
+    dropdown.classList.add('show'); // Bootstrap 显示下拉菜单的类
+  }
+
+  // 隐藏下拉列表
+  function hideDropdown() {
+    const dropdown = document.getElementById('searchResultsDropdown');
+    dropdown.classList.remove('show');
+  }
+
+  // 填充表单
+  function populateForm(record) {
+    document.getElementById('mainName').value = record.mainName || "";
+    document.getElementById('festival').value = record.festival || "清明节";
+    document.getElementById('phoneNumber').value = record.phoneNumber || "";
+
+    // 填充卡片
+    const container = document.getElementById('cards-container');
+    container.innerHTML = ""; // 清空现有
+    if (record.prayers && record.prayers.length > 0) {
+      cardCounter = 1; // 重置计数器，以便索引正确
+      record.prayers.forEach(p => addCard(p));
+    }
+    updateDonationBreakdown(); // 查询回填后重新计算总额
+  }
+
+  // 填充表单并隐藏下拉
+  function populateFormAndHideDropdown(receiptNumber) {
+    const record = allRecords.find(r => r.receiptNumber === receiptNumber);
+    if (record) {
+        populateForm(record);
+    }
+    hideDropdown();
+  }
+
+  // 点击其他地方隐藏下拉
+  document.addEventListener('click', function(event) {
+    const searchInput = document.getElementById('searchInput');
+    const dropdown = document.getElementById('searchResultsDropdown');
+    if (!searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+        hideDropdown();
+    }
+  });
+
 </script>
 
 </body>
