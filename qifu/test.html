@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Prayer Block</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* 添加一些背景色帮助识别卡片 */
+        .prayer-card { background-color: #f9f9f9; border: 1px solid #ddd; padding: 15px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>测试祈福卡片</h1>
+        <div id="test-container"></div>
+        <button onclick="addTestCard()">添加测试卡片</button>
+    </div>
+
+    <script>
+        // 定义商品配置
+        const PRODUCTS_CONFIG = {
+            token: { name: "祈福令牌", price: 30 },
+            fire: { name: "小护摩片", price: 15 },
+            pg3: { name: "纸金 3", price: 3 },
+            pg6: { name: "纸金 6", price: 6 }
+        };
+
+        // 定义 updateDonationBreakdown 函数 (即使暂时为空)
+        function updateDonationBreakdown() {
+            console.log("updateDonationBreakdown called.");
+            // 这里可以放你的计算逻辑，暂时只打印日志
+        }
+
+        // 你提供的 createPrayerBlock 函数
+        window.createPrayerBlock = function (data = {}, index = 1) {
+            const div = document.createElement("div");
+            div.className = "card p-3 mb-3 position-relative prayer-card";
+
+            const tokenVal = data.token !== undefined ? data.token : 0;
+            const fireVal = data.fire !== undefined ? data.fire : 0;
+            const pg3Val = data.pg3 !== undefined ? data.pg3 : 0;
+            const pg6Val = data.pg6 !== undefined ? data.pg6 : 0;
+
+            div.innerHTML = `
+            <div style="position:absolute; top:5px; right:10px; cursor:pointer;" onclick="this.parentElement.remove(); updateDonationBreakdown()">❌</div>
+            <h6 class="mb-3">🧍‍♀️ 第 ${index} 位祈福者</h6>
+            <div class="row g-3">
+            <div class="col-md-4">
+                <label>姓名</label>
+                <input type="text" class="form-control name" value="${data.name || ''}" oninput="updateDonationBreakdown()">
+            </div>
+            <div class="col-md-8">
+                <label>现居地址</label>
+                <input type="text" class="form-control address" value="${data.address || ''}">
+            </div>
+            </div>
+            <div class="row g-3 mt-2">
+            <div class="col-md-3">
+                <label>${PRODUCTS_CONFIG.token.name}</label> <!-- 确保这里被替换 -->
+                <input type="number" class="form-control token" value="${tokenVal}" min="0" oninput="updateDonationBreakdown()">
+            </div>
+            <div class="col-md-3">
+                <label>${PRODUCTS_CONFIG.fire.name}</label>
+                <input type="number" class="form-control fire" value="${fireVal}" min="0" oninput="updateDonationBreakdown()">
+            </div>
+            <div class="col-md-3">
+                <label>${PRODUCTS_CONFIG.pg3.name}</label>
+                <input type="number" class="form-control pg3" value="${pg3Val}" min="0" oninput="updateDonationBreakdown()">
+            </div>
+            <div class="col-md-3">
+                <label>${PRODUCTS_CONFIG.pg6.name}</label>
+                <input type="number" class="form-control pg6" value="${pg6Val}" min="0" oninput="updateDonationBreakdown()">
+            </div>
+            </div>
+        `;
+
+            return div;
+        };
+
+        function addTestCard() {
+            const container = document.getElementById('test-container');
+            const testCard = createPrayerBlock({name: "测试姓名", token: 1, fire: 2}, 1);
+            container.appendChild(testCard);
+        }
+
+        // 页面加载时添加一个测试卡片
+        window.onload = function() {
+            addTestCard();
+        }
+    </script>
+</body>
+</html>
