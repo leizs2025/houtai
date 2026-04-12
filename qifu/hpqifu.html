@@ -27,7 +27,7 @@
   <!-- 顶部查询栏 -->
   <div class="card p-3 mb-3">
     <div class="input-group">
-      <input type="text" id="searchInput" class="form-control" placeholder="输入手机号/姓名查询历史记录">
+      <input type="text" id="searchInput" class="form-control" placeholder="输入手机号查询历史记录">
       <button class="btn btn-outline-primary" type="button" onclick="searchPhone()">🔍 查询</button>
       <!-- 下拉菜单 -->
       <ul id="searchResultsDropdown" class="dropdown-menu w-100"></ul>
@@ -282,49 +282,34 @@
     }
   }
 
-  // --- 6. 查询逻辑 (已更新) ---
+  // --- 6. 查询逻辑 (已更新，使用精确查询) ---
   async function searchPhone() {
     const keyword = document.getElementById('searchInput').value.trim();
-    if (!keyword) return alert("请输入手机号或姓名");
+    if (!keyword) return alert("请输入手机号");
 
     try {
-      const res = await fetch(`https://form.gealarm2012.workers.dev/admin-qifu`);
-      allRecords = await res.json(); // 获取所有记录
+      // 使用精确查询 API
+      const res = await fetch(`https://form.gealarm2012.workers.dev/admin-qifu?search=${keyword}`);
+      const data = await res.json();
       
-      if (!allRecords || allRecords.length === 0) {
+      if (!data || data.length === 0) {
         hideDropdown();
-        return alert("未找到任何记录");
+        return alert("未找到记录");
       }
 
-      // 模糊匹配
-      const matches = allRecords.filter(record => 
-        record.phoneNumber.includes(keyword) || 
-        (record.mainName && record.mainName.includes(keyword))
-      );
-
-      if (matches.length === 0) {
-        hideDropdown();
-        return alert("未找到匹配记录");
-      }
-
-      // 如果只有一条匹配记录，直接填充
-      if (matches.length === 1) {
-        populateForm(matches[0]);
-        hideDropdown();
-        return;
-      }
-
-      // 如果有多条匹配记录，显示下拉列表
-      showDropdown(matches);
+      // 由于是精确查询，通常只有一个结果
+      const record = data[0];
+      populateForm(record);
+      hideDropdown(); // 确保下拉列表隐藏
 
     } catch (e) {
       console.error("Search error:", e);
       alert("查询出错");
-      hideDropdown();
+      hideDropdown(); // 确保下拉列表隐藏
     }
   }
 
-  // 显示下拉列表
+  // 显示下拉列表 (仅用于模糊查询，当前未启用)
   function showDropdown(records) {
     const dropdown = document.getElementById('searchResultsDropdown');
     dropdown.innerHTML = ''; // 清空
@@ -353,12 +338,22 @@
     container.innerHTML = ""; // 清空现有
     if (record.prayers && record.prayers.length > 0) {
       cardCounter = 1; // 重置计数器，以便索引正确
-      record.prayers.forEach(p => addCard(p));
+      record.prayers.forEach(p => {
+        // 确保传入的数据结构与 createPrayerBlock 期望的结构一致
+        addCard({
+          name: p.name || "",
+          address: p.address || "",
+          token: p.token || 0,
+          fire: p.fire || 0,
+          pg3: p.pg3 || 0,
+          pg6: p.pg6 || 0
+        });
+      });
     }
     updateDonationBreakdown(); // 查询回填后重新计算总额
   }
 
-  // 填充表单并隐藏下拉
+  // 填充表单并隐藏下拉 (用于模糊查询，当前未启用)
   function populateFormAndHideDropdown(receiptNumber) {
     const record = allRecords.find(r => r.receiptNumber === receiptNumber);
     if (record) {
