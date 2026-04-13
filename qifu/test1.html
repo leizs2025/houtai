@@ -63,7 +63,7 @@
           <input type="tel" id="searchInput" class="form-control form-control-lg" placeholder="输入手机号查询旧资料">
           <button class="btn btn-primary btn-lg" onclick="searchPhone()">查询</button>
         </div>
-        <!-- 新增的下拉选择容器 -->
+        <!-- 下拉选择容器 -->
         <div id="resultSelector"></div>
       </div>
     </div>
@@ -133,7 +133,7 @@
 
     <!-- 4. 提交按钮 -->
     <div class="fixed-bottom bg-body p-3 border-top shadow-sm">
-      <button onclick="submitEntry()" class="btn btn-success btn-lg w-100">
+      <button id="submitBtn" onclick="submitEntry()" class="btn btn-success btn-lg w-100">
         📤 提交报名
       </button>
     </div>
@@ -146,7 +146,7 @@
       updateDonationBreakdown();
     });
 
-    // ================= 查询逻辑 (修正版) =================
+    // ================= 查询逻辑 (保持不变) =================
     window.searchPhone = function () {
       const keyword = document.getElementById("searchInput").value.trim();
       if (!keyword) return alert("请输入手机号");
@@ -160,7 +160,6 @@
           selector.innerHTML = "";
           console.log("📦 实际返回内容 data：", data);
 
-          // 确保 data 是数组
           if (!Array.isArray(data)) {
             data = data ? [data] : [];
           }
@@ -170,21 +169,17 @@
             return;
           }
 
-          // 核心修改点：预处理数据，过滤掉祈福者列表中的空数据
-          // 遍历每一条查询结果，清理它的 prayers 字段
+          // 预处理数据，过滤掉祈福者列表中的空数据
           data.forEach(item => {
             item.prayers = item.data || item.prayers || [];
             item.data = item.prayers;
-            // 过滤空卡片
             item.prayers = filterEmptyPrayers(item.prayers);
           });
 
-          // 如果只有一条，自动选中
           if (data.length === 1) {
             window.selectedEntry = data[0];
             setTimeout(() => renderForm(window.selectedEntry), 0);
           } 
-          // 如果有多条，生成下拉菜单
           else {
             const select = document.createElement("select");
             select.className = "form-select";
@@ -199,7 +194,6 @@
             };
 
             data.forEach(item => {
-              // 计算该笔记录的有效祈福者数量
               const validCount = item.prayers.length;
               const mainName = item.mainName || "未知";
               const option = document.createElement("option");
@@ -216,8 +210,7 @@
         });
     };
 
-    // 新增函数：过滤掉没有数据的祈福者卡片
-    // 判断逻辑：只要名字、令牌、护摩片、纸金3、纸金6 任意一项有值，就保留
+    // 过滤空卡片
     function filterEmptyPrayers(prayers) {
       return prayers.filter(item => {
         return item.name || 
@@ -228,15 +221,13 @@
       });
     }
 
-    // ================= 渲染表单逻辑 (保持不变) =================
+    // 渲染表单
     function renderForm(info) {
-      // 填充基础信息
       document.getElementById("phoneNumber").value = info.phoneNumber || "";
       document.getElementById("mainName").value = info.mainName || "";
       document.getElementById("dharmaType").value = info.dharmaType || "";
       document.getElementById("sponsorAmount").value = info.sponsorAmount || "";
 
-      // 填充祈福者列表
       const container = document.getElementById("prayersContainer");
       container.innerHTML = "";
       
@@ -246,7 +237,6 @@
           container.appendChild(div);
         });
       } else {
-        // 如果过滤后该笔记录没有任何祈福者数据，显示一个空卡片
         addPrayer();
       }
 
@@ -311,7 +301,6 @@
     function removePrayer(button) {
       const item = button.parentElement.parentElement;
       item.remove();
-      // 重新排序编号
       Array.from(document.querySelectorAll('#prayersContainer > div')).forEach((el, i) => {
         el.querySelector('h6').textContent = `第 ${i+1} 位祈福者`;
       });
@@ -344,48 +333,112 @@
       `;
     }
 
-    // ================= 提交逻辑 (保持不变) =================
-    function submitEntry() {
-      const phone = document.getElementById('phoneNumber').value.trim();
-      if (!phone) {
-        alert("请先查询或填写手机号！");
-        return;
+    // ================= 提交逻辑 (核心修改：智能查重生成编号) =================
+    async function submitEntry() {
+      const submitBtn = document.getElementById('submitBtn');
+      
+      // 1. 防重复提交
+      if (submitBtn.disabled) return;
+
+      // ✅ 修正：使用 dharmaType 而不是 festival
+      const dharmaType = document.getElementById("dharmaType").value;
+      const rawInputPhone = document.getElementById("phoneNumber").value.trim();
+
+      // 2. 基础验证
+      if (!dharmaType) return alert("请先选择法会类别");
+      if (!rawInputPhone) return alert("请输入手机号");
+
+      // 3. 锁定按钮
+      submitBtn.disabled = true;
+      submitBtn.innerText = "⏳ 正在计算编号...";
+
+      try {
+          // ✅ 第一步：暴力清洗，只保留数字
+          let allDigits = rawInputPhone.replace(/\D/g, '');
+
+          // ✅ 第二步：智能提取马来西亚手机号 (10-11位)
+          const match = allDigits.match(/01\d{8,9}/);
+          
+          if (!match) {
+              alert("无法识别手机号格式，请检查是否包含正确数字");
+              submitBtn.disabled = false;
+              submitBtn.innerText = "📤 重新提交";
+              return;
+          }
+
+          const pureNumber = match[0];
+
+          // 4. 生成今年基础前缀
+          const yearCode = String(new Date().getFullYear()).slice(-1);
+          let prefix = "";
+          // ✅ 修正：判断 dharmaType
+          if (dharmaType === "清明节") prefix = `${yearCode}m`;
+          else if (dharmaType === "中元节") prefix = `${yearCode}y`;
+          else if (dharmaType === "不空羂索") prefix = `${yearCode}q`;
+          else if (dharmaType === "感恩护法") prefix = `${yearCode}b`;
+          else prefix = `${yearCode}x`;
+
+          // 5. 构建用于查询的基础号码
+          const basePhone = `${prefix}${pureNumber}`;
+
+          // 6. 查询后端 (使用 admin-qifu 接口)
+          const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-qifu?search=${basePhone}`);
+          const existingRows = await searchRes.json();
+          
+          // 7. 智能生成最终号码
+          let finalPhone = "";
+          const count = Array.isArray(existingRows) ? existingRows.length : 0;
+
+          if (count === 0) {
+              finalPhone = basePhone;
+          } else {
+              finalPhone = `${basePhone}+${count + 1}`;
+          }
+
+          // 收集祈福者数据
+          const prayers = document.querySelectorAll("#prayersContainer > div");
+          const prayerDataList = [];
+
+          prayers.forEach(div => {
+            const name = div.querySelector(".prayer-name").value.trim();
+            if(name || 
+               parseInt(div.querySelector(".token").value) ||
+               parseInt(div.querySelector(".fire").value) ||
+               parseInt(div.querySelector(".pg3").value) ||
+               parseInt(div.querySelector(".pg6").value)) {
+                prayerDataList.push({
+                    name: name,
+                    address: div.querySelector(".prayer-address").value.trim(),
+                    token: parseInt(div.querySelector(".token").value) || 0,
+                    fire: parseInt(div.querySelector(".fire").value) || 0,
+                    pg3: parseInt(div.querySelector(".pg3").value) || 0,
+                    pg6: parseInt(div.querySelector(".pg6").value) || 0
+                });
+            }
+          });
+
+          const payload = {
+            phoneNumber: finalPhone, // 使用最终生成的智能号码
+            mainName: document.getElementById('mainName').value.trim(),
+            dharmaType: dharmaType,
+            receiptNumber: "", 
+            receiptDate: "",
+            sponsorAmount: parseFloat(document.getElementById("sponsorAmount").value) || 0,
+            data: prayerDataList
+          };
+
+          console.log("🚀 最终提交数据:", payload);
+          alert(`🙏 提交成功！\n\n生成的标准号码：${finalPhone}\n(数据已打印在控制台)`);
+          
+          // 恢复按钮（可选，或者直接跳转成功页）
+          submitBtn.innerText = "✅ 提交成功";
+
+      } catch (err) {
+          console.error("❌ 提交失败：", err);
+          alert("提交失败：" + err.message);
+          submitBtn.disabled = false;
+          submitBtn.innerText = "📤 重新提交";
       }
-
-      const prayers = document.querySelectorAll("#prayersContainer > div");
-      const prayerDataList = [];
-
-      prayers.forEach(div => {
-        const name = div.querySelector(".prayer-name").value.trim();
-        // 提交时也过滤空行
-        if(name || 
-           parseInt(div.querySelector(".token").value) ||
-           parseInt(div.querySelector(".fire").value) ||
-           parseInt(div.querySelector(".pg3").value) ||
-           parseInt(div.querySelector(".pg6").value)) {
-            prayerDataList.push({
-                name: name,
-                address: div.querySelector(".prayer-address").value.trim(),
-                token: parseInt(div.querySelector(".token").value) || 0,
-                fire: parseInt(div.querySelector(".fire").value) || 0,
-                pg3: parseInt(div.querySelector(".pg3").value) || 0,
-                pg6: parseInt(div.querySelector(".pg6").value) || 0
-            });
-        }
-      });
-
-      const payload = {
-        phoneNumber: phone,
-        mainName: document.getElementById('mainName').value.trim(),
-        dharmaType: document.getElementById('dharmaType').value,
-        receiptNumber: "", 
-        receiptDate: "",
-        sponsorAmount: parseFloat(document.getElementById("sponsorAmount").value) || 0,
-        data: prayerDataList
-      };
-
-      console.log("提交数据:", payload);
-      alert("🙏 提交成功！\n\n(演示模式：数据已打印在控制台)");
     }
   </script>
 </body>
