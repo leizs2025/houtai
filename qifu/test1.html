@@ -331,22 +331,25 @@
         <hr>
         <div class="total-highlight"><div>总计</div><div>RM ${total.toFixed(2)}</div></div>
       `;
+      
+      // 更新全局总金额变量
+      window.currentTotalAmount = total;
     }
 
-    // ================= 提交逻辑 (核心修改：智能查重生成编号) =================
+    // ================= 提交逻辑 (核心修改：整合 forceInsertNewEntry) =================
     async function submitEntry() {
       const submitBtn = document.getElementById('submitBtn');
       
       // 1. 防重复提交
       if (submitBtn.disabled) return;
 
-      // ✅ 修正：使用 dharmaType 而不是 festival
       const dharmaType = document.getElementById("dharmaType").value;
       const rawInputPhone = document.getElementById("phoneNumber").value.trim();
 
       // 2. 基础验证
       if (!dharmaType) return alert("请先选择法会类别");
       if (!rawInputPhone) return alert("请输入手机号");
+      if (!document.getElementById('mainName').value.trim()) return alert("请填写姓名");
 
       // 3. 锁定按钮
       submitBtn.disabled = true;
@@ -371,7 +374,6 @@
           // 4. 生成今年基础前缀
           const yearCode = String(new Date().getFullYear()).slice(-1);
           let prefix = "";
-          // ✅ 修正：判断 dharmaType
           if (dharmaType === "清明节") prefix = `${yearCode}m`;
           else if (dharmaType === "中元节") prefix = `${yearCode}y`;
           else if (dharmaType === "不空羂索") prefix = `${yearCode}q`;
@@ -381,7 +383,7 @@
           // 5. 构建用于查询的基础号码
           const basePhone = `${prefix}${pureNumber}`;
 
-          // 6. 查询后端 (使用 admin-qifu 接口)
+          // 6. 查询后端
           const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-qifu?search=${basePhone}`);
           const existingRows = await searchRes.json();
           
@@ -417,21 +419,37 @@
             }
           });
 
+          // 构建提交数据 (参考 forceInsertNewEntry 结构)
           const payload = {
-            phoneNumber: finalPhone, // 使用最终生成的智能号码
+            method: "POST",
+            // admin 字段已移除，保持数据干净
+            phoneNumber: finalPhone, 
             mainName: document.getElementById('mainName').value.trim(),
             dharmaType: dharmaType,
             receiptNumber: "", 
             receiptDate: "",
             sponsorAmount: parseFloat(document.getElementById("sponsorAmount").value) || 0,
+            total: window.currentTotalAmount || 0,
             data: prayerDataList
           };
 
-          console.log("🚀 最终提交数据:", payload);
-          alert(`🙏 提交成功！\n\n生成的标准号码：${finalPhone}\n(数据已打印在控制台)`);
+          // 8. 提交数据
+          const submitRes = await fetch("https://form.gealarm2012.workers.dev/admin-qifu", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
           
-          // 恢复按钮（可选，或者直接跳转成功页）
-          submitBtn.innerText = "✅ 提交成功";
+          const result = await submitRes.json();
+
+          if (result.success || result.message === "Success") {
+              alert(`✅ 提交成功！\n\n生成的标准号码：${finalPhone}`);
+              startNewEntry(); // 成功后清空页面
+          } else {
+              alert(`❌ 提交失败：${result.message || '未知错误'}`);
+              submitBtn.disabled = false;
+              submitBtn.innerText = "📤 重新提交";
+          }
 
       } catch (err) {
           console.error("❌ 提交失败：", err);
@@ -439,6 +457,23 @@
           submitBtn.disabled = false;
           submitBtn.innerText = "📤 重新提交";
       }
+    }
+
+    // 新增：清空页面并准备新表单
+    function startNewEntry() {
+        document.getElementById("searchInput").value = "";
+        document.getElementById("phoneNumber").value = "";
+        document.getElementById("mainName").value = "";
+        document.getElementById("sponsorAmount").value = "";
+        document.getElementById("resultSelector").innerHTML = "";
+        
+        // 重置祈福者列表
+        const container = document.getElementById("prayersContainer");
+        container.innerHTML = "";
+        addPrayer(); // 加回一个空行
+        
+        updateDonationBreakdown();
+        document.getElementById("submitBtn").innerText = "📤 提交报名";
     }
   </script>
 </body>
