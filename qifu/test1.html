@@ -2,238 +2,303 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🙏 祈福系统 - 管理员后台</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🙏 祈福报名系统</title>
+  <!-- Bootstrap 5 CDN -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #f8f9fa; padding: 20px; }
-    .search-container { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    .result-item { cursor: pointer; padding: 10px; border-bottom: 1px solid #eee; transition: background 0.2s; }
-    .result-item:hover { background-color: #e9ecef; }
-    .prayer-card { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 10px; }
+    body {
+      background-color: #fff8e7; /* 柔和米黄背景 */
+      padding: 10px;
+      font-size: 16px;
+      padding-bottom: 80px; /* 为底部按钮留空间 */
+    }
+    .form-card {
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: none;
+      margin-bottom: 20px;
+    }
+    .form-label {
+      font-weight: 600;
+      color: #555;
+    }
+    .btn-lg {
+      padding: 12px 0;
+      font-size: 1.1rem;
+    }
+    /* 金额明细样式 */
+    .amount-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px dashed #eee;
+    }
+    .total-highlight {
+      font-weight: bold;
+      color: #d63384;
+      font-size: 1.2rem;
+    }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <h2 class="mb-4 text-center">🙏 祈福系统管理后台</h2>
-
-    <!-- 搜索区域 -->
-    <div class="search-container">
-      <label class="form-label fw-bold">🔍 手机号查询</label>
-      <div class="input-group">
-        <input type="text" id="searchInput" class="form-control form-control-lg" placeholder="请输入手机号">
-        <button class="btn btn-primary btn-lg" onclick="searchPhone()">查询</button>
-      </div>
-      <div id="resultSelector" class="mt-3"></div>
+  <div class="container-fluid">
+    <!-- 标题 -->
+    <div class="text-center mb-4 mt-2">
+      <h3 class="text-primary">🙏 祈福报名系统</h3>
+      <p class="text-muted">请填写资料，随喜功德</p>
     </div>
 
-    <!-- 编辑表单区域 (默认隐藏) -->
-    <div id="adminForm" class="card d-none">
-      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">编辑祈福资料</h5>
-        <button onclick="resetForm()" class="btn btn-sm btn-light">❌ 关闭/重置</button>
-      </div>
+    <!-- 1. 基础信息卡片 -->
+    <div class="card form-card">
       <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label">手机号</label>
-            <input type="text" id="phoneNumber" class="form-control" readonly>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">填写者姓名</label>
-            <input type="text" id="mainName" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">法会类别</label>
-            <select id="dharmaType" class="form-select">
-              <option value="清明节">清明节</option>
-              <option value="中元节">中元节</option>
-              <option value="不空羂索">不空羂索</option>
-              <option value="感恩护法">感恩护法</option>
-            </select>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">收据编号</label>
-            <input type="text" id="receiptNumber" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">收据日期</label>
-            <input type="date" id="receiptDate" class="form-control">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">随喜赞助金额</label>
-            <input type="number" id="sponsorAmount" class="form-control" oninput="updateDonationBreakdown()">
-          </div>
-        </div>
-
-        <hr class="my-4">
-        <h5>祈福者名单</h5>
-        <div id="prayersContainer"></div>
+        <h5 class="card-title text-success mb-3">📝 基本资料</h5>
         
-        <div class="mt-4 p-3 bg-light rounded">
-          <h5>💰 金额明细</h5>
-          <div id="donationBreakdown"></div>
+        <div class="mb-3">
+          <label class="form-label">手机号 (用于查询/更新)</label>
+          <input type="tel" id="phoneNumber" class="form-control form-control-lg" placeholder="请输入11位手机号" maxlength="11">
         </div>
 
-        <div class="mt-4 text-end">
-          <button onclick="saveData()" class="btn btn-success btn-lg">💾 保存更新</button>
+        <div class="mb-3">
+          <label class="form-label">填写者姓名</label>
+          <input type="text" id="mainName" class="form-control form-control-lg" placeholder="填写者姓名">
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">法会类别</label>
+          <select id="dharmaType" class="form-select form-select-lg">
+            <option value="清明节">清明节</option>
+            <option value="中元节">中元节</option>
+            <option value="不空羂索">不空羂索</option>
+            <option value="感恩护法">感恩护法</option>
+          </select>
         </div>
       </div>
+    </div>
+
+    <!-- 2. 祈福者资料卡片 -->
+    <div class="card form-card">
+      <div class="card-body">
+        <h5 class="card-title text-success mb-3">🧍‍♂️ 祈福者资料</h5>
+        
+        <div id="prayersContainer">
+          <!-- 默认加载一个祈福者 -->
+        </div>
+
+        <div class="text-center mt-3">
+          <button onclick="addPrayer()" class="btn btn-outline-primary btn-lg w-100">
+            ➕ 新增一位祈福者
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 供养金明细卡片 -->
+    <div class="card form-card">
+      <div class="card-body">
+        <h5 class="card-title text-success mb-3">💰 供养金明细</h5>
+        
+        <div class="mb-3">
+          <label class="form-label">祈福报名供养金 (随喜赞助)</label>
+          <div class="input-group">
+            <span class="input-group-text">RM</span>
+            <input type="number" id="sponsorAmount" class="form-control form-control-lg" placeholder="0" step="0.01" oninput="updateDonationBreakdown()">
+          </div>
+        </div>
+
+        <div id="donationBreakdown" class="mt-4 p-3 bg-light rounded">
+          <!-- 动态金额显示 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 提交按钮 -->
+    <div class="fixed-bottom bg-body p-3 border-top shadow-sm">
+      <button onclick="submitEntry()" class="btn btn-success btn-lg w-100">
+        📤 提交报名
+      </button>
     </div>
   </div>
 
   <script>
-    // 全局变量
-    window.selectedEntry = null;
-    let currentTotalAmount = 0;
+    // 页面加载时，默认添加一个祈福者
+    document.addEventListener('DOMContentLoaded', function() {
+      addPrayer();
+      updateDonationBreakdown(); // 初始化金额显示
+    });
 
-    // 1. 查询功能 (基于你提供的代码修正)
-    window.searchPhone = function () {
-      const keyword = document.getElementById("searchInput").value.trim();
-      if (!keyword) return alert("请输入手机号");
-
-      const selector = document.getElementById("resultSelector");
-      selector.innerHTML = "<div class='text-muted'>查询中...</div>";
-
-      fetch(`https://form.gealarm2012.workers.dev/admin-qifu?search=${encodeURIComponent(keyword)}`)
-        .then(res => res.json())
-        .then(data => {
-          console.log("📦 实际返回内容 data：", data);
-          selector.innerHTML = "";
-
-          // 确保 data 是数组
-          if (!Array.isArray(data)) {
-            data = data ? [data] : [];
-          }
-
-          if (data.length === 0) {
-            selector.textContent = "未找到资料";
-            return;
-          }
-
-          // 如果只有一条，自动选中
-          if (data.length === 1) {
-            const info = data[0];
-            // 标准化数据结构
-            info.prayers = info.data || info.prayers || [];
-            info.data = info.prayers;
-            
-            window.selectedEntry = info;
-            setTimeout(() => renderForm(window.selectedEntry), 0);
-          } 
-          // 如果有多条，生成下拉菜单
-          else {
-            const select = document.createElement("select");
-            select.className = "form-select";
-            select.innerHTML = `<option selected disabled>找到 ${data.length} 笔资料，请选择...</option>`;
-            
-            select.onchange = () => {
-              const index = select.selectedIndex - 1;
-              if (index >= 0) {
-                const info = data[index];
-                info.prayers = info.data || info.prayers || [];
-                info.data = info.prayers;
-                window.selectedEntry = info;
-                setTimeout(() => renderForm(window.selectedEntry), 0);
-              }
-            };
-
-            data.forEach(item => {
-              const option = document.createElement("option");
-              option.textContent = `${item.phoneNumber} - ${item.mainName}`;
-              select.appendChild(option);
-            });
-            selector.appendChild(select);
-          }
-        })
-        .catch(err => {
-          console.error("❌ 查询异常：", err);
-          alert("查询失败：" + err.message);
-          selector.innerHTML = "";
-        });
-    };
-
-    // 2. 渲染表单
-    window.renderForm = function (entry) {
-      const formBlock = document.getElementById("adminForm");
-      formBlock.classList.remove("d-none");
-      formBlock.scrollIntoView({ behavior: 'smooth' });
-
-      // 填充基础信息
-      document.getElementById("phoneNumber").value = entry.phoneNumber || "";
-      document.getElementById("mainName").value = entry.mainName || "";
-      document.getElementById("dharmaType").value = entry.dharmaType || "";
-      document.getElementById("receiptNumber").value = entry.receiptNumber || "";
-      document.getElementById("receiptDate").value = entry.receiptDate || "";
-      document.getElementById("sponsorAmount").value = entry.sponsorAmount || "";
-
-      // 填充祈福者
-      const container = document.getElementById("prayersContainer");
-      container.innerHTML = "";
-      
-      const prayers = entry.prayers || [];
-      prayers.forEach((item, index) => {
-        const hasData = item.name || item.token || item.fire || item.pg3 || item.pg6;
-        if (hasData || index === 0) {
-            container.appendChild(createPrayerBlock(item, index + 1));
-        }
-      });
-
-      updateDonationBreakdown();
-    };
-
-    // 3. 创建祈福者模块
-    function createPrayerBlock(data = {}, index = 1) {
+    // 1. 创建祈福者模块
+    function createPrayerBlock(index) {
       const div = document.createElement("div");
-      div.className = "prayer-card";
+      div.className = "border p-3 mb-3 rounded bg-white shadow-sm";
+      
       div.innerHTML = `
-        <div class="d-flex justify-content-between mb-2">
-          <h6 class="m-0">🧍‍♀️ 第 ${index} 位</h6>
-          <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.prayer-card').remove(); updateDonationBreakdown()">删除</button>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0">第 ${index} 位祈福者</h6>
+          <button type="button" onclick="removePrayer(this)" class="btn btn-sm btn-outline-danger">🗑️ 删除</button>
         </div>
+        
+        <div class="mb-2">
+          <label class="form-label">姓名</label>
+          <input type="text" class="form-control prayer-name" placeholder="请输入姓名">
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">现居地址</label>
+          <input type="text" class="form-control prayer-address" placeholder="请输入地址">
+        </div>
+
+        <hr>
         <div class="row g-2">
-          <div class="col-6"><input type="text" class="form-control p-name" placeholder="姓名" value="${data.name || ''}"></div>
-          <div class="col-6"><input type="text" class="form-control p-address" placeholder="地址" value="${data.address || ''}"></div>
-        </div>
-        <div class="row g-2 mt-2">
-          <div class="col-3"><input type="number" class="form-control p-token" placeholder="令牌" value="${data.token || ''}" oninput="updateDonationBreakdown()"></div>
-          <div class="col-3"><input type="number" class="form-control p-fire" placeholder="护摩" value="${data.fire || ''}" oninput="updateDonationBreakdown()"></div>
-          <div class="col-3"><input type="number" class="form-control p-pg3" placeholder="纸金3" value="${data.pg3 || ''}" oninput="updateDonationBreakdown()"></div>
-          <div class="col-3"><input type="number" class="form-control p-pg6" placeholder="纸金6" value="${data.pg6 || ''}" oninput="updateDonationBreakdown()"></div>
+          <div class="col-6">
+            <label>祈福令牌 (RM 5)</label>
+            <input type="number" class="form-control token" value="0" min="0" oninput="updateDonationBreakdown()">
+          </div>
+          <div class="col-6">
+            <label>小护摩片 (RM 1)</label>
+            <input type="number" class="form-control fire" value="0" min="0" oninput="updateDonationBreakdown()">
+          </div>
+          <div class="col-6">
+            <label>纸金 3 (RM 3)</label>
+            <input type="number" class="form-control pg3" value="0" min="0" oninput="updateDonationBreakdown()">
+          </div>
+          <div class="col-6">
+            <label>纸金 6 (RM 6)</label>
+            <input type="number" class="form-control pg6" value="0" min="0" oninput="updateDonationBreakdown()">
+          </div>
         </div>
       `;
       return div;
     }
 
-    // 4. 更新金额计算
-    window.updateDonationBreakdown = function() {
-      let token = 0, fire = 0, pg3 = 0, pg6 = 0;
-      document.querySelectorAll('.prayer-card').forEach(card => {
-        token += +card.querySelector('.p-token').value || 0;
-        fire += +card.querySelector('.p-fire').value || 0;
-        pg3 += +card.querySelector('.p-pg3').value || 0;
-        pg6 += +card.querySelector('.p-pg6').value || 0;
+    // 2. 新增祈福者
+    function addPrayer() {
+      const container = document.getElementById("prayersContainer");
+      if (container.children.length >= 13) {
+        alert("最多只能添加13位祈福者！");
+        return;
+      }
+      container.appendChild(createPrayerBlock(container.children.length + 1));
+      updateDonationBreakdown();
+    }
+
+    // 3. 删除祈福者
+    function removePrayer(button) {
+      const item = button.parentElement.parentElement; // 获取整个 div
+      item.remove();
+      // 重新排序编号
+      Array.from(document.querySelectorAll('#prayersContainer > div')).forEach((el, i) => {
+        el.querySelector('h6').textContent = `第 ${i+1} 位祈福者`;
       });
-      
-      const sponsor = +document.getElementById("sponsorAmount").value || 0;
-      const total = token * 5 + fire * 1 + pg3 * 3 + pg6 * 6 + sponsor;
-      currentTotalAmount = total;
+      updateDonationBreakdown();
+    }
 
+    // 4. 更新金额明细 (核心逻辑)
+    function updateDonationBreakdown() {
+      const prayers = document.querySelectorAll("#prayersContainer > div");
+      let token = 0, fire = 0, pg3 = 0, pg6 = 0;
+
+      prayers.forEach(div => {
+        token += parseInt(div.querySelector(".token").value) || 0;
+        fire  += parseInt(div.querySelector(".fire").value) || 0;
+        pg3   += parseInt(div.querySelector(".pg3").value) || 0;
+        pg6   += parseInt(div.querySelector(".pg6").value) || 0;
+      });
+
+      const sponsor = parseFloat(document.getElementById("sponsorAmount").value) || 0;
+      const tokenAmt = token * 5;
+      const fireAmt  = fire * 1;
+      const pg3Amt   = pg3 * 3;
+      const pg6Amt   = pg6 * 6;
+      const total    = tokenAmt + fireAmt + pg3Amt + pg6Amt + sponsor;
+
+      // 更新页面显示
       document.getElementById("donationBreakdown").innerHTML = `
-        <div>令牌(RM5): ${token} | 护摩(RM1): ${fire} | 纸金3: ${pg3} | 纸金6: ${pg6}</div>
-        <div class="fw-bold text-danger mt-2">总计: RM ${total.toFixed(2)}</div>
+        <div class="amount-row">
+          <div>祈福令牌 <span class="text-muted">x${token}</span></div>
+          <div>RM ${(tokenAmt).toFixed(2)}</div>
+        </div>
+        <div class="amount-row">
+          <div>小护摩片 <span class="text-muted">x${fire}</span></div>
+          <div>RM ${(fireAmt).toFixed(2)}</div>
+        </div>
+        <div class="amount-row">
+          <div>纸金 3 <span class="text-muted">x${pg3}</span></div>
+          <div>RM ${(pg3Amt).toFixed(2)}</div>
+        </div>
+        <div class="amount-row">
+          <div>纸金 6 <span class="text-muted">x${pg6}</span></div>
+          <div>RM ${(pg6Amt).toFixed(2)}</div>
+        </div>
+        <div class="amount-row">
+          <div>随喜赞助</div>
+          <div>RM ${sponsor.toFixed(2)}</div>
+        </div>
+        <hr>
+        <div class="total-highlight">
+          <div>总计应付</div>
+          <div>RM ${total.toFixed(2)}</div>
+        </div>
       `;
-    };
+    }
 
-    // 5. 保存数据 (模拟)
-    window.saveData = function() {
-      alert("✅ 数据已保存 (演示模式)");
-    };
+    // 5. 提交数据 (包含空值处理逻辑)
+    function submitEntry() {
+      const phone = document.getElementById('phoneNumber').value.trim();
+      if (!phone) {
+        alert("请填写手机号！");
+        return;
+      }
 
-    window.resetForm = function() {
-      document.getElementById("adminForm").classList.add("d-none");
-    };
+      // --- 构建提交数据对象 ---
+      const prayers = document.querySelectorAll("#prayersContainer > div");
+      const prayerDataList = [];
+
+      prayers.forEach(div => {
+        const name = div.querySelector(".prayer-name").value.trim();
+        // 如果有填名字，才加入列表，或者你可以选择即使没名字也提交空对象
+        if(name) {
+            prayerDataList.push({
+                name: name,
+                address: div.querySelector(".prayer-address").value.trim(),
+                token: parseInt(div.querySelector(".token").value) || 0,
+                fire: parseInt(div.querySelector(".fire").value) || 0,
+                pg3: parseInt(div.querySelector(".pg3").value) || 0,
+                pg6: parseInt(div.querySelector(".pg6").value) || 0
+            });
+        }
+      });
+
+      // 构建最终发送给后端的数据结构
+      const payload = {
+        phoneNumber: phone,
+        mainName: document.getElementById('mainName').value.trim(),
+        dharmaType: document.getElementById('dharmaType').value,
+        // 用户版不显示收据信息，提交时强制设为空值，以免后端报错
+        receiptNumber: "", 
+        receiptDate: "",
+        sponsorAmount: parseFloat(document.getElementById("sponsorAmount").value) || 0,
+        data: prayerDataList // 祈福者数组
+      };
+
+      console.log("准备提交的数据:", payload);
+
+      // --- 模拟发送请求 ---
+      // 实际使用时，请取消下面注释并替换你的后端地址
+      /*
+      fetch('你的后端提交地址', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => alert("提交成功！"))
+      .catch(err => alert("提交失败"));
+      */
+
+      alert("🙏 提交成功！\n\n(当前为演示模式，数据仅打印在控制台)");
+    }
   </script>
 </body>
 </html>
