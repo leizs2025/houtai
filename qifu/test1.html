@@ -44,6 +44,45 @@
       opacity: 1;
       cursor: not-allowed;
     }
+     <style>
+    body {
+      background-color: #fdfbf7;
+      padding: 10px;
+      font-size: 16px;
+      padding-bottom: 80px;
+    }
+    .form-card {
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: none;
+      margin-bottom: 20px;
+    }
+    .form-label {
+      font-weight: 600;
+      color: #555;
+    }
+    .btn-lg {
+      padding: 12px 0;
+      font-size: 1.1rem;
+    }
+    .amount-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px dashed #eee;
+    }
+    .total-highlight {
+      font-weight: bold;
+      color: #d63384;
+      font-size: 1.2rem;
+    }
+    /* 只读输入框样式 */
+    .form-control[readonly] {
+      background-color: #e9ecef;
+      opacity: 1;
+      cursor: not-allowed;
+    }
+  </style>
   </style>
 </head>
 <body>
@@ -392,9 +431,12 @@
           const count = Array.isArray(existingRows) ? existingRows.length : 0;
 
           if (count === 0) {
+              // 第1笔：直接用自己的号码 (例如 6m01234567)
               finalPhone = basePhone;
           } else {
-              finalPhone = `${basePhone}+${count + 1}`;
+              // 第2笔及以后：加上后缀 (例如 6m01234567+1, +2...)
+              // 这里直接用 count，因为第2笔录入时 count 刚好是 1
+              finalPhone = `${basePhone}+${count}`;
           }
 
           // 收集祈福者数据
