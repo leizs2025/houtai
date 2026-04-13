@@ -239,7 +239,7 @@
     return formData;
   }
 
-  // --- 6. 提交逻辑 (用户版：生成带序号的phoneNumber并提交) ---
+  // --- 6. 提交逻辑 (用户版：生成带序号的phoneNumber并替换后提交) ---
   async function submitForm() {
     const btn = document.getElementById('submitBtn');
     const rawInputPhone = document.getElementById('phoneNumber').value.trim(); // 获取输入的原始手机号
@@ -296,27 +296,26 @@
 
       console.log("Generated final phoneNumber (for backend):", finalPhoneNumber);
 
-      // 获取表单数据
-      const body = getCurrentFormData();
-      if (!body.mainName || !body.phoneNumber) {
+      // 8. 获取表单数据
+      let payload = getCurrentFormData();
+      if (!payload.mainName || !payload.phoneNumber) {
         alert("⚠️ 主祈者姓名与手机号必填");
         btn.disabled = false;
         btn.innerText = "提交登记";
         return;
       }
 
-      // 构造请求体，使用生成的 finalPhoneNumber，并始终使用 method: "POST"
-      const payload = {
-        ...body, // 展开表单数据
-        phoneNumber: finalPhoneNumber, // 关键：使用生成的带序号的号码覆盖原来的
+      // 9. 关键：替换 phoneNumber
+      payload.phoneNumber = finalPhoneNumber;
+
+      // 10. 构造最终请求体
+      payload = {
+        ...payload, // 展开表单数据（此时 phoneNumber 已被替换）
         receiptNumber: "", // 留空
-        method: "POST", // 统一使用 POST，由后端根据 phoneNumber 决定是新增还是更新
+        method: "POST", // 统一使用 POST
         action: "create", // 可能需要的 action 字段
         total: currentTotalAmount || 0 // 总额
       };
-
-      // 删除原始的、未处理的 phoneNumber，确保后端只看到 finalPhoneNumber
-      delete payload.originalPhoneNumber;
 
       btn.innerText = "⏳ 写入数据中...";
 
@@ -333,7 +332,7 @@
 
       console.log("Response status:", res.status); // 打印响应状态码
 
-      const result = await res.json();
+      const result = await res.json(); // 尝试解析 JSON
       console.log("Parsed result:", result); // 打印解析后的结果
 
       if (result.success) {
@@ -350,7 +349,12 @@
 
     } catch (err) {
       console.error("Submission error:", err);
-      alert("❌ 错误: " + err.message);
+      // 检查是否是 JSON 解析错误
+      if (err instanceof SyntaxError) {
+          alert("❌ 错误: 服务器返回了无效的响应格式，请联系管理员。");
+      } else {
+          alert("❌ 错误: " + err.message);
+      }
       btn.disabled = false;
       btn.innerText = "提交登记";
     }
