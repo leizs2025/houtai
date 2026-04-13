@@ -239,7 +239,7 @@
     return formData;
   }
 
-  // --- 6. 提交逻辑 (用户版：生成带序号的phone并提交) ---
+  // --- 6. 提交逻辑 (用户版：生成带序号的phoneNumber并提交) ---
   async function submitForm() {
     const btn = document.getElementById('submitBtn');
     const rawInputPhone = document.getElementById('phoneNumber').value.trim(); // 获取输入的原始手机号
@@ -280,21 +280,21 @@
       // 5. 构建用于查询的基础号码
       const basePhone = `${prefix}${pureNumber}`;
 
-      // 6. 查询后端
+      // 6. 查询后端 (admin-chaodu) 以确定序号
       const searchRes = await fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${basePhone}`);
       const existingRows = await searchRes.json();
       
-      // 7. 智能生成最终号码
-      let finalPhone = "";
+      // 7. 智能生成最终的 phoneNumber
+      let finalPhoneNumber = "";
       const count = existingRows.length;
 
       if (count === 0) {
-          finalPhone = basePhone;
+          finalPhoneNumber = basePhone;
       } else {
-          finalPhone = `${basePhone}+${count + 1}`;
+          finalPhoneNumber = `${basePhone}+${count + 1}`;
       }
 
-      console.log("Generated final phone number (for backend):", finalPhone);
+      console.log("Generated final phoneNumber (for backend):", finalPhoneNumber);
 
       // 获取表单数据
       const body = getCurrentFormData();
@@ -305,15 +305,18 @@
         return;
       }
 
-      // 构造请求体，使用生成的 finalPhone，并始终使用 method: "POST"
+      // 构造请求体，使用生成的 finalPhoneNumber，并始终使用 method: "POST"
       const payload = {
         ...body, // 展开表单数据
-        phone: finalPhone, // 使用生成的带序号的号码
+        phoneNumber: finalPhoneNumber, // 关键：使用生成的带序号的号码覆盖原来的
         receiptNumber: "", // 留空
-        method: "POST", // 统一使用 POST，由后端根据 phone 决定是新增还是更新
+        method: "POST", // 统一使用 POST，由后端根据 phoneNumber 决定是新增还是更新
         action: "create", // 可能需要的 action 字段
         total: currentTotalAmount || 0 // 总额
       };
+
+      // 删除原始的、未处理的 phoneNumber，确保后端只看到 finalPhoneNumber
+      delete payload.originalPhoneNumber;
 
       btn.innerText = "⏳ 写入数据中...";
 
@@ -334,7 +337,7 @@
       console.log("Parsed result:", result); // 打印解析后的结果
 
       if (result.success) {
-        alert(`✅ 提交成功！\n系统编号: ${finalPhone}\n(请保留此编号以便后续查询及填写收据)`);
+        alert(`✅ 提交成功！\n系统编号: ${finalPhoneNumber}\n(请保留此编号以便后续查询及填写收据)`);
         startNewEntry(); // 成功后清空表单
       } else {
         // 检查错误信息
