@@ -296,65 +296,71 @@
 
       console.log("Generated final phoneNumber (for backend):", finalPhoneNumber);
 
-      // 8. 获取表单数据
-      let payload = getCurrentFormData();
-      if (!payload.mainName || !payload.phoneNumber) {
+      // 8. 获取表单数据 (这里获取的是原始的 phoneNumber)
+      let body = getCurrentFormData();
+      if (!body.mainName || !body.phoneNumber) {
         alert("⚠️ 主祈者姓名与手机号必填");
         btn.disabled = false;
         btn.innerText = "提交登记";
         return;
       }
 
-      // 9. 关键：替换 phoneNumber
-      payload.phoneNumber = finalPhoneNumber;
+      // 9. 关键：替换 phoneNumber 为生成的带序号的号码
+      body.phoneNumber = finalPhoneNumber;
 
-      // 10. 构造最终请求体
-      payload = {
-        ...payload, // 展开表单数据（此时 phoneNumber 已被替换）
-        receiptNumber: "", // 留空
-        method: "POST", // 统一使用 POST
-        action: "create", // 可能需要的 action 字段
-        total: currentTotalAmount || 0 // 总额
-      };
+      // 10. 设置 method 和 total
+      body.method = "POST";
+      body.total = currentTotalAmount || 0;
 
       btn.innerText = "⏳ 写入数据中...";
 
-      console.log(`Sending payload:`, payload); // 打印发送的数据
+      console.log(`Sending payload:`, body); // 打印发送的数据
 
-      // 向 admin-qifu 接口发送请求
-      const res = await fetch('https://form.gealarm2012.workers.dev/admin-qifu', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+      // 11. 向 admin-qifu 接口发送请求 (结构与 forceInsertNewEntry 一致)
+      fetch("https://form.gealarm2012.workers.dev/admin-qifu", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+      .then(res => {
+          console.log("Response status:", res.status); // 打印响应状态码
+          // 尝试解析 JSON
+          return res.json();
+      })
+      .then(result => {
+          console.log("Parsed result:", result); // 打印解析后的结果
+          if (result.success) {
+            alert(`✅ 提交成功！\n系统编号: ${finalPhoneNumber}\n(请保留此编号以便后续查询及填写收据)`);
+            startNewEntry(); // 成功后清空表单
+          } else {
+            // 检查错误信息
+            if (result.message) {
+                alert(`❌ 提交失败：${result.message}`);
+            } else {
+                alert(`❌ 提交失败：未知错误`);
+            }
+          }
+          // 无论成功失败，都重新启用按钮
+          btn.disabled = false;
+          btn.innerText = "提交登记";
+      })
+      .catch(err => {
+          console.error("Submission error:", err);
+          // 检查是否是 JSON 解析错误
+          if (err instanceof SyntaxError) {
+              alert("❌ 错误: 服务器返回了无效的响应格式，请联系管理员。");
+          } else {
+              alert("❌ 错误: " + err.message);
+          }
+          // 出错时也要重新启用按钮
+          btn.disabled = false;
+          btn.innerText = "提交登记";
       });
 
-      console.log("Response status:", res.status); // 打印响应状态码
-
-      const result = await res.json(); // 尝试解析 JSON
-      console.log("Parsed result:", result); // 打印解析后的结果
-
-      if (result.success) {
-        alert(`✅ 提交成功！\n系统编号: ${finalPhoneNumber}\n(请保留此编号以便后续查询及填写收据)`);
-        startNewEntry(); // 成功后清空表单
-      } else {
-        // 检查错误信息
-        if (result.message) {
-            alert(`❌ 提交失败：${result.message}`);
-        } else {
-            alert(`❌ 提交失败：未知错误`);
-        }
-      }
-
     } catch (err) {
-      console.error("Submission error:", err);
-      // 检查是否是 JSON 解析错误
-      if (err instanceof SyntaxError) {
-          alert("❌ 错误: 服务器返回了无效的响应格式，请联系管理员。");
-      } else {
-          alert("❌ 错误: " + err.message);
-      }
+      // 这个 catch 捕获的是 try 块中同步代码或 fetch 失败的错误
+      console.error("Submission error (outer catch):", err);
+      alert("❌ 错误: " + err.message);
       btn.disabled = false;
       btn.innerText = "提交登记";
     }
