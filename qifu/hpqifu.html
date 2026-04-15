@@ -148,7 +148,7 @@ body {
         <div class="card-body text-center">
             <h5 class="card-title text-warning mb-3">⚠️ 未找到相关资料</h5>
             <p class="card-text">系统中未找到与该手机号相关的记录</p>
-            <button class="btn btn-success btn-lg" onclick="confirmNewEntry()">➕ 确认新增报名记录</button>
+            <button class="btn btn-success btn-lg" onclick="confirmNewEntry()">➕ 立即填写报名表</button>
         </div>
     </div>
 
@@ -246,6 +246,7 @@ function showNoDataCard() {
     document.getElementById("prayersCard").classList.remove("active");
     document.getElementById("donationCard").classList.remove("active");
     document.getElementById("submitSection").style.display = "none";
+    hideAdditionalElements(); // 隐藏新增按钮和说明（查无资料时不需要）
 }
 
 // 显示额外元素（新增报名按钮和说明）
@@ -278,8 +279,6 @@ window.searchPhone = function () {
         if (data.length === 0) {
             // 如果没找到记录，显示无资料提示卡片
             showNoDataCard();
-            // 即使没有找到记录，也要显示新增按钮和说明
-            showAdditionalElements();
         }
         else {
             // 预处理数据，过滤掉祈福者列表中的空数据
@@ -321,7 +320,7 @@ window.searchPhone = function () {
                 
                 selector.appendChild(select);
             }
-            // 显示新增按钮和说明
+            // 显示新增按钮和说明（只有在查到记录时才显示）
             showAdditionalElements();
         }
     })
