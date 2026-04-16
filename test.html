@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>超度法会记录查询/更新系统</title>
+    <title>超度法会记录查询/更新/新增系统</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <style>
         body { background-color: #fff8e7; padding: 10px; }
@@ -119,8 +119,8 @@
     <div class="container">
         <div class="text-center mb-4">
             <div class="header-icon">🪔</div>
-            <h3>超度法会记录查询/更新/新增系统</h3>
-            <p class="text-muted">输入手机号查询去年记录，确认或新增名单</p>
+            <h3>超度法会记录查询/更新系统</h3>
+            <p class="text-muted">输入手机号查询旧记录，确认或新增名单</p>
         </div>
 
         <!-- 1. 查询区域 -->
@@ -138,8 +138,8 @@
                 <h5 class="fw-bold border-bottom pb-2">🙏 您的信息 (阳上)</h5>
                 <div class="row g-2 mt-2"> <!-- 间距缩小 -->
                     <div class="col-12 col-md-4">
-                        <label class="form-label required-field">阳上报恩人：</label>
-                        <input id="mainName" class="form-control" placeholder="姓名">
+                        <label class="form-label required-field">姓名：</label>
+                        <input id="mainName" class="form-control" placeholder="阳上报恩人：">
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label">手机号：</label>
@@ -852,6 +852,7 @@ function buildPayload() {
     return data;
 }
 
+// 修改的 submitUserData 函数 - 修复手机号验证问题
 async function submitUserData() {
     const submitBtn = document.getElementById("btnSubmit");
     
@@ -869,11 +870,19 @@ async function submitUserData() {
     if (!mainName) return alert("请填写姓名");
     if (!address) return alert("请填写地址");
 
-    // 3. 验证马来西亚手机号格式 (0开头，10-11位)
-    const malaysianPhoneRegex = /^01\d{8,9}$/;
-    if (!malaysianPhoneRegex.test(rawInputPhone)) {
-        alert("请输入有效的马来西亚手机号格式 (0开头，10-11位，例如: 0123456789 或 01234567890)");
-        return;
+    // 3. 验证手机号格式 - 区分两种情况：
+    //    a) 如果是系统生成的编号格式 (年份码+节日码+手机号[+序号])，跳过验证
+    //    b) 如果是用户输入的标准手机号，进行验证
+    
+    const systemGeneratedPattern = /^\d[mqyb]\d{10}(\+\d+)?$/; // 例如: 6m0123456789 或 6m0123456789+1
+    const malaysianPhoneRegex = /^01\d{8,9}$/; // 例如: 0123456789 或 01234567890
+
+    if (!systemGeneratedPattern.test(rawInputPhone)) {
+        // 如果不是系统生成的编号格式，则验证为标准马来西亚手机号
+        if (!malaysianPhoneRegex.test(rawInputPhone)) {
+            alert("请输入有效的马来西亚手机号格式 (0开头，10-11位，例如: 0123456789 或 01234567890)");
+            return;
+        }
     }
 
     // 3. 锁定按钮
@@ -881,20 +890,18 @@ async function submitUserData() {
     submitBtn.innerText = "⏳ 正在计算编号...";
 
     try {
-        // ✅ 第一步：暴力清洗，只保留数字
-        let allDigits = rawInputPhone.replace(/\D/g, '');
-
-        // ✅ 第二步：智能提取马来西亚手机号 (10-11位)
-        const match = allDigits.match(/01\d{8,9}/);
+        // 由于我们已经通过了验证，这里我们可以安全地处理手机号
         
-        if (!match) {
-            alert("无法识别手机号格式，请检查是否包含正确数字");
-            submitBtn.disabled = false;
-            submitBtn.innerText = "📤 重新提交";
-            return;
+        // 从原始输入中提取基础手机号部分
+        let pureNumber = rawInputPhone;
+        if (systemGeneratedPattern.test(rawInputPhone)) {
+            // 如果是系统生成的格式，则从中提取手机号部分
+            // 例如从 "6m0123456789+1" 提取 "0123456789"
+            const match = rawInputPhone.match(/\d[mqyb](\d{10})(\+\d+)?/);
+            if (match) {
+                pureNumber = match[1]; // 提取手机号部分
+            }
         }
-
-        const pureNumber = match[0];
 
         // 4. 生成今年基础前缀
         const yearCode = String(new Date().getFullYear()).slice(-1);
