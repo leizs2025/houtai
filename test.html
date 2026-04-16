@@ -683,7 +683,12 @@ function searchPhone() {
 
             resultDiv.appendChild(select);
 
-            // 创建"填写全新报名表"按钮
+            // 创建注释和"填写全新报名表"按钮
+            const noteDiv = document.createElement("div");
+            noteDiv.className = "text-center mt-3";
+            noteDiv.innerHTML = "<p style='font-style: italic; color: #666;'>如果您不想修改旧资料请按下方按钮填写全新报名表</p>";
+            resultDiv.appendChild(noteDiv);
+
             const newFormButton = document.createElement("div");
             newFormButton.className = "apply-btn-container";
             newFormButton.innerHTML = '<button class="apply-btn" onclick="showNewForm()">填写全新报名表</button>';
