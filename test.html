@@ -80,14 +80,12 @@
             font-weight: 500; /* 稍微加粗 */
         }
         
-        /* 特别放大地基主卡片中的地址标签 */
-        #group-ground .form-label[for="location"],
-        #group-ground [data-key="location"] ~ label,
-        #group-ground [data-key="location"]:not([type="select"]) ~ .form-label,
-        #group-ground .offering-item [data-key="location"] ~ label,
-        #group-ground .offering-item [data-key="location"] ~ .form-label {
+        /* 特别放大地基主卡片中的地址输入框 */
+        #group-ground [data-key="location"] {
             font-size: 1rem !important; /* 更大的字体 */
-            font-weight: 600; /* 更明显 */
+            height: auto; /* 让高度自适应 */
+            min-height: 40px; /* 最小高度 */
+            padding: 8px 12px !important; /* 增加内边距 */
         }
     </style>
 </head>
@@ -102,7 +100,7 @@
         <!-- 1. 查询区域 -->
         <div class="search-box mb-4">
             <div class="d-flex gap-2 mb-3 flex-column flex-md-row">
-                <input type="tel" id="searchInput" class="form-control" placeholder="请输入手机号查询记录">
+                <input type="tel" id="searchInput" class="form-control" placeholder="请输入马来西亚手机号（0开头，10-11位）">
                 <button onclick="searchPhone()" class="btn btn-primary">🔍 查询旧记录</button>
             </div>
             <div id="searchResults" class="text-success fw-bold"></div>
@@ -549,11 +547,18 @@
             return `${year}-${month}-${day}`;
         }
 
-        // 9. 查询函数 (修改过的 - 只有多笔结果才显示卡片)
+        // 9. 查询函数 (修改过的 - 验证马来西亚手机号格式)
 function searchPhone() {
     const keyword = document.getElementById("searchInput").value.trim();
     if (!keyword) {
         alert("请输入手机号");
+        return;
+    }
+
+    // 验证马来西亚手机号格式 (0开头，10-11位)
+    const malaysianPhoneRegex = /^01\d{8,9}$/;
+    if (!malaysianPhoneRegex.test(keyword)) {
+        alert("请输入有效的马来西亚手机号格式 (0开头，10-11位，例如: 0123456789 或 01234567890)");
         return;
     }
 
@@ -740,6 +745,13 @@ async function submitUserData() {
     // 2. 基础验证
     if (!festival) return alert("请先选择法会类别");
     if (!rawInputPhone) return alert("请输入手机号");
+
+    // 3. 验证马来西亚手机号格式 (0开头，10-11位)
+    const malaysianPhoneRegex = /^01\d{8,9}$/;
+    if (!malaysianPhoneRegex.test(rawInputPhone)) {
+        alert("请输入有效的马来西亚手机号格式 (0开头，10-11位，例如: 0123456789 或 01234567890)");
+        return;
+    }
 
     // 3. 锁定按钮
     submitBtn.disabled = true;
