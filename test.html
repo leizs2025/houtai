@@ -108,61 +108,61 @@
     </div>
 
     <script>
-        // 1. 数据映射 (原封不动)
+        // 1. 数据映射 (简化为按类型分组)
         const fieldsMap = {
             "group-ancestor": [
-                { key: "ancestorName", label: "祖先 / 亡灵 姓名", row: 0, col: 6, mobileCol: 12 }, // 修改：手机上占整行
-                { key: "placeType", label: "牌位类别", row: 0, col: 6, mobileCol: 12 },
-                { key: "location", label: "安奉地点", row: 1, col: 12, mobileCol: 12 },
-                { key: "token", label: "超度令牌", type: "number", row: 2, col: 6, mobileCol: 6 }, // 修改：手机上一行2个
-                { key: "boat", label: "法船配套 30", type: "number", row: 2, col: 6, mobileCol: 6 },
-                { key: "lotus", label: "莲花", type: "number", row: 3, col: 6, mobileCol: 6 },
-                { key: "paper3", label: "纸金3", type: "number", row: 3, col: 6, mobileCol: 6 },
-                { key: "paper6", label: "纸金6", type: "number", row: 4, col: 6, mobileCol: 6 },
-                { key: "paper27", label: "纸金27", type: "number", row: 4, col: 6, mobileCol: 6 },
-                { key: "extra", label: "配套令牌备注", row: 5, col: 12, mobileCol: 12 }
+                { key: "ancestorName", label: "祖先 / 亡灵 姓名", type: "text", required: true },
+                { key: "placeType", label: "牌位类别", type: "select", options: ["地藏殿牌位", "灵骨殿福位", "墓园", "牌位", "其他"] },
+                { key: "location", label: "安奉地点", type: "text" },
+                { key: "token", label: "超度令牌", type: "number" },
+                { key: "boat", label: "法船配套 30", type: "number" },
+                { key: "lotus", label: "莲花", type: "number" },
+                { key: "paper3", label: "纸金3", type: "number" },
+                { key: "paper6", label: "纸金6", type: "number" },
+                { key: "paper27", label: "纸金27", type: "number" },
+                { key: "extra", label: "配套令牌备注", type: "text" }
             ],
             "group-baby": [
-                { key: "yang", label: "阳上", row: 0, col: 6, mobileCol: 12 },
-                { key: "location", label: "之水子灵、莲位:", row: 0, col: 6, mobileCol: 12 },
-                { key: "token", label: "超度令牌", type: "number", row: 1, col: 6, mobileCol: 6 },
-                { key: "boat", label: "法船配套 30", type: "number", row: 1, col: 6, mobileCol: 6 },
-                { key: "lotus", label: "莲花", type: "number", row: 2, col: 6, mobileCol: 6 },
-                { key: "paper3", label: "纸金3", type: "number", row: 2, col: 6, mobileCol: 6 },
-                { key: "paper6", label: "纸金6", type: "number", row: 3, col: 6, mobileCol: 6 },
-                { key: "paper27", label: "纸金27", type: "number", row: 3, col: 6, mobileCol: 6 },
-                { key: "extra", label: "配套令牌备注", row: 4, col: 12, mobileCol: 12 }
+                { key: "yang", label: "阳上", type: "text" },
+                { key: "location", label: "之水子灵、莲位:", type: "text" },
+                { key: "token", label: "超度令牌", type: "number" },
+                { key: "boat", label: "法船配套 30", type: "number" },
+                { key: "lotus", label: "莲花", type: "number" },
+                { key: "paper3", label: "纸金3", type: "number" },
+                { key: "paper6", label: "纸金6", type: "number" },
+                { key: "paper27", label: "纸金27", type: "number" },
+                { key: "extra", label: "配套令牌备注", type: "text" }
             ],
             "group-enemy": [
-                { key: "yang", label: "阳上", row: 0, col: 6, mobileCol: 12 },
-                { key: "location", label: "缠身灵/冤亲债主、牌位：", row: 0, col: 6, mobileCol: 12 },
-                { key: "token", label: "超度令牌", type: "number", row: 1, col: 6, mobileCol: 6 },
-                { key: "boat", label: "法船配套 30", type: "number", row: 1, col: 6, mobileCol: 6 },
-                { key: "lotus", label: "莲花", type: "number", row: 2, col: 6, mobileCol: 6 },
-                { key: "paper3", label: "纸金3", type: "number", row: 2, col: 6, mobileCol: 6 },
-                { key: "paper6", label: "纸金6", type: "number", row: 3, col: 6, mobileCol: 6 },
-                { key: "paper27", label: "纸金27", type: "number", row: 3, col: 6, mobileCol: 6 },
-                { key: "extra", label: "配套令牌备注", row: 4, col: 12, mobileCol: 12 }
+                { key: "yang", label: "阳上", type: "text" },
+                { key: "location", label: "缠身灵/冤亲债主、牌位：", type: "text" },
+                { key: "token", label: "超度令牌", type: "number" },
+                { key: "boat", label: "法船配套 30", type: "number" },
+                { key: "lotus", label: "莲花", type: "number" },
+                { key: "paper3", label: "纸金3", type: "number" },
+                { key: "paper6", label: "纸金6", type: "number" },
+                { key: "paper27", label: "纸金27", type: "number" },
+                { key: "extra", label: "配套令牌备注", type: "text" }
             ],
             "group-past": [
-                { key: "yang", label: "阳上", row: 0, col: 6, mobileCol: 12 },
-                { key: "token", label: "超度令牌", type: "number", row: 1, col: 6, mobileCol: 6 },
-                { key: "boat", label: "法船配套 30", type: "number", row: 1, col: 6, mobileCol: 6 },
-                { key: "lotus", label: "莲花", type: "number", row: 2, col: 6, mobileCol: 6 },
-                { key: "paper3", label: "纸金3", type: "number", row: 2, col: 6, mobileCol: 6 },
-                { key: "paper6", label: "纸金6", type: "number", row: 3, col: 6, mobileCol: 6 },
-                { key: "paper27", label: "纸金27", type: "number", row: 3, col: 6, mobileCol: 6 },
-                { key: "extra", label: "配套令牌备注", row: 4, col: 12, mobileCol: 12 }
+                { key: "yang", label: "阳上", type: "text" },
+                { key: "token", label: "超度令牌", type: "number" },
+                { key: "boat", label: "法船配套 30", type: "number" },
+                { key: "lotus", label: "莲花", type: "number" },
+                { key: "paper3", label: "纸金3", type: "number" },
+                { key: "paper6", label: "纸金6", type: "number" },
+                { key: "paper27", label: "纸金27", type: "number" },
+                { key: "extra", label: "配套令牌备注", type: "text" }
             ],
             "group-ground": [
-                { key: "location", label: "地址", row: 0, col: 12, mobileCol: 12 },
-                { key: "token", label: "超度令牌", type: "number", row: 1, col: 6, mobileCol: 6 },
-                { key: "boat", label: "法船配套 30", type: "number", row: 1, col: 6, mobileCol: 6 },
-                { key: "lotus", label: "莲花", type: "number", row: 2, col: 6, mobileCol: 6 },
-                { key: "paper3", label: "纸金3", type: "number", row: 2, col: 6, mobileCol: 6 },
-                { key: "paper6", label: "纸金6", type: "number", row: 3, col: 6, mobileCol: 6 },
-                { key: "paper27", label: "纸金27", type: "number", row: 3, col: 6, mobileCol: 6 },
-                { key: "extra", label: "配套令牌备注", row: 4, col: 12, mobileCol: 12 }
+                { key: "location", label: "地址", type: "text" },
+                { key: "token", label: "超度令牌", type: "number" },
+                { key: "boat", label: "法船配套 30", type: "number" },
+                { key: "lotus", label: "莲花", type: "number" },
+                { key: "paper3", label: "纸金3", type: "number" },
+                { key: "paper6", label: "纸金6", type: "number" },
+                { key: "paper27", label: "纸金27", type: "number" },
+                { key: "extra", label: "配套令牌备注", type: "text" }
             ]
         };
 
@@ -183,7 +183,7 @@
             'group-ground': 3
         };
 
-        // 3. 创建字段块 (优化版)
+        // 3. 创建字段块 (全新重写 - 优化手机布局)
         function createFieldsBlock(fields, index = 0, title = '') {
             const card = document.createElement("div");
             card.className = "card p-3 mb-3 position-relative";
@@ -202,50 +202,114 @@
             };
             card.appendChild(close);
 
-            // 创建动态行数，每行最多容纳2个可能的元素（针对手机屏幕）
-            const maxRow = Math.max(...fields.map(f => f.row));
-            const rows = [];
-            for (let i = 0; i <= maxRow; i++) {
-                const row = document.createElement("div");
-                row.className = "row g-2 mt-2";
-                if(i === 0) row.className = "row g-2"; // 第一行不需要上边距
-                rows[i] = row;
-            }
-
-            // 按照行分组字段
+            // 创建容器
+            const container = document.createElement("div");
+            container.className = "mt-2";
+            
+            // 按类型分组字段
+            const mainFields = []; // 姓名、地点等主要字段
+            const offerings = []; // 供品字段
+            
             fields.forEach(field => {
-                const col = document.createElement("div");
-                
-                // 使用mobileCol作为xs屏幕的列宽，col作为md及以上屏幕的列宽
-                const mobileColWidth = field.mobileCol || field.col || 6; 
-                const desktopColWidth = field.col || 6;
-                
-                col.className = `col-${mobileColWidth} col-md-${desktopColWidth}`;
-                
-                let innerHTML = "";
-                const labelStyle = "font-size: 0.85rem; font-weight: 500;";
-
-                if (field.key === 'placeType') {
-                    innerHTML = `<label style="${labelStyle}">${field.label}</label>
-                      <select class="form-select" data-key="${field.key}" onchange="calculateTotal()">
-                        <option value="">请选择</option>
-                        <option value="地藏殿牌位">地藏殿牌位</option>
-                        <option value="灵骨殿福位">灵骨殿福位</option>
-                        <option value="墓园">墓园</option>
-                        <option value="牌位">牌位</option>
-                        <option value="其他">其他</option>
-                      </select>`;
+                if (['token', 'boat', 'lotus', 'paper3', 'paper6', 'paper27'].includes(field.key)) {
+                    offerings.push(field);
                 } else {
-                    innerHTML = `<label style="${labelStyle}">${field.label}</label>
-                      <input class="form-control" data-key="${field.key}" type="${field.type || 'text'}" oninput="calculateTotal()">`;
+                    mainFields.push(field);
                 }
-
-                col.innerHTML = innerHTML;
-                rows[field.row].appendChild(col);
             });
 
-            rows.forEach(row => card.appendChild(row));
+            // 渲染主要字段 (每个占一行)
+            mainFields.forEach(field => {
+                const fieldDiv = createFieldElement(field);
+                container.appendChild(fieldDiv);
+            });
+
+            // 渲染供品字段 (一行两个在手机上)
+            if (offerings.length > 0) {
+                const offeringSection = document.createElement("div");
+                offeringSection.className = "mt-3";
+                
+                // 创建标题
+                const offeringTitle = document.createElement("h6");
+                offeringTitle.className = "fw-semibold mb-2";
+                offeringTitle.textContent = "供品配置";
+                offeringSection.appendChild(offeringTitle);
+                
+                // 按两个一组创建行
+                for (let i = 0; i < offerings.length; i += 2) {
+                    const row = document.createElement("div");
+                    row.className = "row g-2 mb-2";
+                    
+                    // 第一个供品
+                    const col1 = document.createElement("div");
+                    col1.className = "col-6 col-md-3";
+                    col1.appendChild(createFieldElement(offerings[i]));
+                    row.appendChild(col1);
+                    
+                    // 第二个供品（如果存在）
+                    if (i + 1 < offerings.length) {
+                        const col2 = document.createElement("div");
+                        col2.className = "col-6 col-md-3";
+                        col2.appendChild(createFieldElement(offerings[i + 1]));
+                        row.appendChild(col2);
+                    }
+                    
+                    offeringSection.appendChild(row);
+                }
+                
+                container.appendChild(offeringSection);
+            }
+
+            card.appendChild(container);
             return card;
+        }
+
+        // 辅助函数：创建单个字段元素
+        function createFieldElement(field) {
+            const fieldDiv = document.createElement("div");
+            fieldDiv.className = "mb-2";
+            
+            const label = document.createElement("label");
+            label.className = "form-label";
+            label.style.fontSize = "0.85rem";
+            label.textContent = field.label;
+            
+            let input;
+            if (field.type === 'select') {
+                input = document.createElement("select");
+                input.className = "form-select";
+                input.dataset.key = field.key;
+                input.onchange = calculateTotal;
+                
+                // 添加默认选项
+                const defaultOption = document.createElement("option");
+                defaultOption.value = "";
+                defaultOption.textContent = "请选择";
+                input.appendChild(defaultOption);
+                
+                // 添加选项
+                field.options.forEach(opt => {
+                    const option = document.createElement("option");
+                    option.value = opt;
+                    option.textContent = opt;
+                    input.appendChild(option);
+                });
+            } else {
+                input = document.createElement("input");
+                input.className = "form-control";
+                input.type = field.type || 'text';
+                input.dataset.key = field.key;
+                input.oninput = calculateTotal;
+                
+                if (field.type === 'number') {
+                    input.min = 0;
+                }
+            }
+            
+            fieldDiv.appendChild(label);
+            fieldDiv.appendChild(input);
+            
+            return fieldDiv;
         }
 
         // 4. 计算总金额 (原封不动)
@@ -393,11 +457,13 @@
 
                     if (hasValue) {
                         const card = createFieldsBlock(fields, i, groupTitleMap[groupId]);
-                        const inputs = card.querySelectorAll("[data-key]");
-                        inputs.forEach(input => {
+                        
+                        // 加载数据到输入框
+                        card.querySelectorAll("[data-key]").forEach(input => {
                             const key = input.dataset.key;
                             if (key in obj) input.value = obj[key];
                         });
+                        
                         container.appendChild(card);
                     }
                 }
