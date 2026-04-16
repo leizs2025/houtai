@@ -80,12 +80,11 @@
             font-weight: 500; /* 稍微加粗 */
         }
         
-        /* 特别放大地基主卡片中的地址输入框 */
+        /* 特别扩大地基主卡片中的地址输入框为2-3行高度 */
         #group-ground [data-key="location"] {
-            font-size: 1rem !important; /* 更大的字体 */
-            height: auto; /* 让高度自适应 */
-            min-height: 40px; /* 最小高度 */
-            padding: 8px 12px !important; /* 增加内边距 */
+            min-height: 80px !important; /* 与阳上地址相同的2-3行高度 */
+            resize: vertical !important; /* 允许垂直拉伸 */
+            height: auto !important; /* 让高度自适应 */
         }
     </style>
 </head>
@@ -299,14 +298,24 @@
                         input.appendChild(option);
                     });
                 } else {
-                    input = document.createElement("input");
-                    input.className = "form-control";
-                    input.type = field.type || 'text';
-                    input.dataset.key = field.key;
-                    input.oninput = calculateTotal;
-                    
-                    if (field.type === 'number') {
-                        input.min = 0;
+                    // 特殊处理地基主的地址字段 - 改为textarea
+                    if (field.key === 'location' && field.label === '地址') {
+                        input = document.createElement("textarea");
+                        input.className = "form-control";
+                        input.dataset.key = field.key;
+                        input.placeholder = field.label;
+                        input.oninput = calculateTotal;
+                        input.rows = 2; // 默认2行
+                    } else {
+                        input = document.createElement("input");
+                        input.className = "form-control";
+                        input.type = field.type || 'text';
+                        input.dataset.key = field.key;
+                        input.oninput = calculateTotal;
+                        
+                        if (field.type === 'number') {
+                            input.min = 0;
+                        }
                     }
                 }
                 
@@ -526,7 +535,14 @@
                         // 加载数据到输入框
                         card.querySelectorAll("[data-key]").forEach(input => {
                             const key = input.dataset.key;
-                            if (key in obj) input.value = obj[key];
+                            if (key in obj) {
+                                // 对于地基主的地址字段，如果是textarea则设置value，如果是input则设置value
+                                if (input.tagName.toLowerCase() === 'textarea' && key === 'location') {
+                                    input.value = obj[key];
+                                } else {
+                                    input.value = obj[key];
+                                }
+                            }
                         });
                         
                         container.appendChild(card);
@@ -704,7 +720,7 @@ function buildPayload() {
         const cards = container.querySelectorAll(".card");
         cards.forEach(card => {
             const obj = {};
-            card.querySelectorAll("input[data-key], select[data-key]").forEach(input => {
+            card.querySelectorAll("input[data-key], select[data-key], textarea[data-key]").forEach(input => {
                 const fieldKey = input.dataset.key;
                 obj[fieldKey] = input.value?.trim() || "";
             });
