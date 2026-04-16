@@ -44,10 +44,38 @@
             box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
         }
         
-        /* 卡片样式优化 */
+        /* 卡片样式优化 - 缩小间距 */
         .card {
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 1rem; /* 从默认值缩小 */
+        }
+        
+        .card.p-3 {
+            padding: 1rem !important; /* 从默认值缩小 */
+        }
+        
+        .mb-3 { /* 减少卡片内元素间距 */
+            margin-bottom: 0.75rem !important;
+        }
+        
+        .mb-2 {
+            margin-bottom: 0.5rem !important;
+        }
+        
+        .mb-1 {
+            margin-bottom: 0.25rem !important;
+        }
+        
+        /* 扩大地址输入框 */
+        textarea#address {
+            min-height: 80px; /* 设置为2-3行的高度 */
+            resize: vertical; /* 允许垂直拉伸 */
+        }
+        
+        /* 贡品部分标题更紧凑 */
+        .offering-section h6 {
+            margin-bottom: 0.5rem;
         }
     </style>
 </head>
@@ -70,9 +98,9 @@
 
         <!-- 2. 表单区域 -->
         <div id="formContainer" style="display: none;">
-            <div class="mb-4 p-3 bg-white rounded shadow-sm">
+            <div class="mb-3 p-2 bg-white rounded shadow-sm"> <!-- 间距缩小 -->
                 <h5 class="fw-bold border-bottom pb-2">🙏 您的信息 (阳上)</h5>
-                <div class="row g-3 mt-2">
+                <div class="row g-2 mt-2"> <!-- 间距缩小 -->
                     <div class="col-12 col-md-4">
                         <label class="form-label">姓名：</label>
                         <input id="mainName" class="form-control" placeholder="姓名">
@@ -83,14 +111,14 @@
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label">地址：</label>
-                        <input id="address" class="form-control" placeholder="请填写详细地址">
+                        <textarea id="address" class="form-control" placeholder="请填写详细地址"></textarea> <!-- 改为textarea -->
                     </div>
                 </div>
             </div>
 
-            <div class="mb-4 p-3 bg-white rounded shadow-sm">
+            <div class="mb-3 p-2 bg-white rounded shadow-sm"> <!-- 间距缩小 -->
                 <h5 class="fw-bold border-bottom pb-2">💰 供养信息</h5>
-                <div class="row g-3 mt-2">
+                <div class="row g-2 mt-2"> <!-- 间距缩小 -->
                     <div class="col-12 col-md-6">
                         <label class="form-label">法会类别：</label>
                         <select id="festival" class="form-select">
@@ -108,9 +136,9 @@
                 </div>
             </div>
 
-            <div id="groupsContainer" class="mb-4"></div>
+            <div id="groupsContainer" class="mb-3"></div> <!-- 间距缩小 -->
 
-            <div class="text-center my-5">
+            <div class="text-center my-4"> <!-- 间距缩小 -->
                 <button id="btnSubmit" class="btn btn-success btn-lg px-5" onclick="submitUserData()">
                     📤 提交/更新记录
                 </button>
@@ -199,10 +227,10 @@
         // 3. 创建字段块 (全新重写 - 使用 flex 布局确保贡品成对显示)
         function createFieldsBlock(fields, index = 0, title = '') {
             const card = document.createElement("div");
-            card.className = "card p-3 mb-3 position-relative";
+            card.className = "card p-2 mb-2 position-relative"; // 间距缩小
 
             const heading = document.createElement("h6");
-            heading.className = "fw-semibold mb-2";
+            heading.className = "fw-semibold mb-1"; // 间距缩小
             heading.textContent = `${title ? title + ' ' : ''}第 ${index + 1} 位`;
             card.appendChild(heading);
 
@@ -217,7 +245,7 @@
 
             // 创建容器
             const container = document.createElement("div");
-            container.className = "mt-2";
+            container.className = "mt-1"; // 间距缩小
             
             // 分离主要字段和贡品字段
             const mainFields = [];
@@ -234,7 +262,7 @@
             // 渲染主要字段 (每个占一行)
             mainFields.forEach(field => {
                 const fieldDiv = document.createElement("div");
-                fieldDiv.className = "mb-3";
+                fieldDiv.className = "mb-2"; // 间距缩小
                 
                 const label = document.createElement("label");
                 label.className = "form-label";
@@ -279,10 +307,10 @@
             // 渲染贡品字段 (使用 flex 布局，每行2个)
             if (offeringFields.length > 0) {
                 const offeringSection = document.createElement("div");
-                offeringSection.className = "mt-3";
+                offeringSection.className = "mt-2 offering-section"; // 间距缩小
                 
                 const offeringTitle = document.createElement("h6");
-                offeringTitle.className = "fw-semibold mb-2";
+                offeringTitle.className = "fw-semibold mb-1"; // 间距缩小
                 offeringTitle.textContent = "供品配置";
                 offeringSection.appendChild(offeringTitle);
                 
@@ -412,15 +440,15 @@
         function initGroups() {
             Object.entries(groupTitleMap).forEach(([groupId, title]) => {
                 const groupDiv = document.createElement("div");
-                groupDiv.className = "mb-4";
-                groupDiv.innerHTML = `<h5 class='mb-3'>${title}（最多 ${groupLimitMap[groupId]} 位）</h5>`;
+                groupDiv.className = "mb-3"; // 间距缩小
+                groupDiv.innerHTML = `<h5 class='mb-2'>${title}（最多 ${groupLimitMap[groupId]} 位）</h5>`; // 间距缩小
 
                 const container = document.createElement("div");
                 container.id = groupId;
                 groupDiv.appendChild(container);
 
                 const addBtn = document.createElement("button");
-                addBtn.className = "btn btn-outline-primary mb-2";
+                addBtn.className = "btn btn-outline-primary btn-sm mb-1"; // 间距缩小
                 addBtn.textContent = `➕ 新增${title}对象`;
                 addBtn.onclick = () => {
                     const fields = fieldsMap[groupId];
@@ -453,7 +481,7 @@
 
             get("mainName").value = row[1] || "";
             get("phoneNumber").value = row[2] || "";
-            get("address").value = row[3] || "";
+            get("address").value = row[3] || ""; // 也适用于textarea
             get("festival").value = row[231] || "";
             get("donation").value = row[230] || 0;
 
@@ -512,7 +540,7 @@
             return `${year}-${month}-${day}`;
         }
 
-        // 9. 查询函数 (修改过的)
+        // 9. 查询函数 (修改过的 - 只有多笔结果才显示卡片)
 function searchPhone() {
     const keyword = document.getElementById("searchInput").value.trim();
     if (!keyword) {
@@ -520,6 +548,7 @@ function searchPhone() {
         return;
     }
 
+    // 始终显示表单容器，但只在需要时初始化内容
     document.getElementById("formContainer").style.display = "block";
     document.getElementById("searchResults").innerHTML = "正在加载数据...";
 
@@ -545,7 +574,8 @@ function searchPhone() {
             alert("已自动填充旧数据。请勿修改姓名/电话，如需修改请联系管理员。");
         }
         else {
-            // 多条结果处理
+            // 多条结果处理 - 清空表单并显示选择器
+            clearForm();
             resultDiv.innerHTML = `<p>找到 ${results.length} 条匹配记录，请选择：</p>`;
             
             // 创建选择列表
