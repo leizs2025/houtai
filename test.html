@@ -73,6 +73,22 @@
         .offering-section h6 {
             display: none; /* 隐藏供品配置标题 */
         }
+        
+        /* 放大所有卡片标签字体 */
+        .card .form-label {
+            font-size: 0.9rem !important; /* 从原来的 0.85rem 改为 0.9rem */
+            font-weight: 500; /* 稍微加粗 */
+        }
+        
+        /* 特别放大地基主卡片中的地址标签 */
+        #group-ground .form-label[for="location"],
+        #group-ground [data-key="location"] ~ label,
+        #group-ground [data-key="location"]:not([type="select"]) ~ .form-label,
+        #group-ground .offering-item [data-key="location"] ~ label,
+        #group-ground .offering-item [data-key="location"] ~ .form-label {
+            font-size: 1rem !important; /* 更大的字体 */
+            font-weight: 600; /* 更明显 */
+        }
     </style>
 </head>
 <body>
@@ -262,7 +278,7 @@
                 
                 const label = document.createElement("label");
                 label.className = "form-label";
-                label.style.fontSize = "0.85rem";
+                // label.style.fontSize = "0.85rem"; // 移除这行，使用CSS控制字体大小
                 label.textContent = field.label;
                 fieldDiv.appendChild(label);
                 
@@ -317,7 +333,7 @@
                     
                     const label = document.createElement("label");
                     label.className = "form-label";
-                    label.style.fontSize = "0.85rem";
+                    // label.style.fontSize = "0.85rem"; // 移除这行，使用CSS控制字体大小
                     label.textContent = field.label;
                     offeringItem.appendChild(label);
                     
