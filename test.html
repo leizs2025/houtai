@@ -86,6 +86,27 @@
             resize: vertical !important; /* 允许垂直拉伸 */
             height: auto !important; /* 让高度自适应 */
         }
+        
+        /* 新增报名表按钮样式 */
+        .apply-btn-container {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .apply-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .apply-btn:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -393,7 +414,7 @@
             const countMap = { token: 0, boat: 0, lotus: 0, paper3: 0, paper6: 0, paper27: 0 };
             let total = 0;
 
-            document.querySelectorAll("input[data-key], select[data-key]").forEach(el => {
+            document.querySelectorAll("input[data-key], select[data-key], textarea[data-key]").forEach(el => {
                 const key = el.dataset.key;
                 const value = parseFloat(el.value || 0);
                 if (priceMap[key]) {
@@ -594,17 +615,19 @@ function searchPhone() {
         const resultDiv = document.getElementById("searchResults");
 
         if (results.length === 0) {
-            resultDiv.innerHTML = "未找到记录，您将创建一条新记录";
+            resultDiv.innerHTML = "未找到记录";
             
-            // 显示所有表单内容
-            document.querySelector("#formContainer > div:nth-child(1)").style.display = "block";
-            document.querySelector("#formContainer > div:nth-child(2)").style.display = "block";
-            document.getElementById("groupsContainer").style.display = "block";
-            document.querySelector("#formContainer > div.text-center").style.display = "block";
+            // 显示立即填写报名表按钮
+            const buttonContainer = document.createElement("div");
+            buttonContainer.className = "apply-btn-container";
+            buttonContainer.innerHTML = '<button class="apply-btn" onclick="showForm()">立即填写报名表</button>';
+            resultDiv.appendChild(buttonContainer);
             
-            clearForm();
-            document.getElementById("mainName").removeAttribute("readonly");
-            document.getElementById("phoneNumber").removeAttribute("readonly");
+            // 隐藏所有表单内容
+            document.querySelector("#formContainer > div:nth-child(1)").style.display = "none";
+            document.querySelector("#formContainer > div:nth-child(2)").style.display = "none";
+            document.getElementById("groupsContainer").style.display = "none";
+            document.querySelector("#formContainer > div.text-center").style.display = "none";
         } 
         else if (results.length === 1) {
             resultDiv.innerHTML = "✅ 查询到记录，请核对并补录新名单";
@@ -670,6 +693,25 @@ function searchPhone() {
         console.error(err);
         alert("查询失败，请检查网络或联系管理员");
     });
+}
+
+// 10. 显示表单函数 - 用于点击"立即填写报名表"按钮
+function showForm() {
+    // 显示所有表单内容
+    document.querySelector("#formContainer > div:nth-child(1)").style.display = "block";
+    document.querySelector("#formContainer > div:nth-child(2)").style.display = "block";
+    document.getElementById("groupsContainer").style.display = "block";
+    document.querySelector("#formContainer > div.text-center").style.display = "block";
+    
+    // 清空表单
+    clearForm();
+    
+    // 解锁关键字段以便用户填写
+    document.getElementById("mainName").removeAttribute("readonly");
+    document.getElementById("phoneNumber").removeAttribute("readonly");
+    
+    // 更新提示信息
+    document.getElementById("searchResults").innerHTML = "✅ 请填写报名信息";
 }
         // 1. 定义生成前缀的函数 (独立函数)
 function generatePrefixedPhone(phone, festival) {
