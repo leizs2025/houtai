@@ -179,6 +179,9 @@
     </div>
 
     <script>
+        // 保存查询的手机号
+        let searchedPhoneNumber = '';
+
         // 1. 数据映射 (修正：添加了 extra 字段)
         const fieldsMap = {
             "group-ancestor": [
@@ -599,6 +602,9 @@ function searchPhone() {
         return;
     }
 
+    // 保存查询的手机号
+    searchedPhoneNumber = keyword;
+
     // 始终显示表单容器，但隐藏具体内容区域
     document.getElementById("formContainer").style.display = "block";
     document.getElementById("searchResults").innerHTML = "正在加载数据...";
@@ -703,12 +709,15 @@ function showForm() {
     document.getElementById("groupsContainer").style.display = "block";
     document.querySelector("#formContainer > div.text-center").style.display = "block";
     
-    // 清空表单
-    clearForm();
+    // 清空表单，但保留手机号
+    document.getElementById("mainName").value = "";
+    document.getElementById("address").value = "";
+    document.getElementById("festival").value = "";
+    document.getElementById("donation").value = "";
     
-    // 解锁关键字段以便用户填写
-    document.getElementById("mainName").removeAttribute("readonly");
-    document.getElementById("phoneNumber").removeAttribute("readonly");
+    // 自动填入查询的手机号并锁定
+    document.getElementById("phoneNumber").value = searchedPhoneNumber;
+    document.getElementById("phoneNumber").setAttribute("readonly", true);
     
     // 更新提示信息
     document.getElementById("searchResults").innerHTML = "✅ 请填写报名信息";
