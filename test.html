@@ -51,16 +51,12 @@
             margin-bottom: 1rem; /* 从默认值缩小 */
         }
         
-        .card.p-3 {
+        .card.p-2 {
             padding: 1rem !important; /* 从默认值缩小 */
         }
         
-        .mb-3 { /* 减少卡片内元素间距 */
+        .mb-2 { /* 减少卡片内元素间距 */
             margin-bottom: 0.75rem !important;
-        }
-        
-        .mb-2 {
-            margin-bottom: 0.5rem !important;
         }
         
         .mb-1 {
@@ -73,9 +69,9 @@
             resize: vertical; /* 允许垂直拉伸 */
         }
         
-        /* 贡品部分标题更紧凑 */
+        /* 隐藏贡品部分标题 */
         .offering-section h6 {
-            margin-bottom: 0.5rem;
+            display: none; /* 隐藏供品配置标题 */
         }
     </style>
 </head>
@@ -309,10 +305,7 @@
                 const offeringSection = document.createElement("div");
                 offeringSection.className = "mt-2 offering-section"; // 间距缩小
                 
-                const offeringTitle = document.createElement("h6");
-                offeringTitle.className = "fw-semibold mb-1"; // 间距缩小
-                offeringTitle.textContent = "供品配置";
-                offeringSection.appendChild(offeringTitle);
+                // 移除了标题: const offeringTitle = document.createElement("h6");
                 
                 // 使用 flex 布局创建贡品行
                 const offeringRow = document.createElement("div");
@@ -548,9 +541,15 @@ function searchPhone() {
         return;
     }
 
-    // 始终显示表单容器，但只在需要时初始化内容
+    // 始终显示表单容器，但隐藏具体内容区域
     document.getElementById("formContainer").style.display = "block";
     document.getElementById("searchResults").innerHTML = "正在加载数据...";
+
+    // 隐藏主要内容区域
+    document.querySelector("#formContainer > div:nth-child(1)").style.display = "none";
+    document.querySelector("#formContainer > div:nth-child(2)").style.display = "none";
+    document.getElementById("groupsContainer").style.display = "none";
+    document.querySelector("#formContainer > div.text-center").style.display = "none";
 
     fetch(`https://form.gealarm2012.workers.dev/admin-chaodu?search=${encodeURIComponent(keyword)}`)
     .then(res => res.json())
@@ -559,12 +558,26 @@ function searchPhone() {
 
         if (results.length === 0) {
             resultDiv.innerHTML = "未找到记录，您将创建一条新记录";
+            
+            // 显示所有表单内容
+            document.querySelector("#formContainer > div:nth-child(1)").style.display = "block";
+            document.querySelector("#formContainer > div:nth-child(2)").style.display = "block";
+            document.getElementById("groupsContainer").style.display = "block";
+            document.querySelector("#formContainer > div.text-center").style.display = "block";
+            
             clearForm();
             document.getElementById("mainName").removeAttribute("readonly");
             document.getElementById("phoneNumber").removeAttribute("readonly");
         } 
         else if (results.length === 1) {
             resultDiv.innerHTML = "✅ 查询到记录，请核对并补录新名单";
+            
+            // 显示所有表单内容
+            document.querySelector("#formContainer > div:nth-child(1)").style.display = "block";
+            document.querySelector("#formContainer > div:nth-child(2)").style.display = "block";
+            document.getElementById("groupsContainer").style.display = "block";
+            document.querySelector("#formContainer > div.text-center").style.display = "block";
+            
             loadEntry(results[0]); 
 
             // 🔒 锁定关键字段
@@ -574,8 +587,7 @@ function searchPhone() {
             alert("已自动填充旧数据。请勿修改姓名/电话，如需修改请联系管理员。");
         }
         else {
-            // 多条结果处理 - 清空表单并显示选择器
-            clearForm();
+            // 多条结果处理 - 只显示选择器，隐藏其他表单内容
             resultDiv.innerHTML = `<p>找到 ${results.length} 条匹配记录，请选择：</p>`;
             
             // 创建选择列表
@@ -602,6 +614,13 @@ function searchPhone() {
                 if (idx === "") return;
 
                 resultDiv.innerHTML = "✅ 已选择记录，正在加载数据...";
+                
+                // 现在才显示所有表单内容
+                document.querySelector("#formContainer > div:nth-child(1)").style.display = "block";
+                document.querySelector("#formContainer > div:nth-child(2)").style.display = "block";
+                document.getElementById("groupsContainer").style.display = "block";
+                document.querySelector("#formContainer > div.text-center").style.display = "block";
+                
                 loadEntry(results[parseInt(idx)]);
 
                 // 🔒 锁定关键字段
