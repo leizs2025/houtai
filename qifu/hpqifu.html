@@ -255,19 +255,28 @@ function showAdditionalElements() {
 }
 
 // 隐藏额外元素
-function hideAdditionalElements() {
-    document.getElementById("additionalElements").style.display = "none";
-}
-
-// ================= 查询逻辑 =================
 window.searchPhone = function () {
     const keyword = document.getElementById("searchInput").value.trim();
     if (!keyword) return alert("请输入手机号");
     
+    // 添加手机号格式验证
+    // 先清理非数字字符
+    let allDigits = keyword.replace(/\D/g, '');
+    
+    // 验证是否为10-11位且以01开头的手机号
+    const phoneMatch = allDigits.match(/^01\d{8,9}$/);
+    if (!phoneMatch) {
+        alert("请输入完整的10-11位手机号（以01开头）");
+        return;
+    }
+    
+    const pureNumber = phoneMatch[0]; // 获取标准格式的手机号
+    
     const selector = document.getElementById("resultSelector");
     selector.innerHTML = "<div class='text-muted'>查询中...</div>";
     
-    fetch(`https://form.gealarm2012.workers.dev/admin-qifu?search=${encodeURIComponent(keyword)}`)
+    // 使用标准化的手机号进行查询
+    fetch(`https://form.gealarm2012.workers.dev/admin-qifu?search=${encodeURIComponent(pureNumber)}`)
     .then(res => res.json())
     .then(data => {
         selector.innerHTML = "";
