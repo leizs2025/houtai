@@ -414,32 +414,31 @@ function createPrayerBlock(data = {}, index = 1) {
         </div>
         <div class="mb-2">
             <label class="form-label">现居地址</label>
-            <input type="text" class="form-control prayer-address" placeholder="请输入地址" value="${data.address || ''}">
+            <textarea class="form-control prayer-address" placeholder="请输入详细地址，可换行" rows="3">${data.address || ''}</textarea>
         </div>
         <hr>
         <div class="row g-2">
             <div class="col-6">
                 <label>祈福令牌 (RM 5)</label>
-                <input type="number" class="form-control token" placeholder="数量" value="" min="0" oninput="updateDonationBreakdown()">
+                <input type="number" class="form-control token" placeholder="数量" value="${data.token || ''}" min="0" oninput="updateDonationBreakdown()">
             </div>
             <div class="col-6">
                 <label>小护摩片 (RM 1)</label>
-                <input type="number" class="form-control fire" placeholder="数量" value="" min="0" oninput="updateDonationBreakdown()">
+                <input type="number" class="form-control fire" placeholder="数量" value="${data.fire || ''}" min="0" oninput="updateDonationBreakdown()">
             </div>
             <div class="col-6">
                 <label>纸金 3 (RM 3)</label>
-                <input type="number" class="form-control pg3" placeholder="数量" value="" min="0" oninput="updateDonationBreakdown()">
+                <input type="number" class="form-control pg3" placeholder="数量" value="${data.pg3 || ''}" min="0" oninput="updateDonationBreakdown()">
             </div>
             <div class="col-6">
                 <label>纸金 6 (RM 6)</label>
-                <input type="number" class="form-control pg6" placeholder="数量" value="" min="0" oninput="updateDonationBreakdown()">
+                <input type="number" class="form-control pg6" placeholder="数量" value="${data.pg6 || ''}" min="0" oninput="updateDonationBreakdown()">
             </div>
         </div>
     `;
     return div;
 }
-
-function addPrayer() {
+    function addPrayer() {
     const container = document.getElementById("prayersContainer");
     if (container.children.length >= 13) {
         alert("最多只能添加13位祈福者！");
