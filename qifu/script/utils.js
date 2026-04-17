@@ -60,43 +60,77 @@ window.getCurrentFormData = function () {
   };
 };
 
-// utils.js
+// utils.js (祈福系统 - 支持多实例)
 
 window.generateReceiptNumber = function () {
+    // 获取系统ID（可以通过URL参数或全局变量获取）
+    const SYSTEM_ID = getCurrentSystemId();
+
     const now = new Date();
     const year = String(now.getFullYear()).slice(-2);       // 两位年，如 "25"
     const month = String(now.getMonth() + 1).padStart(2, '0'); // 两位月，如 "05"
     const ymKey = `${year}${month}`;  // "2505"
 
-    const storedYM = localStorage.getItem("receiptYearMonth");
+    // 使用系统特定的键名
+    const counterKey = `receiptCounter_${SYSTEM_ID}`;
+    const yearMonthKey = `receiptYearMonth_${SYSTEM_ID}`;
+
+    const storedYM = localStorage.getItem(yearMonthKey);
 
     // ✅ 如果年月变了，重置计数器
     if (storedYM !== ymKey) {
-        localStorage.setItem("receiptCounter", 1);
-        localStorage.setItem("receiptYearMonth", ymKey);
+        localStorage.setItem(counterKey, 1);
+        localStorage.setItem(yearMonthKey, ymKey);
     }
 
     // ✅ 读取当前计数器
-    let counter = parseInt(localStorage.getItem("receiptCounter"), 10);
+    let counter = parseInt(localStorage.getItem(counterKey), 10);
     if (isNaN(counter) || counter < 1) {
         counter = 1;
     }
 
-    // ✅ 生成编号，例如 MLTS-2505-0001
+    // ✅ 生成编号，例如 LQFR-2505-0001
     const receiptNumber = `LQFR-${ymKey}-${String(counter).padStart(4, '0')}`;
 
     // ✅ 增加计数器并保存
-    localStorage.setItem("receiptCounter", counter + 1);
+    localStorage.setItem(counterKey, counter + 1);
 
     return receiptNumber;
 };
 
-// utils.js 或 init.js
+// 获取当前系统ID的函数
+function getCurrentSystemId() {
+    // 方法1: 从URL参数获取
+    const urlParams = new URLSearchParams(window.location.search);
+    const systemId = urlParams.get('system_id');
+    if (systemId && systemId.trim()) {
+        return systemId.trim();
+    }
 
+    // 方法2: 从全局变量获取（如果在页面中定义了SYSTEM_ID）
+    if (typeof SYSTEM_ID !== 'undefined' && SYSTEM_ID) {
+        return SYSTEM_ID;
+    }
+
+    // 方法3: 从页面元素获取
+    const systemIdElement = document.querySelector('[name="system_id"], #system_id');
+    if (systemIdElement && systemIdElement.value) {
+        return systemIdElement.value.trim();
+    }
+
+    // 默认返回，但建议在实际部署时明确指定系统ID
+    return 'system_1'; // 请根据实际情况修改为 'system_2', 'system_3' 等
+}
+
+// 修正重置计数器函数，支持系统特定的重置
 function resetReceiptCounter() {
-  localStorage.removeItem("receiptCounter");
-  localStorage.removeItem("receiptYear");
-  localStorage.removeItem("lastPrintedReceiptNumber");
-  console.log("✅ 编号计数器已重置");
-  alert("✅ 编号计数器已重置");
+    const SYSTEM_ID = getCurrentSystemId();
+    
+    // 重置当前系统特定的计数器
+    localStorage.removeItem(`receiptCounter_${SYSTEM_ID}`);
+    localStorage.removeItem(`receiptYearMonth_${SYSTEM_ID}`);
+    localStorage.removeItem(`lastPrintedReceiptNumber_${SYSTEM_ID}`);
+    
+    console.log(`✅ 系统${SYSTEM_ID}的编号计数器已重置`);
+    alert(`✅ 系统${SYSTEM_ID}的编号计数器已重置`);
 }
