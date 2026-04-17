@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>祈福日汇总报表</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            font-size: 14px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .receipt-item {
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+            padding: 10px;
+            page-break-inside: avoid;
+        }
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .summary-table th, .summary-table td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+        .summary-table th {
+            background-color: #f0f0f0;
+        }
+        .total-row {
+            font-weight: bold;
+        }
+        @media print {
+            body {
+                margin: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>祈福日汇总报表</h1>
+        <div class="controls no-print">
+            <label>选择日期: <input type="date" id="datePicker"></label>
+            <button onclick="loadDailyReceipts()">加载收据</button>
+            <button onclick="printSummary()">打印汇总</button>
+            <button onclick="clearCache()">清空缓存</button>
+            <button onclick="exportToExcel()">导出Excel</button>
+        </div>
+    </div>
+    
+    <div id="receiptList"></div>
+    <div id="summaryTable"></div>
+
+    <script>
+        function getCurrentSystemId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const systemId = urlParams.get('system_id');
+            if (systemId && systemId.trim()) {
+                return systemId.trim();
+            }
+            return 'system_1';
+        }
+
+        function getDailyCachedReceipts(date = null) {
+            const SYSTEM_ID = getCurrentSystemId();
+            const today = date || new Date().toISOString().split('T')[0];
+            
+            const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
+            return JSON.parse(localStorage.getItem(cacheKey) || []);
+        }
+
+        function clearDailyCache(date = null) {
+            const SYSTEM_ID = getCurrentSystemId();
+            const today = date || new Date().toISOString().split('T')[0];
+            
+            const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
+            localStorage.removeItem(cacheKey);
+            console.log(`已清空 ${today} 的缓存数据`);
+        }
+
+        function loadDailyReceipts() {
+            const selectedDate = document.getElementById('datePicker').value || 
+                               new Date().toISOString().split('T')[0];
+            const receipts = getDailyCachedReceipts(selectedDate);
+            
+            if (receipts.length === 0) {
+                document.getElementById('receiptList').innerHTML = '<p>该日期没有收据记录</p>';
+                return;
+            }
+
+            let html = `<h2>${selectedDate} 日收据汇总 (${receipts.length} 张)</h2>`;
+            
+            let totalAmount = 0;
+            receipts.forEach((item, index) => {
+                const receiptData = item.receiptData;
+                const time = new Date(item.timestamp).toLocaleTimeString();
+                
+                html += `
+                    <div class="receipt-item">
+                        <h4>收据 #${index + 1} - ${time}</h4>
+                        <p><strong>收据号:</strong> ${receiptData.receiptNumber || 'N/A'}</p>
+                        <p><strong>主祈者:</strong> ${receiptData.mainName || 'N/A'}</p>
+                        <p><strong>电话:</strong> ${receiptData.phoneNumber || 'N/A'}</p>
+                        <p><strong>法会类型:</strong> ${receiptData.dharmaType || 'N/A'}</p>
+                        <p><strong>随喜赞助:</strong> RM ${(receiptData.sponsorAmount || 0).toFixed(2)}</p>
+                        <p><strong>总金额:</strong> RM ${receiptData.total || '0.00'}</p>
+                        
+                        <!-- 祈福详情 -->
+                        ${renderPrayerDetails(receiptData)}
+                    </div>
+                `;
+                
+                totalAmount += parseFloat(receiptData.total || 0);
+            });
+
+            // 生成汇总表
+            const summaryHtml = generateSummaryTable(receipts);
+
+            document.getElementById('receiptList').innerHTML = html;
+            document.getElementById('summaryTable').innerHTML = summaryHtml;
+
+            // 更新日期选择器
+            document.getElementById('datePicker').value = selectedDate;
+        }
+
+        function renderPrayerDetails(receiptData) {
+            if (!receiptData.data || !Array.isArray(receiptData.data) || receiptData.data.length === 0) {
+                return '<p>无祈福项目</p>';
+            }
+
+            let detailsHTML = '<div><strong>祈福详情:</strong><br>';
+            
+            receiptData.data.forEach((person, idx) => {
+                if (person.name) {
+                    detailsHTML += `<div style="margin-left: 20px;">`;
+                    detailsHTML += `<p><strong>祈福对象 ${idx + 1}:</strong> ${person.name}</p>`;
+                    
+                    if (person.token > 0) detailsHTML += `<p>&nbsp;&nbsp;祈福令牌: ${person.token} 个</p>`;
+                    if (person.fire > 0) detailsHTML += `<p>&nbsp;&nbsp;小护摩片: ${person.fire} 片</p>`;
+                    if (person.pg3 > 0) detailsHTML += `<p>&nbsp;&nbsp;纸金 3: ${person.pg3} 份</p>`;
+                    if (person.pg6 > 0) detailsHTML += `<p>&nbsp;&nbsp;纸金 6: ${person.pg6} 份</p>`;
+                    if (person.address) detailsHTML += `<p>&nbsp;&nbsp;地址: ${person.address}</p>`;
+                    
+                    detailsHTML += `</div>`;
+                }
+            });
+            
+            detailsHTML += '</div>';
+            return detailsHTML;
+        }
+
+        function generateSummaryTable(receipts) {
+            // 统计各项数量和金额
+            let token = 0, fire = 0, pg3 = 0, pg6 = 0, donation = 0;
+            let totalAmount = 0;
+            let receiptCount = 0;
+
+            receipts.forEach(item => {
+                const data = item.receiptData;
+                
+                if (data.data && Array.isArray(data.data)) { // 祈福数据
+                    data.data.forEach(p => {
+                        token += +p.token || 0;
+                        fire  += +p.fire || 0;
+                        pg3   += +p.pg3 || 0;
+                        pg6   += +p.pg6 || 0;
+                    });
+                    donation += +data.sponsorAmount || 0;
+                }
+                
+                totalAmount += parseFloat(data.total || 0);
+                receiptCount++;
+            });
+
+            const tokenAmt = token * 5;
+            const fireAmt  = fire * 1;
+            const pg3Amt   = pg3 * 3;
+            const pg6Amt   = pg6 * 6;
+
+            return `
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>统计项目</th>
+                            <th>数量</th>
+                            <th>单价</th>
+                            <th>金额 (RM)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>祈福令牌</td>
+                            <td>${token}</td>
+                            <td>5</td>
+                            <td>${tokenAmt.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>小护摩片</td>
+                            <td>${fire}</td>
+                            <td>1</td>
+                            <td>${fireAmt.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>纸金 3</td>
+                            <td>${pg3}</td>
+                            <td>3</td>
+                            <td>${pg3Amt.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>纸金 6</td>
+                            <td>${pg6}</td>
+                            <td>6</td>
+                            <td>${pg6Amt.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>随喜赞助</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>${donation.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>收据张数</td>
+                            <td>${receiptCount}</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td colspan="3">总收入</td>
+                            <td>${totalAmount.toFixed(2)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function printSummary() {
+            window.print();
+        }
+
+        function clearCache() {
+            if (confirm('确定要清空今日缓存数据吗？此操作不可恢复！')) {
+                const selectedDate = document.getElementById('datePicker').value || 
+                                   new Date().toISOString().split('T')[0];
+                clearDailyCache(selectedDate);
+                alert('缓存已清空！');
+            }
+        }
+
+        function exportToExcel() {
+            alert('Excel导出功能待实现');
+        }
+
+        // 页面加载时设置默认日期
+        window.onload = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('datePicker').value = today;
+        };
+    </script>
+</body>
+</html>
