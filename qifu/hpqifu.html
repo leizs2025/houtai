@@ -480,7 +480,10 @@ function updateDonationBreakdown() {
         <div class="amount-row"><div>纸金 6 x${pg6}</div><div>RM ${(pg6 * 6).toFixed(2)}</div></div>
         <div class="amount-row"><div>随喜赞助</div><div>RM ${sponsor.toFixed(2)}</div></div>
         <hr>
-        <div class="total-highlight"><div>总计</div><div>RM ${total.toFixed(2)}</div></div>
+       <div class="d-flex justify-content-between total-highlight">
+    <div>总计</div>
+    <div>RM ${total.toFixed(2)}</div>
+</div>
     `;
     
     // 更新全局总金额变量
