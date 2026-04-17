@@ -109,17 +109,16 @@ function generateReceiptNumber() {
 }
 
 
-        function setReceiptNumberIfEmpty() {
-            function setReceiptNumberIfEmpty() {
+function setReceiptNumberIfEmpty() {
     const input = window.opener.document.getElementById("receiptNumber");
     const currentReceiptNo = input?.value?.trim();
     
-    // ✅ 如果已有编号，不再生成
+    // 如果已有编号，不再生成
     if (currentReceiptNo && currentReceiptNo !== "") {
         return currentReceiptNo;
     }
 
-    // ✅ 生成新的编号并保存到 input
+    // 生成新的编号并保存到 input
     const newNumber = generateReceiptNumber();
     if (input) input.value = newNumber;
     
