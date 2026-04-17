@@ -131,7 +131,7 @@
         }
 
         function setReceiptNumberIfEmpty() {
-            const input = window.opener.document.getElementById("receiptNumber");
+            const input = window.opener?.document.getElementById("receiptNumber");
             const currentReceiptNo = input?.value?.trim();
             
             // 如果已有编号，不再生成
@@ -144,6 +144,31 @@
             if (input) input.value = newNumber;
             
             return newNumber;
+        }
+
+        // 缓存当日收据的功能
+        function cacheReceiptData(data) {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            
+            // 为超度系统使用特定的缓存键
+            const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
+            
+            // 获取现有的缓存数据
+            let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey) || []);
+            
+            // 添加当前收据数据
+            const receiptEntry = {
+                timestamp: new Date().toISOString(),
+                receiptData: data,
+                systemId: SYSTEM_ID
+            };
+            
+            cachedReceipts.push(receiptEntry);
+            
+            // 保存回localStorage
+            localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
+            
+            console.log(`收据已缓存: ${data.receiptNo || 'N/A'}`);
         }
 
         function renderReceipt(data) {
@@ -211,6 +236,9 @@
             `;
 
             document.getElementById("receiptInfo").innerHTML = content;
+            
+            // ✅ 缓存收据数据
+            cacheReceiptData(data);
         }
 
         window.addEventListener("message", (event) => {
