@@ -2,9 +2,9 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>超度法会 - 60mm小票3列打印</title>
+    <title>超度法会 - 3列小票打印</title>
     <style>
-        /* 屏幕样式（仅预览用） */
+        /* 屏幕预览样式 */
         @media screen {
             body {
                 font-family: 'Microsoft YaHei', Arial, sans-serif;
@@ -42,7 +42,7 @@
             .btn-refresh { background: #6c757d; color: white; }
         }
 
-        /* 打印样式 */
+        /* 打印样式 - 关键修复部分 */
         @media print {
             body {
                 margin: 0;
@@ -52,28 +52,48 @@
             .container, .controls, .page-header, .summary-footer {
                 display: none !important;
             }
+            
+            /* 强制A4纸张尺寸 */
             .print-area {
-                width: 210mm;
-                min-height: 297mm;
+                width: 210mm !important;
+                height: 297mm;
                 margin: 0 auto;
                 padding: 5mm;
                 box-sizing: border-box;
+                /* 防止被压缩的关键 */
+                min-width: 210mm;
+                overflow: visible;
             }
+            
+            /* 关键：强制横排布局 */
             .receipt-grid {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 3mm;
-                width: 100%;
+                width: 200mm; /* 略小于210mm留边距 */
+                font-size: 0; /* 消除inline-block间隙 */
+                margin: 0 auto;
             }
-            /* 在 @media print 中加入 */
-.receipt-card {
-    width: 60mm;
-    /* 禁止缩放影响布局 */
-    transform: scale(1);
-    transform-origin: top left;
-    /* 使用固定像素替代 mm（更稳定） */
-    /* 注：60mm ≈ 169px @ 96dpi，但为兼容性仍保留 mm */
-}
+            
+            /* 关键：固定宽度小票 */
+            .receipt-card {
+                display: inline-block;
+                width: 60mm !important;
+                vertical-align: top;
+                font-size: 8pt; /* 恢复字体大小 */
+                margin: 0 3.3mm 3mm 0; /* 3列：60+3.3+60+3.3+60+3.4=210mm */
+                border: 1px solid #000;
+                padding: 2mm;
+                box-sizing: border-box;
+                page-break-inside: avoid;
+                /* 防止变形的关键 */
+                flex: none;
+                max-width: 60mm;
+                min-width: 60mm;
+            }
+            
+            /* 重要：确保每行只有3个 */
+            .receipt-card:nth-child(3n) {
+                margin-right: 0; /* 第3/6/9...个无右边距 */
+            }
+            
             .receipt-header {
                 text-align: center;
                 font-weight: bold;
@@ -81,9 +101,6 @@
                 margin-bottom: 2mm;
                 border-bottom: 1px solid #000;
                 padding-bottom: 1mm;
-            }
-            .receipt-info {
-                margin-bottom: 2mm;
             }
             .receipt-info p {
                 margin: 0.5mm 0;
@@ -98,32 +115,11 @@
                 justify-content: space-between;
                 margin: 0.3mm 0;
             }
-            .item-label {
-                flex: 1;
-                text-align: left;
-            }
-            .item-qty {
-                flex: 0.5;
-                text-align: center;
-            }
-            .item-price {
-                flex: 0.5;
-                text-align: right;
-            }
             .total-row {
                 font-weight: bold;
                 border-top: 1px solid #000;
                 margin-top: 1mm;
                 padding-top: 1mm;
-            }
-            .total-label {
-                flex: 1;
-                text-align: left;
-            }
-            .total-amount {
-                flex: 1;
-                text-align: right;
-                font-weight: bold;
             }
         }
     </style>
@@ -142,6 +138,7 @@
         </div>
     </div>
 
+    <!-- 打印区域 -->
     <div class="print-area" id="printArea"></div>
 
     <script>
@@ -210,8 +207,13 @@
 
             let html = `<div class="receipt-grid">`;
             
-            receipts.forEach(receipt => {
+            receipts.forEach((receipt, index) => {
                 html += renderCompactReceiptCard(receipt.receiptData);
+                
+                // 每3张后强制换行（确保3列对齐）
+                if ((index + 1) % 3 === 0) {
+                    html += `<div style="display: block; clear: both; height: 0; visibility: hidden;"></div>`;
+                }
             });
             
             html += `</div>`;
