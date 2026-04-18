@@ -155,6 +155,7 @@
                 系统ID: ${SYSTEM_ID}<br>
                 当前付款方式: ${document.getElementById('paymentSelect').value}<br>
                 收据号: ${currentData.receiptNo || '未生成'}<br>
+                总金额: ${currentData.total || '未计算'}<br>
                 数据状态: ${JSON.stringify(currentData, null, 2) || '未初始化'}
             `;
         }
@@ -202,6 +203,27 @@
             return receiptNumber;
         }
 
+        // 计算总金额的函数
+        function calculateTotal(data) {
+            let total = parseFloat(data.donation || 0);
+            const priceMap = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
+            
+            ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
+                (data[group] || []).forEach(item => {
+                    Object.entries(item).forEach(([key, value]) => {
+                        if (value && priceMap[key]) {
+                            const quantity = parseFloat(value);
+                            if (!isNaN(quantity)) {
+                                total += quantity * priceMap[key];
+                            }
+                        }
+                    });
+                });
+            });
+            
+            return total.toFixed(2);
+        }
+
         // 缓存当日收据的功能
         function cacheReceiptData(data) {
             const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -212,10 +234,14 @@
             // 获取现有的缓存数据
             let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey) || []);
             
-            // 添加当前收据数据
+            // 添加当前收据数据，确保包含所有必要字段
             const receiptEntry = {
                 timestamp: new Date().toISOString(),
-                receiptData: data,
+                receiptData: {
+                    ...data,
+                    paymentMethod: data.paymentMethod || 'Cash',
+                    total: data.total || calculateTotal(data)
+                },
                 systemId: SYSTEM_ID
             };
             
@@ -228,7 +254,7 @@
             console.log(`缓存键: ${cacheKey}`);
             console.log(`缓存数据:`, cachedReceipts);
             
-            alert(`数据已保存！\n缓存键: ${cacheKey}\n收据号: ${data.receiptNo || 'N/A'}`);
+            alert(`数据已保存！\n缓存键: ${cacheKey}\n收据号: ${data.receiptNo || 'N/A'}\n总金额: RM ${receiptEntry.receiptData.total}`);
         }
 
         function renderReceipt(data) {
@@ -315,23 +341,7 @@
             }
             
             // 计算总金额
-            let total = parseFloat(currentData.donation || 0);
-            const priceMap = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
-            
-            ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
-                (currentData[group] || []).forEach(item => {
-                    Object.entries(item).forEach(([key, value]) => {
-                        if (value && priceMap[key]) {
-                            const quantity = parseFloat(value);
-                            if (!isNaN(quantity)) {
-                                total += quantity * priceMap[key];
-                            }
-                        }
-                    });
-                });
-            });
-            
-            currentData.total = total.toFixed(2);
+            currentData.total = calculateTotal(currentData);
             
             // 缓存数据
             cacheReceiptData(currentData);
