@@ -55,11 +55,17 @@
         .payment-breakdown th {
             background-color: #f0f0f0;
         }
+        .debug-info {
+            background-color: #e0f7fa;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #00bcd4;
+        }
         @media print {
             body {
                 margin: 0;
             }
-            .no-print {
+            .no-print, .debug-info {
                 display: none;
             }
         }
@@ -82,6 +88,11 @@
             <button onclick="clearCache()">清空缓存</button>
             <button onclick="exportToExcel()">导出Excel</button>
         </div>
+    </div>
+    
+    <div class="debug-info no-print">
+        <strong>调试信息:</strong><br>
+        <span id="debugOutput">点击"加载收据"查看调试信息</span>
     </div>
     
     <div id="receiptList"></div>
@@ -108,8 +119,14 @@
             
             console.log(`查找缓存键: ${cacheKey}`);
             console.log(`找到收据数量: ${receipts.length}`);
+            console.log(`缓存内容:`, receipts);
             
-            return receipts;
+            return {
+                receipts: receipts,
+                cacheKey: cacheKey,
+                date: today,
+                systemId: SYSTEM_ID
+            };
         }
 
         function clearDailyCache(date = null) {
@@ -126,9 +143,21 @@
                                new Date().toISOString().split('T')[0];
             const paymentFilter = document.getElementById('paymentFilter').value;
             
-            const receipts = getDailyCachedReceipts(selectedDate);
+            const result = getDailyCachedReceipts(selectedDate);
+            const receipts = result.receipts;
             
             console.log(`从缓存获取的数据:`, receipts);
+            
+            // 更新调试信息
+            document.getElementById('debugOutput').innerHTML = `
+                日期: ${result.date}<br>
+                系统ID: ${result.systemId}<br>
+                缓存键: ${result.cacheKey}<br>
+                找到收据数量: ${receipts.length}<br>
+                过滤条件: ${paymentFilter || '无'}<br>
+                缓存键是否存在: ${localStorage.getItem(result.cacheKey) ? '是' : '否'}<br>
+                所有localStorage键: ${Object.keys(localStorage).join(', ')}
+            `;
             
             // 根据付款方式筛选收据
             let filteredReceipts = receipts;
@@ -418,7 +447,7 @@
             document.getElementById('datePicker').value = today;
             
             // 尝试加载今天的收据
-            setTimeout(loadDailyReceipts, 1000);
+            console.log('页面加载完成，等待点击加载按钮...');
         };
     </script>
 </body>
