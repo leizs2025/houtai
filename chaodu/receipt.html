@@ -85,8 +85,15 @@
         .save-btn:hover {
             background-color: #45a049;
         }
+        .debug-info {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            font-size: 12px;
+        }
         @media print {
-            .payment-select, .save-btn {
+            .payment-select, .save-btn, .debug-info {
                 display: none !important;
             }
         }
@@ -110,6 +117,11 @@
         <button class="save-btn" onclick="saveReceipt()">保存数据</button>
     </div>
 
+    <div class="debug-info">
+        <strong>调试信息:</strong><br>
+        <span id="debugText">等待接收数据...</span>
+    </div>
+
     <div id="receiptInfo" class="receipt-info"></div>
     <div id="summarySection" class="total-section"></div>
 
@@ -122,10 +134,9 @@
         // 全局变量存储数据
         let currentData = {};
         let isRendered = false;
+        let SYSTEM_ID = '';
 
         // 定义系统ID，每个实例需要设置不同的ID
-        const SYSTEM_ID = getSystemId();
-        
         function getSystemId() {
             // 尝试从URL参数获取系统ID
             const urlParams = new URLSearchParams(window.location.search);
@@ -136,6 +147,16 @@
             }
             
             return "system_1";
+        }
+
+        function updateDebugInfo() {
+            const debugText = document.getElementById('debugText');
+            debugText.innerHTML = `
+                系统ID: ${SYSTEM_ID}<br>
+                当前付款方式: ${document.getElementById('paymentSelect').value}<br>
+                收据号: ${currentData.receiptNo || '未生成'}<br>
+                数据状态: ${JSON.stringify(currentData, null, 2) || '未初始化'}
+            `;
         }
 
         function setReceiptNumberIfEmpty() {
@@ -204,7 +225,10 @@
             localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
             
             console.log(`收据已缓存: ${data.receiptNo || 'N/A'}`);
-            alert('数据已保存！');
+            console.log(`缓存键: ${cacheKey}`);
+            console.log(`缓存数据:`, cachedReceipts);
+            
+            alert(`数据已保存！\n缓存键: ${cacheKey}\n收据号: ${data.receiptNo || 'N/A'}`);
         }
 
         function renderReceipt(data) {
@@ -314,6 +338,9 @@
             
             // 重新渲染以显示最新的付款方式
             renderReceipt(currentData);
+            
+            // 更新调试信息
+            updateDebugInfo();
         }
 
         function printReceipt() {
@@ -326,6 +353,10 @@
             try {
                 const data = JSON.parse(event.data);
                 currentData = {...data}; // 保存原始数据
+                
+                // 初始化系统ID
+                SYSTEM_ID = getSystemId();
+                
                 renderReceipt(data);
                 
                 // 添加打印按钮
@@ -336,9 +367,20 @@
                 printBtn.style.marginTop = '10px';
                 
                 document.querySelector('.payment-select').appendChild(printBtn);
+                
+                // 更新调试信息
+                updateDebugInfo();
             } catch (error) {
                 console.error("小票数据处理错误:", error);
             }
+        });
+        
+        // 监听付款方式变化
+        document.getElementById('paymentSelect').addEventListener('change', function() {
+            if (isRendered) {
+                renderReceipt(currentData);
+            }
+            updateDebugInfo();
         });
     </script>
 </body>
