@@ -211,6 +211,17 @@
             return total.toFixed(2);
         }
 
+        // 安全的JSON解析函数
+        function safeParseJSON(str, defaultValue = []) {
+            try {
+                const parsed = JSON.parse(str);
+                return Array.isArray(parsed) ? parsed : defaultValue;
+            } catch (e) {
+                console.warn(`JSON解析失败，返回默认值:`, e);
+                return defaultValue;
+            }
+        }
+
         // 缓存当日收据的功能
         function cacheReceiptData(data) {
             const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -218,8 +229,9 @@
             // 使用固定的系统ID
             const cacheKey = `daily_receipts_${today}_festival_system`;
             
-            // 获取现有的缓存数据
-            let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey) || []);
+            // 安全地获取现有的缓存数据
+            const existingData = localStorage.getItem(cacheKey);
+            let cachedReceipts = safeParseJSON(existingData);
             
             // 添加当前收据数据，确保包含所有必要字段
             const receiptEntry = {
@@ -235,13 +247,17 @@
             cachedReceipts.push(receiptEntry);
             
             // 保存回localStorage
-            localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
-            
-            console.log(`收据已缓存: ${data.receiptNo || 'N/A'}`);
-            console.log(`缓存键: ${cacheKey}`);
-            console.log(`缓存数据:`, cachedReceipts);
-            
-            alert(`数据已保存！\n缓存键: ${cacheKey}\n收据号: ${data.receiptNo || 'N/A'}\n总金额: RM ${receiptEntry.receiptData.total}\n系统ID: festival_system`);
+            try {
+                localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
+                console.log(`收据已缓存: ${data.receiptNo || 'N/A'}`);
+                console.log(`缓存键: ${cacheKey}`);
+                console.log(`缓存数据:`, cachedReceipts);
+                
+                alert(`数据已保存！\n缓存键: ${cacheKey}\n收据号: ${data.receiptNo || 'N/A'}\n总金额: RM ${receiptEntry.receiptData.total}\n系统ID: festival_system`);
+            } catch (e) {
+                console.error('保存到localStorage失败:', e);
+                alert('保存失败: ' + e.message);
+            }
         }
 
         function renderReceipt(data) {
