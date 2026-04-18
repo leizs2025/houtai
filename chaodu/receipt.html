@@ -59,8 +59,19 @@
             padding-top: 10px;
             margin-top: 10px;
         }
+        .payment-select {
+            margin-bottom: 10px;
+        }
+        .payment-select label {
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .payment-select select {
+            width: 100px;
+            padding: 2px;
+        }
         @media print {
-            .print-button {
+            .payment-select, .print-button {
                 display: none !important;
             }
         }
@@ -76,6 +87,14 @@
         <p id="paymentMethodDisplay">CASH</p> <!-- 显示付款方式 -->
     </div>
 
+    <div class="payment-select">
+        <label for="paymentSelect">收款方式:</label>
+        <select id="paymentSelect">
+            <option value="Cash">现金</option>
+            <option value="Transfer">转账</option>
+        </select>
+    </div>
+
     <div id="receiptInfo" class="receipt-info"></div>
     <div id="summarySection" class="total-section"></div>
 
@@ -86,8 +105,7 @@
 
     <script>
         // 定义系统ID，每个实例需要设置不同的ID
-        // 可以从URL参数、配置或其他方式获取
-        const SYSTEM_ID = getSystemId(); // 默认为"system_1"，你可以根据实际情况修改
+        const SYSTEM_ID = getSystemId();
         
         function getSystemId() {
             // 尝试从URL参数获取系统ID
@@ -98,9 +116,23 @@
                 return systemId.trim();
             }
             
-            // 或者从其他地方获取，比如配置文件、全局变量等
-            // 这里默认返回"system_1"，实际使用时应确保每个系统实例有不同的ID
-            return "system_1"; // 请根据实际情况修改，如 "system_1", "system_2", "system_3"
+            return "system_1";
+        }
+
+        function setReceiptNumberIfEmpty() {
+            const input = window.opener?.document.getElementById("receiptNumber");
+            const currentReceiptNo = input?.value?.trim();
+            
+            // 如果已有编号，不再生成
+            if (currentReceiptNo && currentReceiptNo !== "") {
+                return currentReceiptNo;
+            }
+
+            // 生成新的编号并保存到 input
+            const newNumber = generateReceiptNumber();
+            if (input) input.value = newNumber;
+            
+            return newNumber;
         }
 
         function generateReceiptNumber() {
@@ -128,22 +160,6 @@
             const receiptNumber = `MLTS-${ymKey}-${String(counter).padStart(4, '0')}`;
             localStorage.setItem(counterKey, counter + 1);
             return receiptNumber;
-        }
-
-        function setReceiptNumberIfEmpty() {
-            const input = window.opener?.document.getElementById("receiptNumber");
-            const currentReceiptNo = input?.value?.trim();
-            
-            // 如果已有编号，不再生成
-            if (currentReceiptNo && currentReceiptNo !== "") {
-                return currentReceiptNo;
-            }
-
-            // 生成新的编号并保存到 input
-            const newNumber = generateReceiptNumber();
-            if (input) input.value = newNumber;
-            
-            return newNumber;
         }
 
         // 缓存当日收据的功能
@@ -175,8 +191,8 @@
             const receiptNumber = data.receiptNo || setReceiptNumberIfEmpty();
             const currentYear = new Date().getFullYear();
             
-            // 设置付款方式显示
-            const paymentMethod = data.paymentMethod || 'Cash'; // 默认为Cash
+            // 获取用户选择的付款方式
+            const paymentMethod = document.getElementById('paymentSelect').value;
             document.getElementById("paymentMethodDisplay").textContent = paymentMethod.toUpperCase();
             
             let content = `
@@ -242,6 +258,9 @@
             `;
 
             document.getElementById("receiptInfo").innerHTML = content;
+            
+            // 将付款方式添加到数据中
+            data.paymentMethod = paymentMethod;
             
             // ✅ 缓存收据数据
             cacheReceiptData(data);
