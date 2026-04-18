@@ -84,7 +84,6 @@
         <p>JALAN PASAI SIONG OFF 25TH MILE</p>
         <p>JALAN OYA, SIBU SARAWAK</p>
         <h2>DONATION</h2>
-        <p id="paymentMethodDisplay">CASH</p> <!-- 显示付款方式 -->
     </div>
 
     <div class="payment-select">
@@ -193,7 +192,6 @@
             
             // 获取用户选择的付款方式
             const paymentMethod = document.getElementById('paymentSelect').value;
-            document.getElementById("paymentMethodDisplay").textContent = paymentMethod.toUpperCase();
             
             let content = `
                 <div>
