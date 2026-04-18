@@ -70,6 +70,13 @@
         <h1>超度日汇总报表</h1>
         <div class="controls no-print">
             <label>选择日期: <input type="date" id="datePicker"></label>
+            <label>付款方式: 
+                <select id="paymentFilter">
+                    <option value="">全部</option>
+                    <option value="Cash">现金</option>
+                    <option value="Transfer">转账</option>
+                </select>
+            </label>
             <button onclick="loadDailyReceipts()">加载收据</button>
             <button onclick="printSummary()">打印汇总</button>
             <button onclick="clearCache()">清空缓存</button>
@@ -95,8 +102,14 @@
             const SYSTEM_ID = getCurrentSystemId();
             const today = date || new Date().toISOString().split('T')[0];
             
+            // 尝试使用相同的缓存键格式
             const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
-            return JSON.parse(localStorage.getItem(cacheKey) || []);
+            const receipts = JSON.parse(localStorage.getItem(cacheKey) || []);
+            
+            console.log(`查找缓存键: ${cacheKey}`);
+            console.log(`找到收据数量: ${receipts.length}`);
+            
+            return receipts;
         }
 
         function clearDailyCache(date = null) {
@@ -111,17 +124,31 @@
         function loadDailyReceipts() {
             const selectedDate = document.getElementById('datePicker').value || 
                                new Date().toISOString().split('T')[0];
+            const paymentFilter = document.getElementById('paymentFilter').value;
+            
             const receipts = getDailyCachedReceipts(selectedDate);
             
-            if (receipts.length === 0) {
-                document.getElementById('receiptList').innerHTML = '<p>该日期没有收据记录</p>';
+            console.log(`从缓存获取的数据:`, receipts);
+            
+            // 根据付款方式筛选收据
+            let filteredReceipts = receipts;
+            if (paymentFilter) {
+                filteredReceipts = receipts.filter(item => 
+                    (item.receiptData.paymentMethod || 'Cash').toLowerCase() === paymentFilter.toLowerCase()
+                );
+            }
+            
+            if (filteredReceipts.length === 0) {
+                document.getElementById('receiptList').innerHTML = '<p>该日期没有符合条件的收据记录</p>';
+                document.getElementById('summaryTable').innerHTML = '';
+                document.getElementById('paymentBreakdown').innerHTML = '';
                 return;
             }
 
-            let html = `<h2>${selectedDate} 日收据汇总 (${receipts.length} 张)</h2>`;
+            let html = `<h2>${selectedDate} 日收据汇总 (${filteredReceipts.length} 张) - ${paymentFilter ? paymentFilter : '全部'}</h2>`;
             
             let totalAmount = 0;
-            receipts.forEach((item, index) => {
+            filteredReceipts.forEach((item, index) => {
                 const receiptData = item.receiptData;
                 const time = new Date(item.timestamp).toLocaleTimeString();
                 
@@ -144,10 +171,10 @@
                 totalAmount += parseFloat(receiptData.total || 0);
             });
 
-            // 生成汇总表
-            const summaryHtml = generateSummaryTable(receipts);
+            // 生成汇总表（基于筛选后的收据）
+            const summaryHtml = generateSummaryTable(filteredReceipts);
             
-            // 生成付款方式分类表
+            // 生成付款方式分类表（基于原始收据）
             const paymentBreakdownHtml = generatePaymentBreakdown(receipts);
 
             document.getElementById('receiptList').innerHTML = html;
@@ -389,6 +416,9 @@
         window.onload = function() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('datePicker').value = today;
+            
+            // 尝试加载今天的收据
+            setTimeout(loadDailyReceipts, 1000);
         };
     </script>
 </body>
