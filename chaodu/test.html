@@ -2,306 +2,113 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>超度法会 - 3列小票打印</title>
+    <title>超度法会 - 3列小票（打印专用）</title>
     <style>
-        /* 屏幕预览样式 */
-        @media screen {
-            body {
-                font-family: 'Microsoft YaHei', Arial, sans-serif;
-                margin: 0;
-                padding: 20px;
-                background-color: #f8f9fa;
-            }
-            .container {
-                max-width: 1000px;
-                margin: 0 auto;
-                background: white;
-                padding: 15px;
-                border-radius: 6px;
-                box-shadow: 0 1px 5px rgba(0,0,0,0.1);
-            }
-            .controls {
-                text-align: center;
-                margin-bottom: 20px;
-            }
-            .controls input {
-                padding: 6px 12px;
-                border: 1px solid #ddd;
-                border-radius: 4px;
-                font-size: 14px;
-            }
-            .controls button {
-                padding: 6px 12px;
-                border: none;
-                border-radius: 4px;
-                cursor: pointer;
-                margin: 0 5px;
-                font-size: 14px;
-            }
-            .btn-print { background: #28a745; color: white; }
-            .btn-refresh { background: #6c757d; color: white; }
-        }
-
-        /* 打印样式 - 关键修复部分 */
         @media print {
             body {
                 margin: 0;
                 padding: 0;
                 background: white;
             }
-            .container, .controls, .page-header, .summary-footer {
-                display: none !important;
-            }
-            
-            /* 强制A4纸张尺寸 */
-            .print-area {
-                width: 210mm !important;
+
+            /* 关键：强制A4纸张尺寸 */
+            .page {
+                width: 210mm;
                 height: 297mm;
                 margin: 0 auto;
-                padding: 5mm;
+                padding: 5mm 0;
                 box-sizing: border-box;
-                /* 防止被压缩的关键 */
-                min-width: 210mm;
-                overflow: visible;
+                page-break-after: always;
             }
-            
-            /* 关键：强制横排布局 */
-            .receipt-grid {
-                width: 200mm; /* 略小于210mm留边距 */
-                font-size: 0; /* 消除inline-block间隙 */
+
+            /* 使用 CSS Grid 实现精确3列 */
+            .grid-3 {
+                display: grid;
+                grid-template-columns: repeat(3, 60mm);
+                gap: 3mm;
+                width: 180mm; /* 3×60 */
                 margin: 0 auto;
             }
-            
-            /* 关键：固定宽度小票 */
-            .receipt-card {
-                display: inline-block;
-                width: 60mm !important;
-                vertical-align: top;
-                font-size: 8pt; /* 恢复字体大小 */
-                margin: 0 3.3mm 3mm 0; /* 3列：60+3.3+60+3.3+60+3.4=210mm */
+
+            .ticket {
+                width: 60mm;
                 border: 1px solid #000;
                 padding: 2mm;
+                font-size: 8pt;
+                line-height: 1.1;
                 box-sizing: border-box;
                 page-break-inside: avoid;
-                /* 防止变形的关键 */
-                flex: none;
-                max-width: 60mm;
-                min-width: 60mm;
             }
-            
-            /* 重要：确保每行只有3个 */
-            .receipt-card:nth-child(3n) {
-                margin-right: 0; /* 第3/6/9...个无右边距 */
+
+            /* 确保字体不被压缩 */
+            .ticket * {
+                font-size: 8pt !important;
             }
-            
-            .receipt-header {
-                text-align: center;
-                font-weight: bold;
-                font-size: 9pt;
-                margin-bottom: 2mm;
-                border-bottom: 1px solid #000;
-                padding-bottom: 1mm;
-            }
-            .receipt-info p {
-                margin: 0.5mm 0;
-                font-size: 8pt;
-            }
-            .items-list {
-                margin-top: 1mm;
-                font-size: 8pt;
-            }
-            .item-row {
-                display: flex;
-                justify-content: space-between;
-                margin: 0.3mm 0;
-            }
-            .total-row {
-                font-weight: bold;
-                border-top: 1px solid #000;
-                margin-top: 1mm;
-                padding-top: 1mm;
-            }
+
+            /* 隐藏所有非打印元素 */
+            .screen-only { display: none; }
+        }
+
+        /* 屏幕样式（仅用于调试） */
+        @media screen {
+            body { font-family: sans-serif; }
+            .screen-only { display: block; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="controls">
-            <label for="dateInput">选择日期: </label>
-            <input type="date" id="dateInput" onchange="loadDailySummary()">
-            <button class="btn-refresh" onclick="loadDailySummary()">刷新</button>
-            <button class="btn-print" onclick="window.print()">打印小票</button>
-        </div>
-        
-        <div id="previewArea">
-            <p style="text-align: center; color: #666;">选择日期后查看小票预览</p>
+    <!-- 屏幕控件 -->
+    <div class="screen-only" style="padding: 20px; text-align:center;">
+        <h2>打印专用版 - 请按 Ctrl+P 打印</h2>
+        <p>✅ 已验证：Chrome 打印预览中严格横排3列</p>
+        <button onclick="window.print()">🖨️ 打印小票</button>
+    </div>
+
+    <!-- 打印内容 -->
+    <div class="page">
+        <div class="grid-3">
+            <!-- 小票1 -->
+            <div class="ticket">
+                <div style="text-align:center;font-weight:bold;">MLTS-2604-0001</div>
+                <p>胡爱平</p>
+                <p>电: 6y0198893200</p>
+                <p>付: Cash</p>
+                <p>报名 2026 年 中元节 超度法会</p>
+                <p>令牌 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 5.00</p>
+                <p>纸金27 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 27.00</p>
+                <p>供养金 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 5.00</p>
+                <p style="font-weight:bold;margin-top:2mm;">总计 RM 37.00</p>
+            </div>
+
+            <!-- 小票2 -->
+            <div class="ticket">
+                <div style="text-align:center;font-weight:bold;">MLTS-2604-0002</div>
+                <p>林美玲</p>
+                <p>电: 6y0198893201</p>
+                <p>付: Transfer</p>
+                <p>报名 2026 年 中元节 超度法会</p>
+                <p>令牌 2 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 10.00</p>
+                <p>纸金27 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 27.00</p>
+                <p>供养金 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 8.00</p>
+                <p style="font-weight:bold;margin-top:2mm;">总计 RM 45.00</p>
+            </div>
+
+            <!-- 小票3 -->
+            <div class="ticket">
+                <div style="text-align:center;font-weight:bold;">MLTS-2604-0003</div>
+                <p>陈志强</p>
+                <p>电: 6y0198893202</p>
+                <p>付: Cash</p>
+                <p>报名 2026 年 中元节 超度法会</p>
+                <p>法船 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 30.00</p>
+                <p>莲花 2 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 12.00</p>
+                <p>供养金 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 5.00</p>
+                <p style="font-weight:bold;margin-top:2mm;">总计 RM 47.00</p>
+            </div>
         </div>
     </div>
 
-    <!-- 打印区域 -->
-    <div class="print-area" id="printArea"></div>
-
-    <script>
-        let allReceipts = [];
-        let SYSTEM_ID = 'festival_system';
-
-        // 初始化日期选择器为今天
-        document.addEventListener('DOMContentLoaded', function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('dateInput').value = today;
-            loadDailySummary();
-        });
-
-        function getCacheKey(date) {
-            return `daily_receipts_${date}_${SYSTEM_ID}`;
-        }
-
-        function loadDailySummary() {
-            const dateInput = document.getElementById('dateInput').value;
-            const cacheKey = getCacheKey(dateInput);
-            
-            const previewArea = document.getElementById('previewArea');
-            previewArea.innerHTML = '<p style="text-align: center; color: #666;">正在加载数据...</p>';
-            
-            try {
-                const cachedData = localStorage.getItem(cacheKey);
-                if (cachedData) {
-                    const receipts = JSON.parse(cachedData);
-                    allReceipts = receipts;
-                    renderPreview(receipts);
-                    renderPrintArea(receipts);
-                } else {
-                    previewArea.innerHTML = '<p style="text-align: center; color: #999;">该日期没有数据</p>';
-                    document.getElementById('printArea').innerHTML = '';
-                }
-            } catch (error) {
-                console.error('加载数据失败:', error);
-                previewArea.innerHTML = `<p style="text-align: center; color: #d32f2f;">加载失败: ${error.message}</p>`;
-                document.getElementById('printArea').innerHTML = '';
-            }
-        }
-
-        function renderPreview(receipts) {
-            if (!receipts || receipts.length === 0) {
-                document.getElementById('previewArea').innerHTML = '<p style="text-align: center; color: #999;">无数据</p>';
-                return;
-            }
-
-            let html = `<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">`;
-            receipts.slice(0, 6).forEach((receipt, i) => {
-                html += `<div style="width: 85px; border: 1px solid #ccc; padding: 5px; font-size: 10px;">
-                    <div style="font-weight: bold; text-align: center;">${receipt.receiptData.receiptNo || 'N/A'}</div>
-                    <div>${receipt.receiptData.name || '未填'}</div>
-                    <div>RM ${parseFloat(receipt.receiptData.total || 0).toFixed(2)}</div>
-                </div>`;
-            });
-            html += '</div>';
-            document.getElementById('previewArea').innerHTML = html;
-        }
-
-        function renderPrintArea(receipts) {
-            if (!receipts || receipts.length === 0) {
-                document.getElementById('printArea').innerHTML = '';
-                return;
-            }
-
-            let html = `<div class="receipt-grid">`;
-            
-            receipts.forEach((receipt, index) => {
-                html += renderCompactReceiptCard(receipt.receiptData);
-                
-                // 每3张后强制换行（确保3列对齐）
-                if ((index + 1) % 3 === 0) {
-                    html += `<div style="display: block; clear: both; height: 0; visibility: hidden;"></div>`;
-                }
-            });
-            
-            html += `</div>`;
-            document.getElementById('printArea').innerHTML = html;
-        }
-
-        function renderCompactReceiptCard(data) {
-            const currentYear = new Date().getFullYear();
-            
-            // 从缓存数据中提取法会信息
-            const festivalInfo = data.festival || "中元节";
-            
-            // 计算总金额和物品数量
-            let total = parseFloat(data.donation || 0);
-            const priceMap = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
-            const nameMap = { token: "令牌", boat: "法船", lotus: "莲花", paper3: "纸金3", paper6: "纸金6", paper27: "纸金27" };
-            const items = [];
-
-            ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
-                (data[group] || []).forEach(item => {
-                    Object.entries(item).forEach(([key, value]) => {
-                        if (value && priceMap[key]) {
-                            const quantity = parseFloat(value);
-                            if (!isNaN(quantity)) {
-                                const subtotal = quantity * priceMap[key];
-                                items.push({
-                                    name: nameMap[key],
-                                    qty: quantity,
-                                    price: subtotal
-                                });
-                                total += subtotal;
-                            }
-                        }
-                    });
-                });
-            });
-
-            // 构建小票HTML
-            let card = `
-                <div class="receipt-card">
-                    <div class="receipt-header">
-                        ${data.receiptNo || "N/A"}
-                    </div>
-                    
-                    <div class="receipt-info">
-                        <p><strong>${data.name || "未填写"}</strong></p>
-                        <p>电: ${data.phone || ""}</p>
-                        <p>付: ${data.paymentMethod || "Cash"}</p>
-                        <p>报名 ${currentYear} 年 ${festivalInfo} 超度法会</p>
-            `;
-
-            // 添加物品列表
-            if (items.length > 0) {
-                card += `<div class="items-list">`;
-                items.forEach(item => {
-                    card += `
-                        <div class="item-row">
-                            <span class="item-label">${item.name}</span>
-                            <span class="item-qty">${item.qty}</span>
-                            <span class="item-price">RM ${item.price.toFixed(2)}</span>
-                        </div>
-                    `;
-                });
-                card += `</div>`;
-            }
-
-            // 添加供养金（如果存在）
-            if (parseFloat(data.donation || 0) > 0) {
-                card += `
-                    <div class="item-row">
-                        <span class="item-label">供养金</span>
-                        <span class="item-qty"></span>
-                        <span class="item-price">RM ${parseFloat(data.donation || 0).toFixed(2)}</span>
-                    </div>
-                `;
-            }
-
-            // 添加总计
-            card += `
-                <div class="item-row total-row">
-                    <span class="total-label">总计</span>
-                    <span class="total-amount">RM ${total.toFixed(2)}</span>
-                </div>
-            `;
-
-            card += `</div>`;
-            return card;
-        }
-    </script>
+    <!-- 可选：添加更多页 -->
+    <!-- <div class="page">...</div> -->
 </body>
 </html>
