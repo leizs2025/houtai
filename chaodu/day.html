@@ -3,452 +3,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>超度日汇总报表</title>
+    <title>每日汇总 - 超度法会</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            font-size: 14px;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .header {
             text-align: center;
             margin-bottom: 20px;
         }
-        .controls {
+        .header h1 {
+            color: #333;
+            margin: 0;
+        }
+        .date-selector {
             margin-bottom: 20px;
             text-align: center;
         }
-        .receipt-item {
-            border: 1px solid #ccc;
-            margin-bottom: 10px;
-            padding: 10px;
-            page-break-inside: avoid;
-        }
-        .summary-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .summary-table th, .summary-table td {
-            border: 1px solid #000;
+        .date-selector input {
             padding: 8px;
-            text-align: left;
+            margin: 0 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
-        .summary-table th {
-            background-color: #f0f0f0;
+        .summary-card {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
         }
-        .total-row {
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .summary-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .summary-item {
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .summary-total {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 18px;
             font-weight: bold;
         }
-        .payment-breakdown {
-            margin-top: 20px;
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
         }
-        .payment-breakdown table {
-            width: 100%;
-            border-collapse: collapse;
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #999;
         }
-        .payment-breakdown th, .payment-breakdown td {
-            border: 1px solid #000;
+        .receipt-list {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        .receipt-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .receipt-item:last-child {
+            border-bottom: none;
+        }
+        .search-box {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .search-box input {
             padding: 8px;
-            text-align: left;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
-        .payment-breakdown th {
-            background-color: #f0f0f0;
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
         }
-        .debug-info {
-            background-color: #e0f7fa;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #00bcd4;
+        .btn:hover {
+            background-color: #0056b3;
         }
-        @media print {
-            body {
-                margin: 0;
-            }
-            .no-print, .debug-info {
-                display: none;
-            }
+        .btn-export {
+            background-color: #28a745;
+        }
+        .btn-export:hover {
+            background-color: #218838;
+        }
+        .btn-refresh {
+            background-color: #6c757d;
+        }
+        .btn-refresh:hover {
+            background-color: #545b62;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>超度日汇总报表</h1>
-        <div class="controls no-print">
-            <label>选择日期: <input type="date" id="datePicker"></label>
-            <label>付款方式: 
-                <select id="paymentFilter">
-                    <option value="">全部</option>
-                    <option value="Cash">现金</option>
-                    <option value="Transfer">转账</option>
-                </select>
-            </label>
-            <button onclick="loadDailyReceipts()">加载收据</button>
-            <button onclick="printSummary()">打印汇总</button>
-            <button onclick="clearCache()">清空缓存</button>
-            <button onclick="exportToExcel()">导出Excel</button>
+    <div class="container">
+        <div class="header">
+            <h1>每日汇总 - 超度法会</h1>
+        </div>
+        
+        <div class="date-selector">
+            <label for="dateInput">选择日期: </label>
+            <input type="date" id="dateInput" onchange="loadDailySummary()">
+            <button class="btn btn-refresh" onclick="loadDailySummary()">刷新</button>
+            <button class="btn btn-export" onclick="exportToCSV()">导出CSV</button>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="搜索姓名、电话、收据号..." oninput="filterReceipts()">
+        </div>
+        
+        <div id="summaryContainer">
+            <div class="loading">正在加载数据...</div>
         </div>
     </div>
-    
-    <div class="debug-info no-print">
-        <strong>调试信息:</strong><br>
-        <span id="debugOutput">点击"加载收据"查看调试信息</span>
-    </div>
-    
-    <div id="receiptList"></div>
-    <div id="summaryTable"></div>
-    <div id="paymentBreakdown"></div>
 
     <script>
-        function getCurrentSystemId() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const systemId = urlParams.get('system_id');
-            if (systemId && systemId.trim()) {
-                return systemId.trim();
+        let allReceipts = [];
+        let SYSTEM_ID = 'festival_system'; // 与receipt.html使用相同系统ID
+
+        // 初始化日期选择器为今天
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateInput').value = today;
+            loadDailySummary();
+        });
+
+        function getCacheKey(date) {
+            return `daily_receipts_${date}_${SYSTEM_ID}`;
+        }
+
+        function loadDailySummary() {
+            const dateInput = document.getElementById('dateInput').value;
+            const cacheKey = getCacheKey(dateInput);
+            
+            const container = document.getElementById('summaryContainer');
+            container.innerHTML = '<div class="loading">正在加载数据...</div>';
+            
+            try {
+                const cachedData = localStorage.getItem(cacheKey);
+                if (cachedData) {
+                    const receipts = JSON.parse(cachedData);
+                    allReceipts = receipts;
+                    renderSummary(receipts, dateInput);
+                } else {
+                    container.innerHTML = '<div class="no-data">该日期没有数据</div>';
+                }
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                container.innerHTML = '<div class="no-data">加载数据失败: ' + error.message + '</div>';
             }
-            return 'system_1';
         }
 
-        function getDailyCachedReceipts(date = null) {
-            const SYSTEM_ID = getCurrentSystemId();
-            const today = date || new Date().toISOString().split('T')[0];
-            
-            // 尝试使用相同的缓存键格式
-            const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
-            const receipts = JSON.parse(localStorage.getItem(cacheKey) || []);
-            
-            console.log(`查找缓存键: ${cacheKey}`);
-            console.log(`找到收据数量: ${receipts.length}`);
-            console.log(`缓存内容:`, receipts);
-            
-            return {
-                receipts: receipts,
-                cacheKey: cacheKey,
-                date: today,
-                systemId: SYSTEM_ID
-            };
-        }
-
-        function clearDailyCache(date = null) {
-            const SYSTEM_ID = getCurrentSystemId();
-            const today = date || new Date().toISOString().split('T')[0];
-            
-            const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
-            localStorage.removeItem(cacheKey);
-            console.log(`已清空 ${today} 的缓存数据`);
-        }
-
-        function loadDailyReceipts() {
-            const selectedDate = document.getElementById('datePicker').value || 
-                               new Date().toISOString().split('T')[0];
-            const paymentFilter = document.getElementById('paymentFilter').value;
-            
-            const result = getDailyCachedReceipts(selectedDate);
-            const receipts = result.receipts;
-            
-            console.log(`从缓存获取的数据:`, receipts);
-            
-            // 更新调试信息
-            document.getElementById('debugOutput').innerHTML = `
-                日期: ${result.date}<br>
-                系统ID: ${result.systemId}<br>
-                缓存键: ${result.cacheKey}<br>
-                找到收据数量: ${receipts.length}<br>
-                过滤条件: ${paymentFilter || '无'}<br>
-                缓存键是否存在: ${localStorage.getItem(result.cacheKey) ? '是' : '否'}<br>
-                所有localStorage键: ${Object.keys(localStorage).join(', ')}
-            `;
-            
-            // 根据付款方式筛选收据
-            let filteredReceipts = receipts;
-            if (paymentFilter) {
-                filteredReceipts = receipts.filter(item => 
-                    (item.receiptData.paymentMethod || 'Cash').toLowerCase() === paymentFilter.toLowerCase()
-                );
-            }
-            
-            if (filteredReceipts.length === 0) {
-                document.getElementById('receiptList').innerHTML = '<p>该日期没有符合条件的收据记录</p>';
-                document.getElementById('summaryTable').innerHTML = '';
-                document.getElementById('paymentBreakdown').innerHTML = '';
+        function renderSummary(receipts, date) {
+            if (!receipts || receipts.length === 0) {
+                document.getElementById('summaryContainer').innerHTML = '<div class="no-data">该日期没有数据</div>';
                 return;
             }
 
-            let html = `<h2>${selectedDate} 日收据汇总 (${filteredReceipts.length} 张) - ${paymentFilter ? paymentFilter : '全部'}</h2>`;
-            
+            // 统计各项数据
             let totalAmount = 0;
-            filteredReceipts.forEach((item, index) => {
-                const receiptData = item.receiptData;
-                const time = new Date(item.timestamp).toLocaleTimeString();
+            let paymentMethods = {};
+            let itemCounts = {};
+            let receiptCount = receipts.length;
+
+            receipts.forEach(receipt => {
+                const data = receipt.receiptData;
                 
-                html += `
-                    <div class="receipt-item">
-                        <h4>收据 #${index + 1} - ${time}</h4>
-                        <p><strong>收据号:</strong> ${receiptData.receiptNo || 'N/A'}</p>
-                        <p><strong>付款方式:</strong> ${receiptData.paymentMethod || 'Cash'}</p>
-                        <p><strong>主祈者:</strong> ${receiptData.name || 'N/A'}</p>
-                        <p><strong>电话:</strong> ${receiptData.phone || 'N/A'}</p>
-                        <p><strong>法会类型:</strong> ${receiptData.festival || 'N/A'}</p>
-                        <p><strong>报名供养金:</strong> RM ${(receiptData.donation || 0).toFixed(2)}</p>
-                        <p><strong>总金额:</strong> RM ${receiptData.total || '0.00'}</p>
-                        
-                        <!-- 超度详情 -->
-                        ${renderFestivalDetails(receiptData)}
-                    </div>
-                `;
+                // 总金额
+                totalAmount += parseFloat(data.total || 0);
                 
-                totalAmount += parseFloat(receiptData.total || 0);
-            });
-
-            // 生成汇总表（基于筛选后的收据）
-            const summaryHtml = generateSummaryTable(filteredReceipts);
-            
-            // 生成付款方式分类表（基于原始收据）
-            const paymentBreakdownHtml = generatePaymentBreakdown(receipts);
-
-            document.getElementById('receiptList').innerHTML = html;
-            document.getElementById('summaryTable').innerHTML = summaryHtml;
-            document.getElementById('paymentBreakdown').innerHTML = paymentBreakdownHtml;
-
-            // 更新日期选择器
-            document.getElementById('datePicker').value = selectedDate;
-        }
-
-        function renderFestivalDetails(receiptData) {
-            const priceMap = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
-            const nameMap = { 
-                token: "超度令牌", 
-                boat: "法船配套", 
-                lotus: "莲花", 
-                paper3: "纸金 3", 
-                paper6: "纸金 6", 
-                paper27: "纸金 27" 
-            };
-
-            let detailsHTML = '<div><strong>超度项目:</strong><br>';
-            let hasItems = false;
-
-            ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
-                if (receiptData[group] && Array.isArray(receiptData[group])) {
-                    receiptData[group].forEach(item => {
+                // 付款方式统计
+                const method = data.paymentMethod || 'Cash';
+                paymentMethods[method] = (paymentMethods[method] || 0) + 1;
+                
+                // 物品数量统计
+                ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
+                    (data[group] || []).forEach(item => {
                         Object.entries(item).forEach(([key, value]) => {
-                            if (value && value != '0' && priceMap[key]) {
+                            if (value) {
                                 const quantity = parseFloat(value);
-                                if (!isNaN(quantity) && quantity > 0) {
-                                    detailsHTML += `<p>&nbsp;&nbsp;${nameMap[key]}: ${quantity} ${getUnit(key)} (RM ${(quantity * priceMap[key]).toFixed(2)})</p>`;
-                                    hasItems = true;
+                                if (!isNaN(quantity)) {
+                                    itemCounts[key] = (itemCounts[key] || 0) + quantity;
                                 }
                             }
                         });
                     });
-                }
-            });
-            
-            if (!hasItems) {
-                detailsHTML += '<p>&nbsp;&nbsp;无额外项目</p>';
-            }
-            
-            detailsHTML += '</div>';
-            return detailsHTML;
-        }
-
-        function getUnit(key) {
-            switch(key) {
-                case 'lotus': return '朵';
-                case 'boat': return '套';
-                case 'paper3': case 'paper6': case 'paper27': return '份';
-                default: return '个';
-            }
-        }
-
-        function generateSummaryTable(receipts) {
-            // 统计各项数量和金额
-            let token = 0, boat = 0, lotus = 0, paper3 = 0, paper6 = 0, paper27 = 0;
-            let donationTotal = 0;
-            let totalAmount = 0;
-            let receiptCount = 0;
-
-            receipts.forEach(item => {
-                const data = item.receiptData;
-                
-                // 统计各项物品数量
-                ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
-                    if (data[group] && Array.isArray(data[group])) {
-                        data[group].forEach(item => {
-                            Object.entries(item).forEach(([key, value]) => {
-                                const quantity = parseFloat(value);
-                                if (!isNaN(quantity) && quantity > 0) {
-                                    switch(key) {
-                                        case 'token': token += quantity; break;
-                                        case 'boat': boat += quantity; break;
-                                        case 'lotus': lotus += quantity; break;
-                                        case 'paper3': paper3 += quantity; break;
-                                        case 'paper6': paper6 += quantity; break;
-                                        case 'paper27': paper27 += quantity; break;
-                                    }
-                                }
-                            });
-                        });
-                    }
                 });
-                
-                // 统计报名费
-                donationTotal += parseFloat(data.donation || 0);
-                totalAmount += parseFloat(data.total || 0);
-                receiptCount++;
             });
 
-            const tokenAmt = token * 5;
-            const boatAmt = boat * 30;
-            const lotusAmt = lotus * 6;
-            const paper3Amt = paper3 * 3;
-            const paper6Amt = paper6 * 6;
-            const paper27Amt = paper27 * 27;
-
-            return `
-                <table class="summary-table">
-                    <thead>
-                        <tr>
-                            <th>统计项目</th>
-                            <th>数量</th>
-                            <th>单价</th>
-                            <th>金额 (RM)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>超度令牌</td>
-                            <td>${token}</td>
-                            <td>5</td>
-                            <td>${tokenAmt.toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <td>法船配套</td>
-                            <td>${boat}</td>
-                            <td>30</td>
-                            <td>${boatAmt.toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <td>莲花</td>
-                            <td>${lotus}</td>
-                            <td>6</td>
-                            <td>${lotusAmt.toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <td>纸金 3</td>
-                            <td>${paper3}</td>
-                            <td>3</td>
-                            <td>${paper3Amt.toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <td>纸金 6</td>
-                            <td>${paper6}</td>
-                            <td>6</td>
-                            <td>${paper6Amt.toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <td>纸金 27</td>
-                            <td>${paper27}</td>
-                            <td>27</td>
-                            <td>${paper27Amt.toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <td>报名供养金</td>
-                            <td>-</td>
-                            <td>-</td>
-                            <td>${donationTotal.toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <td>收据张数</td>
-                            <td>${receiptCount}</td>
-                            <td>-</td>
-                            <td>-</td>
-                        </tr>
-                        <tr class="total-row">
-                            <td colspan="3">总收入</td>
-                            <td>${totalAmount.toFixed(2)}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function generatePaymentBreakdown(receipts) {
-            const paymentBreakdown = {};
-            
-            receipts.forEach(item => {
-                const paymentMethod = item.receiptData.paymentMethod || 'Cash';
-                const amount = parseFloat(item.receiptData.total || 0);
-                
-                if (!paymentBreakdown[paymentMethod]) {
-                    paymentBreakdown[paymentMethod] = 0;
-                }
-                paymentBreakdown[paymentMethod] += amount;
-            });
-
-            if (Object.keys(paymentBreakdown).length === 0) {
-                return '';
-            }
-
-            let rows = '';
-            let totalAmount = 0;
-            for (const [method, amount] of Object.entries(paymentBreakdown)) {
-                rows += `
-                    <tr>
-                        <td>${method}</td>
-                        <td>RM ${amount.toFixed(2)}</td>
-                    </tr>
-                `;
-                totalAmount += amount;
-            }
-
-            return `
-                <div class="payment-breakdown">
-                    <h3>付款方式分类</h3>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>付款方式</th>
-                                <th>金额</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows}
-                            <tr class="total-row">
-                                <td><strong>总计</strong></td>
-                                <td><strong>RM ${totalAmount.toFixed(2)}</strong></td>
-                            </tr>
-                        </tbody>
-                    </table>
+            // 渲染汇总卡片
+            let summaryHTML = `
+                <div class="summary-card">
+                    <div class="summary-header">
+                        <h3>汇总信息 - ${date}</h3>
+                        <span>共 ${receiptCount} 笔记录</span>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-item">
+                            <h4>总金额</h4>
+                            <p style="color: #007bff; font-size: 20px;">RM ${totalAmount.toFixed(2)}</p>
+                        </div>
+                        <div class="summary-item">
+                            <h4>收据数量</h4>
+                            <p style="color: #28a745; font-size: 20px;">${receiptCount}</p>
+                        </div>
+                    </div>
                 </div>
             `;
-        }
 
-        function printSummary() {
-            window.print();
-        }
-
-        function clearCache() {
-            if (confirm('确定要清空今日缓存数据吗？此操作不可恢复！')) {
-                const selectedDate = document.getElementById('datePicker').value || 
-                                   new Date().toISOString().split('T')[0];
-                clearDailyCache(selectedDate);
-                alert('缓存已清空！');
+            // 付款方式统计
+            if (Object.keys(paymentMethods).length > 0) {
+                summaryHTML += `
+                    <div class="summary-card">
+                        <div class="summary-header">
+                            <h3>付款方式统计</h3>
+                        </div>
+                        <div class="summary-content">
+                `;
+                Object.entries(paymentMethods).forEach(([method, count]) => {
+                    summaryHTML += `
+                        <div class="summary-item">
+                            <h4>${method}</h4>
+                            <p>${count} 次</p>
+                        </div>
+                    `;
+                });
+                summaryHTML += '</div></div>';
             }
+
+            // 物品数量统计
+            const itemNameMap = { token: "超度令牌", boat: "法船配套", lotus: "莲花", paper3: "纸金 3", paper6: "纸金 6", paper27: "纸金 27" };
+            if (Object.keys(itemCounts).length > 0) {
+                summaryHTML += `
+                    <div class="summary-card">
+                        <div class="summary-header">
+                            <h3>物品销售统计</h3>
+                        </div>
+                        <div class="summary-content">
+                `;
+                Object.entries(itemCounts).forEach(([item, count]) => {
+                    summaryHTML += `
+                        <div class="summary-item">
+                            <h4>${itemNameMap[item] || item}</h4>
+                            <p>${count} 个</p>
+                        </div>
+                    `;
+                });
+                summaryHTML += '</div></div>';
+            }
+
+            // 详细收据列表
+            summaryHTML += `
+                <div class="summary-card">
+                    <div class="summary-header">
+                        <h3>收据详情</h3>
+                    </div>
+                    <div class="receipt-list" id="receiptList">
+            `;
+
+            receipts.forEach((receipt, index) => {
+                const data = receipt.receiptData;
+                const timestamp = new Date(receipt.timestamp).toLocaleString();
+                
+                summaryHTML += `
+                    <div class="receipt-item" data-index="${index}">
+                        <strong>${data.receiptNo || 'N/A'}</strong> - 
+                        ${data.name || '未填写'} - 
+                        ${data.phone || '未填写'} - 
+                        ${data.paymentMethod || 'Cash'} - 
+                        RM ${data.total || '0.00'} - 
+                        <small>${timestamp}</small>
+                    </div>
+                `;
+            });
+
+            summaryHTML += '</div></div>';
+
+            document.getElementById('summaryContainer').innerHTML = summaryHTML;
         }
 
-        function exportToExcel() {
-            alert('Excel导出功能待实现');
-        }
-
-        // 页面加载时设置默认日期
-        window.onload = function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('datePicker').value = today;
+        function filterReceipts() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const receiptItems = document.querySelectorAll('.receipt-item');
             
-            // 尝试加载今天的收据
-            console.log('页面加载完成，等待点击加载按钮...');
-        };
+            receiptItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            });
+        }
+
+        function exportToCSV() {
+            if (!allReceipts || allReceipts.length === 0) {
+                alert('没有数据可导出');
+                return;
+            }
+
+            const headers = ['时间戳', '收据号', '姓名', '电话', '法会类型', '付款方式', '总金额', '超度令牌', '法船配套', '莲花', '纸金3', '纸金6', '纸金27'];
+            
+            let csvContent = headers.join(',') + '\n';
+            
+            allReceipts.forEach(receipt => {
+                const data = receipt.receiptData;
+                const timestamp = new Date(receipt.timestamp).toLocaleString();
+                
+                // 计算各类物品数量
+                let tokenCount = 0, boatCount = 0, lotusCount = 0, paper3Count = 0, paper6Count = 0, paper27Count = 0;
+                
+                ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
+                    (data[group] || []).forEach(item => {
+                        Object.entries(item).forEach(([key, value]) => {
+                            const quantity = parseFloat(value);
+                            if (!isNaN(quantity)) {
+                                switch(key) {
+                                    case 'token': tokenCount += quantity; break;
+                                    case 'boat': boatCount += quantity; break;
+                                    case 'lotus': lotusCount += quantity; break;
+                                    case 'paper3': paper3Count += quantity; break;
+                                    case 'paper6': paper6Count += quantity; break;
+                                    case 'paper27': paper27Count += quantity; break;
+                                }
+                            }
+                        });
+                    });
+                });
+                
+                const row = [
+                    `"${timestamp}"`,
+                    `"${data.receiptNo || ''}"`,
+                    `"${data.name || ''}"`,
+                    `"${data.phone || ''}"`,
+                    `"${data.festival || ''}"`,
+                    `"${data.paymentMethod || ''}"`,
+                    `"${data.total || '0.00'}"`,
+                    `"${tokenCount}"`,
+                    `"${boatCount}"`,
+                    `"${lotusCount}"`,
+                    `"${paper3Count}"`,
+                    `"${paper6Count}"`,
+                    `"${paper27Count}"`
+                ];
+                
+                csvContent += row.join(',') + '\n';
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            const date = document.getElementById('dateInput').value;
+            link.setAttribute('href', url);
+            link.setAttribute('download', `超度法会汇总_${date}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>
