@@ -2,16 +2,64 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>超度法会 - 3列小票（打印专用）</title>
+    <title>超度法会 - 3列小票打印</title>
     <style>
+        @media screen {
+            body {
+                font-family: 'Microsoft YaHei', Arial, sans-serif;
+                margin: 0;
+                padding: 20px;
+                background-color: #f8f9fa;
+            }
+            .container {
+                max-width: 1000px;
+                margin: 0 auto;
+                background: white;
+                padding: 15px;
+                border-radius: 6px;
+                box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+            }
+            .controls {
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            .controls input, .controls select {
+                padding: 6px 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 14px;
+            }
+            .controls button {
+                padding: 6px 12px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                margin: 0 5px;
+                font-size: 14px;
+            }
+            .btn-print { background: #28a745; color: white; }
+            .btn-refresh { background: #6c757d; color: white; }
+            .status {
+                text-align: center;
+                padding: 10px;
+                margin: 10px 0;
+                border-radius: 4px;
+            }
+            .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+            .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        }
+
         @media print {
             body {
                 margin: 0;
                 padding: 0;
                 background: white;
             }
-
-            /* 关键：强制A4纸张尺寸 */
+            .container, .controls, .status {
+                display: none !important;
+            }
+            
+            /* 强制A4纸张尺寸 */
             .page {
                 width: 210mm;
                 height: 297mm;
@@ -20,7 +68,7 @@
                 box-sizing: border-box;
                 page-break-after: always;
             }
-
+            
             /* 使用 CSS Grid 实现精确3列 */
             .grid-3 {
                 display: grid;
@@ -44,71 +92,217 @@
             .ticket * {
                 font-size: 8pt !important;
             }
-
-            /* 隐藏所有非打印元素 */
-            .screen-only { display: none; }
-        }
-
-        /* 屏幕样式（仅用于调试） */
-        @media screen {
-            body { font-family: sans-serif; }
-            .screen-only { display: block; }
         }
     </style>
 </head>
 <body>
-    <!-- 屏幕控件 -->
-    <div class="screen-only" style="padding: 20px; text-align:center;">
-        <h2>打印专用版 - 请按 Ctrl+P 打印</h2>
-        <p>✅ 已验证：Chrome 打印预览中严格横排3列</p>
-        <button onclick="window.print()">🖨️ 打印小票</button>
-    </div>
-
-    <!-- 打印内容 -->
-    <div class="page">
-        <div class="grid-3">
-            <!-- 小票1 -->
-            <div class="ticket">
-                <div style="text-align:center;font-weight:bold;">MLTS-2604-0001</div>
-                <p>胡爱平</p>
-                <p>电: 6y0198893200</p>
-                <p>付: Cash</p>
-                <p>报名 2026 年 中元节 超度法会</p>
-                <p>令牌 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 5.00</p>
-                <p>纸金27 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 27.00</p>
-                <p>供养金 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 5.00</p>
-                <p style="font-weight:bold;margin-top:2mm;">总计 RM 37.00</p>
-            </div>
-
-            <!-- 小票2 -->
-            <div class="ticket">
-                <div style="text-align:center;font-weight:bold;">MLTS-2604-0002</div>
-                <p>林美玲</p>
-                <p>电: 6y0198893201</p>
-                <p>付: Transfer</p>
-                <p>报名 2026 年 中元节 超度法会</p>
-                <p>令牌 2 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 10.00</p>
-                <p>纸金27 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 27.00</p>
-                <p>供养金 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 8.00</p>
-                <p style="font-weight:bold;margin-top:2mm;">总计 RM 45.00</p>
-            </div>
-
-            <!-- 小票3 -->
-            <div class="ticket">
-                <div style="text-align:center;font-weight:bold;">MLTS-2604-0003</div>
-                <p>陈志强</p>
-                <p>电: 6y0198893202</p>
-                <p>付: Cash</p>
-                <p>报名 2026 年 中元节 超度法会</p>
-                <p>法船 1 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 30.00</p>
-                <p>莲花 2 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 12.00</p>
-                <p>供养金 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM 5.00</p>
-                <p style="font-weight:bold;margin-top:2mm;">总计 RM 47.00</p>
-            </div>
+    <div class="container">
+        <div class="controls">
+            <label for="dateInput">选择日期: </label>
+            <input type="date" id="dateInput">
+            
+            <label for="systemSelect">系统: </label>
+            <select id="systemSelect">
+                <option value="festival_system">超度法会</option>
+                <option value="other_system">其他系统</option>
+            </select>
+            
+            <button class="btn-refresh" onclick="loadDailySummary()">加载数据</button>
+            <button class="btn-print" onclick="window.print()">打印小票</button>
+        </div>
+        
+        <div id="statusMessage" class="status" style="display: none;"></div>
+        
+        <div id="previewArea">
+            <p style="text-align: center; color: #666;">请选择日期加载数据</p>
         </div>
     </div>
 
-    <!-- 可选：添加更多页 -->
-    <!-- <div class="page">...</div> -->
+    <!-- 打印区域 -->
+    <div id="printArea"></div>
+
+    <script>
+        let allReceipts = [];
+        let SYSTEM_ID = 'festival_system';
+
+        // 初始化日期选择器为今天
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateInput').value = today;
+        });
+
+        function showStatus(message, isError = false) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = `status ${isError ? 'error' : 'success'}`;
+            statusEl.style.display = 'block';
+            
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 3000);
+        }
+
+        function getCacheKey(date) {
+            return `daily_receipts_${date}_${SYSTEM_ID}`;
+        }
+
+        function loadDailySummary() {
+            const dateInput = document.getElementById('dateInput').value;
+            const systemSelect = document.getElementById('systemSelect').value;
+            
+            if (!dateInput) {
+                showStatus('请先选择日期', true);
+                return;
+            }
+            
+            SYSTEM_ID = systemSelect;
+            const cacheKey = getCacheKey(dateInput);
+            
+            const previewArea = document.getElementById('previewArea');
+            previewArea.innerHTML = '<p style="text-align: center; color: #666;">正在加载数据...</p>';
+            
+            try {
+                const cachedData = localStorage.getItem(cacheKey);
+                if (cachedData) {
+                    const receipts = JSON.parse(cachedData);
+                    allReceipts = receipts;
+                    showStatus(`成功加载 ${receipts.length} 条记录`);
+                    renderPreview(receipts);
+                    renderPrintArea(receipts);
+                } else {
+                    previewArea.innerHTML = '<p style="text-align: center; color: #999;">该日期没有数据</p>';
+                    document.getElementById('printArea').innerHTML = '';
+                    showStatus('该日期没有数据', true);
+                }
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                previewArea.innerHTML = `<p style="text-align: center; color: #d32f2f;">加载失败: ${error.message}</p>`;
+                document.getElementById('printArea').innerHTML = '';
+                showStatus(`加载失败: ${error.message}`, true);
+            }
+        }
+
+        function renderPreview(receipts) {
+            if (!receipts || receipts.length === 0) {
+                document.getElementById('previewArea').innerHTML = '<p style="text-align: center; color: #999;">无数据</p>';
+                return;
+            }
+
+            let html = `<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">`;
+            receipts.slice(0, 6).forEach((receipt, i) => {
+                const data = receipt.receiptData;
+                html += `<div style="width: 85px; border: 1px solid #ccc; padding: 5px; font-size: 10px;">
+                    <div style="font-weight: bold; text-align: center;">${data.receiptNo || 'N/A'}</div>
+                    <div>${data.name || '未填'}</div>
+                    <div>RM ${parseFloat(data.total || 0).toFixed(2)}</div>
+                </div>`;
+            });
+            html += '</div>';
+            document.getElementById('previewArea').innerHTML = html;
+        }
+
+        function renderPrintArea(receipts) {
+            if (!receipts || receipts.length === 0) {
+                document.getElementById('printArea').innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            // 按每页最多30张分页
+            for (let i = 0; i < receipts.length; i += 30) {
+                const pageReceipts = receipts.slice(i, i + 30);
+                html += `<div class="page"><div class="grid-3">`;
+                
+                pageReceipts.forEach(receipt => {
+                    html += renderCompactReceiptCard(receipt.receiptData);
+                });
+                
+                html += `</div></div>`;
+            }
+            
+            document.getElementById('printArea').innerHTML = html;
+        }
+
+        function renderCompactReceiptCard(data) {
+            const currentYear = new Date().getFullYear();
+            
+            // 从缓存数据中提取法会信息
+            const festivalInfo = data.festival || "中元节";
+            
+            // 计算总金额和物品数量
+            let total = parseFloat(data.donation || 0);
+            const priceMap = { 
+                token: 5, boat: 30, lotus: 6, 
+                paper3: 3, paper6: 6, paper27: 27 
+            };
+            const nameMap = { 
+                token: "令牌", boat: "法船", lotus: "莲花", 
+                paper3: "纸金3", paper6: "纸金6", paper27: "纸金27" 
+            };
+            const items = [];
+
+            ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
+                (data[group] || []).forEach(item => {
+                    Object.entries(item).forEach(([key, value]) => {
+                        if (value && priceMap[key]) {
+                            const quantity = parseFloat(value);
+                            if (!isNaN(quantity) && quantity > 0) {
+                                const subtotal = quantity * priceMap[key];
+                                items.push({
+                                    name: nameMap[key],
+                                    qty: quantity,
+                                    price: subtotal
+                                });
+                                total += subtotal;
+                            }
+                        }
+                    });
+                });
+            });
+
+            // 构建小票HTML
+            let card = `
+                <div class="ticket">
+                    <div style="text-align:center;font-weight:bold;font-size:8pt;">
+                        ${data.receiptNo || "N/A"}
+                    </div>
+                    
+                    <p style="margin: 0.5mm 0; font-size:8pt;"><strong>${data.name || "未填写"}</strong></p>
+                    <p style="margin: 0.5mm 0; font-size:8pt;">电: ${data.phone || ""}</p>
+                    <p style="margin: 0.5mm 0; font-size:8pt;">付: ${data.paymentMethod || "Cash"}</p>
+                    <p style="margin: 0.5mm 0; font-size:8pt;">报名 ${currentYear} 年 ${festivalInfo} 超度法会</p>
+            `;
+
+            // 添加物品列表
+            if (items.length > 0) {
+                items.forEach(item => {
+                    card += `
+                        <p style="margin: 0.5mm 0; font-size:8pt;">
+                            ${item.name} x ${item.qty} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM ${item.price.toFixed(2)}
+                        </p>
+                    `;
+                });
+            }
+
+            // 添加供养金（如果存在）
+            if (parseFloat(data.donation || 0) > 0) {
+                card += `
+                    <p style="margin: 0.5mm 0; font-size:8pt;">
+                        供养金 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM ${parseFloat(data.donation || 0).toFixed(2)}
+                    </p>
+                `;
+            }
+
+            // 添加总计
+            card += `
+                <p style="margin: 2mm 0 0 0; font-weight:bold; font-size:8pt; border-top: 1px solid #000; padding-top: 1mm;">
+                    总计 RM ${total.toFixed(2)}
+                </p>
+            `;
+
+            card += `</div>`;
+            return card;
+        }
+    </script>
 </body>
 </html>
