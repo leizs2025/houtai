@@ -28,6 +28,7 @@
                 border: 1px solid #ddd;
                 border-radius: 4px;
                 font-size: 14px;
+                margin: 0 5px;
             }
             .controls button {
                 padding: 6px 12px;
@@ -38,7 +39,9 @@
                 font-size: 14px;
             }
             .btn-print { background: #28a745; color: white; }
-            .btn-refresh { background: #6c757d; color: white; }
+            .btn-refresh { background: #007bff; color: white; }
+            .btn-clear { background: #dc3545; color: white; }
+            .btn-cache { background: #ffc107; color: #212529; }
             .status {
                 text-align: center;
                 padding: 10px;
@@ -47,6 +50,12 @@
             }
             .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
             .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+            .cache-info {
+                background-color: #e7f3ff;
+                padding: 10px;
+                border-radius: 4px;
+                margin: 10px 0;
+            }
         }
 
         @media print {
@@ -55,7 +64,7 @@
                 padding: 0;
                 background: white;
             }
-            .container, .controls, .status {
+            .container, .controls, .status, .cache-info {
                 display: none !important;
             }
             
@@ -107,11 +116,19 @@
                 <option value="other_system">其他系统</option>
             </select>
             
+            <br><br>
             <button class="btn-refresh" onclick="loadDailySummary()">加载数据</button>
             <button class="btn-print" onclick="window.print()">打印小票</button>
+            <button class="btn-clear" onclick="confirmClearCache()">清除今日缓存</button>
+            <button class="btn-cache" onclick="showCacheInfo()">查看缓存信息</button>
         </div>
         
         <div id="statusMessage" class="status" style="display: none;"></div>
+        
+        <div id="cacheInfo" class="cache-info" style="display: none;">
+            <h3>缓存信息</h3>
+            <div id="cacheDetails"></div>
+        </div>
         
         <div id="previewArea">
             <p style="text-align: center; color: #666;">请选择日期加载数据</p>
@@ -180,6 +197,70 @@
                 document.getElementById('printArea').innerHTML = '';
                 showStatus(`加载失败: ${error.message}`, true);
             }
+        }
+
+        function confirmClearCache() {
+            const dateInput = document.getElementById('dateInput').value;
+            const systemSelect = document.getElementById('systemSelect').value;
+            
+            if (!dateInput) {
+                showStatus('请先选择日期', true);
+                return;
+            }
+            
+            const cacheKey = getCacheKey(dateInput);
+            
+            if (allReceipts.length > 0) {
+                if (confirm(`确定要清除 ${dateInput} 的 ${allReceipts.length} 条记录吗？\n此操作不可恢复！`)) {
+                    localStorage.removeItem(cacheKey);
+                    showStatus(`${dateInput} 的缓存已清除`);
+                    document.getElementById('previewArea').innerHTML = '<p style="text-align: center; color: #999;">缓存已清除</p>';
+                    document.getElementById('printArea').innerHTML = '';
+                    allReceipts = [];
+                }
+            } else {
+                // 尝试清除缓存中的数据
+                const cachedData = localStorage.getItem(cacheKey);
+                if (cachedData) {
+                    if (confirm(`确定要清除 ${dateInput} 的缓存数据吗？\n此操作不可恢复！`)) {
+                        localStorage.removeItem(cacheKey);
+                        showStatus(`${dateInput} 的缓存已清除`);
+                        document.getElementById('previewArea').innerHTML = '<p style="text-align: center; color: #999;">缓存已清除</p>';
+                        document.getElementById('printArea').innerHTML = '';
+                    }
+                } else {
+                    showStatus(`${dateInput} 没有缓存数据`, true);
+                }
+            }
+        }
+
+        function showCacheInfo() {
+            const cacheInfoDiv = document.getElementById('cacheInfo');
+            const cacheDetails = document.getElementById('cacheDetails');
+            
+            // 获取所有相关缓存键
+            const keys = Object.keys(localStorage);
+            const relevantKeys = keys.filter(key => key.includes('daily_receipts'));
+            
+            if (relevantKeys.length === 0) {
+                cacheDetails.innerHTML = '<p>没有找到缓存数据</p>';
+            } else {
+                let html = '<ul style="text-align: left;">';
+                relevantKeys.forEach(key => {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        const count = Array.isArray(data) ? data.length : 0;
+                        const date = key.match(/daily_receipts_(.+?)_/)?.[1] || 'Unknown';
+                        html += `<li>${key}: ${count} 条记录 (${date})</li>`;
+                    } catch (e) {
+                        html += `<li>${key}: 解析失败</li>`;
+                    }
+                });
+                html += '</ul>';
+                cacheDetails.innerHTML = html;
+            }
+            
+            cacheInfoDiv.style.display = 'block';
         }
 
         function renderPreview(receipts) {
@@ -273,13 +354,14 @@
                     <p style="margin: 0.5mm 0; font-size:8pt;">报名 ${currentYear} 年 ${festivalInfo} 超度法会</p>
             `;
 
-            // 添加物品列表
+            // 添加物品列表（金额靠右）
             if (items.length > 0) {
                 items.forEach(item => {
                     card += `
-                        <p style="margin: 0.5mm 0; font-size:8pt;">
-                            ${item.name} x ${item.qty} &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM ${item.price.toFixed(2)}
-                        </p>
+                        <div style="display: flex; justify-content: space-between; margin: 0.5mm 0; font-size:8pt;">
+                            <span>${item.name} x ${item.qty}</span>
+                            <span>RM ${item.price.toFixed(2)}</span>
+                        </div>
                     `;
                 });
             }
@@ -287,17 +369,21 @@
             // 添加供养金（如果存在）
             if (parseFloat(data.donation || 0) > 0) {
                 card += `
-                    <p style="margin: 0.5mm 0; font-size:8pt;">
-                        供养金 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RM ${parseFloat(data.donation || 0).toFixed(2)}
-                    </p>
+                    <div style="display: flex; justify-content: space-between; margin: 0.5mm 0; font-size:8pt;">
+                        <span>供养金</span>
+                        <span>RM ${parseFloat(data.donation || 0).toFixed(2)}</span>
+                    </div>
                 `;
             }
 
             // 添加总计
             card += `
-                <p style="margin: 2mm 0 0 0; font-weight:bold; font-size:8pt; border-top: 1px solid #000; padding-top: 1mm;">
-                    总计 RM ${total.toFixed(2)}
-                </p>
+                <div style="margin: 2mm 0 0 0; font-weight:bold; font-size:8pt; border-top: 1px solid #000; padding-top: 1mm;">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>总计</span>
+                        <span>RM ${total.toFixed(2)}</span>
+                    </div>
+                </div>
             `;
 
             card += `</div>`;
