@@ -73,7 +73,7 @@
         <p>JALAN PASAI SIONG OFF 25TH MILE</p>
         <p>JALAN OYA, SIBU SARAWAK</p>
         <h2>DONATION</h2>
-        <p>CASH</p>
+        <p id="paymentMethodDisplay">CASH</p> <!-- 显示付款方式 -->
     </div>
 
     <div id="receiptInfo" class="receipt-info"></div>
@@ -174,10 +174,16 @@
         function renderReceipt(data) {
             const receiptNumber = data.receiptNo || setReceiptNumberIfEmpty();
             const currentYear = new Date().getFullYear();
+            
+            // 设置付款方式显示
+            const paymentMethod = data.paymentMethod || 'Cash'; // 默认为Cash
+            document.getElementById("paymentMethodDisplay").textContent = paymentMethod.toUpperCase();
+            
             let content = `
                 <div>
                     <p><strong>D/NO:</strong> ${receiptNumber}</p>
                     <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                    <p><strong>付款方式:</strong> ${paymentMethod}</p>
                     <p><strong>主祈者:</strong> ${data.name || "未填写"}</p>
                     <p><strong>电话:</strong> ${data.phone || "未填写"}</p>
                     <p><strong>报名 ${currentYear} 年</strong> ${data.festival || "未选择"} 超度法会</p>
