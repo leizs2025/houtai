@@ -70,8 +70,23 @@
             width: 100px;
             padding: 2px;
         }
+        .save-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+        .save-btn:hover {
+            background-color: #45a049;
+        }
         @media print {
-            .payment-select, .print-button {
+            .payment-select, .save-btn {
                 display: none !important;
             }
         }
@@ -92,6 +107,7 @@
             <option value="Cash">现金</option>
             <option value="Transfer">转账</option>
         </select>
+        <button class="save-btn" onclick="saveReceipt()">保存数据</button>
     </div>
 
     <div id="receiptInfo" class="receipt-info"></div>
@@ -103,6 +119,10 @@
     </div>
 
     <script>
+        // 全局变量存储数据
+        let currentData = {};
+        let isRendered = false;
+
         // 定义系统ID，每个实例需要设置不同的ID
         const SYSTEM_ID = getSystemId();
         
@@ -184,6 +204,7 @@
             localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
             
             console.log(`收据已缓存: ${data.receiptNo || 'N/A'}`);
+            alert('数据已保存！');
         }
 
         function renderReceipt(data) {
@@ -256,19 +277,65 @@
             `;
 
             document.getElementById("receiptInfo").innerHTML = content;
+            isRendered = true;
+        }
+
+        function saveReceipt() {
+            // 将当前选择的付款方式添加到数据中
+            const paymentMethod = document.getElementById('paymentSelect').value;
+            currentData.paymentMethod = paymentMethod;
             
-            // 将付款方式添加到数据中
-            data.paymentMethod = paymentMethod;
+            // 如果还没有收据号，生成一个
+            if (!currentData.receiptNo) {
+                currentData.receiptNo = setReceiptNumberIfEmpty();
+            }
             
-            // ✅ 缓存收据数据
-            cacheReceiptData(data);
+            // 计算总金额
+            let total = parseFloat(currentData.donation || 0);
+            const priceMap = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
+            
+            ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
+                (currentData[group] || []).forEach(item => {
+                    Object.entries(item).forEach(([key, value]) => {
+                        if (value && priceMap[key]) {
+                            const quantity = parseFloat(value);
+                            if (!isNaN(quantity)) {
+                                total += quantity * priceMap[key];
+                            }
+                        }
+                    });
+                });
+            });
+            
+            currentData.total = total.toFixed(2);
+            
+            // 缓存数据
+            cacheReceiptData(currentData);
+            
+            // 重新渲染以显示最新的付款方式
+            renderReceipt(currentData);
+        }
+
+        function printReceipt() {
+            // 确保数据已保存
+            saveReceipt();
+            setTimeout(() => window.print(), 500);
         }
 
         window.addEventListener("message", (event) => {
             try {
                 const data = JSON.parse(event.data);
+                currentData = {...data}; // 保存原始数据
                 renderReceipt(data);
-                setTimeout(() => window.print(), 500);
+                
+                // 添加打印按钮
+                const printBtn = document.createElement('button');
+                printBtn.textContent = '打印收据';
+                printBtn.className = 'save-btn';
+                printBtn.onclick = printReceipt;
+                printBtn.style.marginTop = '10px';
+                
+                document.querySelector('.payment-select').appendChild(printBtn);
             } catch (error) {
                 console.error("小票数据处理错误:", error);
             }
