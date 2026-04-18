@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日汇总 - A4小票格式</title>
+    <title>每日汇总 - 紧凑小票格式</title>
     <style>
         @media print {
             body {
@@ -45,80 +45,71 @@
             width: 210mm;
             min-height: 297mm;
             margin: 0 auto;
-            padding: 10px;
+            padding: 5px;
             background-color: white;
             box-sizing: border-box;
             font-family: Arial, sans-serif;
             page-break-after: always;
         }
         
+        .receipt-row {
+            display: flex;
+            width: 100%;
+            margin-bottom: 3px;
+        }
+        
         .receipt-container {
-            width: 80mm;
-            margin: 5px auto;
-            border: 1px solid #ccc;
-            padding: 5px;
-            font-size: 12px;
-            line-height: 1.2;
-            display: inline-block;
-            vertical-align: top;
+            width: calc(33.333% - 4px);
             margin: 2px;
+            border: 1px solid #ccc;
+            padding: 3px;
+            font-size: 10px;
+            line-height: 1.1;
         }
         
         .receipt-header {
             text-align: center;
-            border-bottom: 1px dashed #000;
-            margin-bottom: 5px;
-            padding-bottom: 5px;
-        }
-        
-        .receipt-header h3 {
-            margin: 2px 0;
-            font-size: 14px;
-        }
-        
-        .receipt-header p {
-            margin: 1px 0;
-            font-size: 10px;
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 2px;
+            padding-bottom: 2px;
+            border-bottom: 1px solid #ccc;
         }
         
         .receipt-info p {
             margin: 1px 0;
-            font-size: 11px;
         }
         
         .item-row {
             display: flex;
             align-items: center;
-            margin-bottom: 2px;
-            font-size: 10px;
+            margin-bottom: 1px;
+            font-size: 9px;
         }
         
         .label {
             flex: 2;
             text-align: left;
-            min-width: 80px;
+            min-width: 50px;
         }
         
         .formula {
             flex: 1;
             text-align: center;
-            min-width: 50px;
+            min-width: 35px;
         }
         
         .amount {
             flex: 1;
             text-align: right;
-            min-width: 40px;
+            min-width: 25px;
         }
         
-        .footer {
-            text-align: center;
-            font-size: 10px;
-            font-style: italic;
-            color: #000;
-            border-top: 1px dashed #000;
-            padding-top: 5px;
-            margin-top: 5px;
+        .total-row {
+            font-weight: bold;
+            border-top: 1px solid #ccc;
+            padding-top: 2px;
+            margin-top: 2px;
         }
         
         .date-selector {
@@ -166,17 +157,33 @@
         .summary-footer {
             text-align: center;
             font-weight: bold;
+            font-size: 12px;
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px solid #000;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        .page-header h2 {
+            margin: 0;
             font-size: 14px;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 2px solid #000;
+        }
+        
+        @media print {
+            .container, .date-selector, .btn {
+                display: none !important;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>A4汇总 - 小票格式</h1>
+            <h1>紧凑汇总 - 三列小票格式</h1>
         </div>
         
         <div class="date-selector">
@@ -218,7 +225,7 @@
                 if (cachedData) {
                     const receipts = JSON.parse(cachedData);
                     allReceipts = receipts;
-                    renderSummaryAsReceipts(receipts, dateInput);
+                    renderSummaryAsCompactReceipts(receipts, dateInput);
                 } else {
                     container.innerHTML = '<div style="text-align: center; padding: 20px;">该日期没有数据</div>';
                 }
@@ -228,7 +235,7 @@
             }
         }
 
-        function renderSummaryAsReceipts(receipts, date) {
+        function renderSummaryAsCompactReceipts(receipts, date) {
             if (!receipts || receipts.length === 0) {
                 document.getElementById('summaryContainer').innerHTML = '<div style="text-align: center; padding: 20px;">该日期没有数据</div>';
                 return;
@@ -236,8 +243,10 @@
 
             let htmlContent = '';
             
-            // 按每页最多30个小票分页
-            const receiptsPerPage = 30;
+            // 每行3个小票，每页约50行（根据A4高度调整）
+            const receiptsPerRow = 3;
+            const rowsPerPage = 50;
+            const receiptsPerPage = receiptsPerRow * rowsPerPage;
             const totalPages = Math.ceil(receipts.length / receiptsPerPage);
             
             for (let pageNum = 0; pageNum < totalPages; pageNum++) {
@@ -247,15 +256,28 @@
                 
                 // 添加页面标题
                 htmlContent += `
-                    <div style="text-align: center; margin-bottom: 10px;">
-                        <h2 style="margin: 0;">${date} - 第${pageNum + 1}页 (${pageReceipts.length} 张小票)</h2>
+                    <div class="page-header">
+                        <h2>${date} - 第${pageNum + 1}页 (${pageReceipts.length} 张小票)</h2>
                     </div>
                 `;
                 
-                // 渲染每个小票
-                pageReceipts.forEach((receipt, index) => {
-                    htmlContent += renderSingleReceipt(receipt.receiptData);
-                });
+                // 按行排列小票
+                for (let i = 0; i < pageReceipts.length; i += receiptsPerRow) {
+                    const rowReceipts = pageReceipts.slice(i, i + receiptsPerRow);
+                    
+                    htmlContent += '<div class="receipt-row">';
+                    
+                    rowReceipts.forEach(receipt => {
+                        htmlContent += renderCompactReceipt(receipt.receiptData);
+                    });
+                    
+                    // 如果这行不满3个，补充空白容器
+                    for (let j = rowReceipts.length; j < receiptsPerRow; j++) {
+                        htmlContent += '<div class="receipt-container" style="visibility: hidden;"></div>';
+                    }
+                    
+                    htmlContent += '</div>';
+                }
                 
                 // 添加页面底部汇总
                 const pageTotal = pageReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.receiptData.total || 0), 0);
@@ -264,7 +286,7 @@
                 
                 htmlContent += `
                     <div class="summary-footer">
-                        本页汇总 - 现金: ${cashCount} 张, 转账: ${transferCount} 张, 总计: RM ${pageTotal.toFixed(2)}
+                        本页汇总 - 现金: ${cashCount}, 转账: ${transferCount}, 总计: RM ${pageTotal.toFixed(2)}
                     </div>
                 `;
                 
@@ -279,32 +301,25 @@
             document.getElementById('summaryContainer').innerHTML = htmlContent;
         }
 
-        function renderSingleReceipt(data) {
+        function renderCompactReceipt(data) {
             const currentYear = new Date().getFullYear();
             
             let content = `
                 <div class="receipt-container">
                     <div class="receipt-header">
-                        <h3>PERSATUAN MIAO LI TANG SIBU</h3>
-                        <p>Tel: 013980446 (寺)</p>
-                        <p>JALAN PASAI SIONG OFF 25TH MILE</p>
-                        <p>JALAN OYA, SIBU SARAWAK</p>
-                        <h3>DONATION</h3>
+                        ${data.receiptNo || "N/A"}
                     </div>
                     
                     <div class="receipt-info">
-                        <p><strong>D/NO:</strong> ${data.receiptNo || "N/A"}</p>
-                        <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
-                        <p><strong>付款方式:</strong> ${data.paymentMethod || "Cash"}</p>
-                        <p><strong>主祈者:</strong> ${data.name || "未填写"}</p>
-                        <p><strong>电话:</strong> ${data.phone || "未填写"}</p>
-                        <p><strong>报名 ${currentYear} 年</strong> ${data.festival || "未选择"} 超度法会</p>
-                    </div>
+                        <p><strong>${data.name || "未填写"}</strong></p>
+                        <p>电: ${data.phone || ""}</p>
+                        <p>付: ${data.paymentMethod || "Cash"}</p>
+                        <p>法会: ${data.festival || ""}</p>
             `;
 
             let total = parseFloat(data.donation || 0);
             const priceMap = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
-            const nameMap = { token: "超度令牌", boat: "法船配套", lotus: "莲花", paper3: "纸金 3", paper6: "纸金 6", paper27: "纸金 27" };
+            const nameMap = { token: "令牌", boat: "法船", lotus: "莲花", paper3: "纸金3", paper6: "纸金6", paper27: "纸金27" };
             const summary = {};
 
             ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
@@ -325,11 +340,10 @@
             let items = "";
             Object.entries(summary).forEach(([key, qty]) => {
                 const subtotal = qty * priceMap[key];
-                const unit = key === 'lotus' ? '朵' : key.startsWith('paper') ? '份' : key === 'boat' ? '套' : '个';
                 items += `
                     <div class="item-row">
                         <span class="label">${nameMap[key]}</span>
-                        <span class="formula">${priceMap[key]}×${qty}</span>
+                        <span class="formula">${qty}</span>
                         <span class="amount">${subtotal.toFixed(2)}</span>
                     </div>
                 `;
@@ -338,7 +352,7 @@
             if (total > 0) {
                 items += `
                     <div class="item-row">
-                        <span class="label">超度报名供养金</span>
+                        <span class="label">供养金</span>
                         <span class="formula"></span>
                         <span class="amount">${parseFloat(data.donation || 0).toFixed(2)}</span>
                     </div>
@@ -346,15 +360,10 @@
             }
 
             content += items + `
-                    <div class="item-row" style="font-weight: bold;">
+                    <div class="item-row total-row">
                         <span class="label">总计</span>
                         <span class="formula"></span>
                         <span class="amount">RM ${total.toFixed(2)}</span>
-                    </div>
-                    
-                    <div class="footer">
-                        <p>愿一切吉祥如意，功德圆满</p>
-                        <p>欢迎再次光临</p>
                     </div>
                 </div>
             `;
