@@ -70,7 +70,7 @@
             width: 100px;
             padding: 2px;
         }
-        .save-btn {
+        .print-btn {
             background-color: #4CAF50;
             color: white;
             border: none;
@@ -82,7 +82,7 @@
             margin: 4px 2px;
             cursor: pointer;
         }
-        .save-btn:hover {
+        .print-btn:hover {
             background-color: #45a049;
         }
         .debug-info {
@@ -93,7 +93,7 @@
             font-size: 12px;
         }
         @media print {
-            .payment-select, .save-btn, .debug-info {
+            .payment-select, .print-btn, .debug-info {
                 display: none !important;
             }
         }
@@ -114,7 +114,6 @@
             <option value="Cash">现金</option>
             <option value="Transfer">转账</option>
         </select>
-        <button class="save-btn" onclick="saveReceipt()">保存数据</button>
     </div>
 
     <div class="debug-info">
@@ -252,11 +251,8 @@
                 console.log(`收据已缓存: ${data.receiptNo || 'N/A'}`);
                 console.log(`缓存键: ${cacheKey}`);
                 console.log(`缓存数据:`, cachedReceipts);
-                
-                alert(`数据已保存！\n缓存键: ${cacheKey}\n收据号: ${data.receiptNo || 'N/A'}\n总金额: RM ${receiptEntry.receiptData.total}\n系统ID: festival_system`);
             } catch (e) {
                 console.error('保存到localStorage失败:', e);
-                alert('保存失败: ' + e.message);
             }
         }
 
@@ -333,8 +329,8 @@
             isRendered = true;
         }
 
-        function saveReceipt() {
-            // 将当前选择的付款方式添加到数据中
+        function printReceipt() {
+            // 在打印之前先保存数据
             const paymentMethod = document.getElementById('paymentSelect').value;
             currentData.paymentMethod = paymentMethod;
             
@@ -354,12 +350,20 @@
             
             // 更新调试信息
             updateDebugInfo();
+            
+            // 执行打印
+            window.print();
         }
 
-        function printReceipt() {
-            // 确保数据已保存
-            saveReceipt();
-            setTimeout(() => window.print(), 500);
+        // 添加打印按钮
+        function addPrintButton() {
+            const printBtn = document.createElement('button');
+            printBtn.textContent = '打印收据';
+            printBtn.className = 'print-btn';
+            printBtn.onclick = printReceipt;
+            printBtn.style.marginTop = '10px';
+            
+            document.querySelector('.payment-select').appendChild(printBtn);
         }
 
         window.addEventListener("message", (event) => {
@@ -370,13 +374,7 @@
                 renderReceipt(data);
                 
                 // 添加打印按钮
-                const printBtn = document.createElement('button');
-                printBtn.textContent = '打印收据';
-                printBtn.className = 'save-btn';
-                printBtn.onclick = printReceipt;
-                printBtn.style.marginTop = '10px';
-                
-                document.querySelector('.payment-select').appendChild(printBtn);
+                addPrintButton();
                 
                 // 更新调试信息
                 updateDebugInfo();
