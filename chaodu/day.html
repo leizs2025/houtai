@@ -128,6 +128,12 @@
         .btn-refresh:hover {
             background-color: #545b62;
         }
+        .btn-clear {
+            background-color: #dc3545;
+        }
+        .btn-clear:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -141,6 +147,7 @@
             <input type="date" id="dateInput" onchange="loadDailySummary()">
             <button class="btn btn-refresh" onclick="loadDailySummary()">刷新</button>
             <button class="btn btn-export" onclick="exportToCSV()">导出CSV</button>
+            <button class="btn btn-clear" onclick="clearOldCache()">清理旧缓存</button>
         </div>
         
         <div class="search-box">
@@ -154,7 +161,7 @@
 
     <script>
         let allReceipts = [];
-        let SYSTEM_ID = 'festival_system'; // 与receipt.html使用相同系统ID
+        let SYSTEM_ID = 'festival_system';
 
         // 初始化日期选择器为今天
         document.addEventListener('DOMContentLoaded', function() {
@@ -162,6 +169,46 @@
             document.getElementById('dateInput').value = today;
             loadDailySummary();
         });
+
+        // 清理过期缓存的函数
+        function clearOldCache() {
+            if (!confirm('确定要清理超过7天的旧缓存数据吗？此操作不可恢复。')) {
+                return;
+            }
+            
+            const now = new Date();
+            const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+            
+            let clearedCount = 0;
+            let keysToRemove = [];
+            
+            // 查找所有以 'daily_receipts_' 开头的缓存键
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('daily_receipts_')) {
+                    // 提取日期部分 (例如从 'daily_receipts_2026-04-10_festival_system' 中提取 '2026-04-10')
+                    const parts = key.split('_');
+                    if (parts.length >= 4) { // daily_receipts_YYYY-MM-DD_system_id
+                        const datePart = `${parts[2]}-${parts[3].split('_')[0]}`;
+                        
+                        // 检查日期是否早于7天前
+                        if (datePart < sevenDaysAgoStr) {
+                            keysToRemove.push(key);
+                            clearedCount++;
+                        }
+                    }
+                }
+            }
+            
+            // 删除过期的缓存
+            keysToRemove.forEach(key => {
+                localStorage.removeItem(key);
+                console.log(`已删除过期缓存: ${key}`);
+            });
+            
+            alert(`清理完成！共删除 ${clearedCount} 个过期缓存项。`);
+        }
 
         function getCacheKey(date) {
             return `daily_receipts_${date}_${SYSTEM_ID}`;
