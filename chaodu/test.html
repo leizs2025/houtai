@@ -65,15 +65,15 @@
                 gap: 3mm;
                 width: 100%;
             }
-            .receipt-card {
-                width: 60mm; /* 精确60mm */
-                border: 1px solid #000;
-                padding: 2mm;
-                font-size: 8pt;
-                line-height: 1.1;
-                box-sizing: border-box;
-                page-break-inside: avoid;
-            }
+            /* 在 @media print 中加入 */
+.receipt-card {
+    width: 60mm;
+    /* 禁止缩放影响布局 */
+    transform: scale(1);
+    transform-origin: top left;
+    /* 使用固定像素替代 mm（更稳定） */
+    /* 注：60mm ≈ 169px @ 96dpi，但为兼容性仍保留 mm */
+}
             .receipt-header {
                 text-align: center;
                 font-weight: bold;
