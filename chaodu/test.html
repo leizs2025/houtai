@@ -2,10 +2,9 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>超度法会 - 紧凑小票打印</title>
+    <title>超度法会 - 60mm小票3列打印</title>
     <style>
-        /* 屏幕显示样式（仅用于预览） */
+        /* 屏幕样式（仅预览用） */
         @media screen {
             body {
                 font-family: 'Microsoft YaHei', Arial, sans-serif;
@@ -43,7 +42,7 @@
             .btn-refresh { background: #6c757d; color: white; }
         }
 
-        /* 打印样式 - 关键！只保留小票 */
+        /* 打印样式 */
         @media print {
             body {
                 margin: 0;
@@ -67,10 +66,10 @@
                 width: 100%;
             }
             .receipt-card {
-                width: 54mm; /* 精确控制为54mm，3列共162mm，留出边距 */
+                width: 60mm; /* 精确60mm */
                 border: 1px solid #000;
                 padding: 2mm;
-                font-size: 8.5pt;
+                font-size: 8pt;
                 line-height: 1.1;
                 box-sizing: border-box;
                 page-break-inside: avoid;
@@ -130,7 +129,6 @@
     </style>
 </head>
 <body>
-    <!-- 屏幕预览区域 -->
     <div class="container">
         <div class="controls">
             <label for="dateInput">选择日期: </label>
@@ -144,7 +142,6 @@
         </div>
     </div>
 
-    <!-- 打印区域 - 只在打印时显示 -->
     <div class="print-area" id="printArea"></div>
 
     <script>
@@ -166,7 +163,6 @@
             const dateInput = document.getElementById('dateInput').value;
             const cacheKey = getCacheKey(dateInput);
             
-            // 更新预览区域
             const previewArea = document.getElementById('previewArea');
             previewArea.innerHTML = '<p style="text-align: center; color: #666;">正在加载数据...</p>';
             
@@ -196,7 +192,7 @@
 
             let html = `<div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">`;
             receipts.slice(0, 6).forEach((receipt, i) => {
-                html += `<div style="width: 80px; border: 1px solid #ccc; padding: 5px; font-size: 10px;">
+                html += `<div style="width: 85px; border: 1px solid #ccc; padding: 5px; font-size: 10px;">
                     <div style="font-weight: bold; text-align: center;">${receipt.receiptData.receiptNo || 'N/A'}</div>
                     <div>${receipt.receiptData.name || '未填'}</div>
                     <div>RM ${parseFloat(receipt.receiptData.total || 0).toFixed(2)}</div>
@@ -224,6 +220,9 @@
 
         function renderCompactReceiptCard(data) {
             const currentYear = new Date().getFullYear();
+            
+            // 从缓存数据中提取法会信息
+            const festivalInfo = data.festival || "中元节";
             
             // 计算总金额和物品数量
             let total = parseFloat(data.donation || 0);
@@ -261,8 +260,7 @@
                         <p><strong>${data.name || "未填写"}</strong></p>
                         <p>电: ${data.phone || ""}</p>
                         <p>付: ${data.paymentMethod || "Cash"}</p>
-                        <p>法会: ${data.festival || ""}</p>
-                    </div>
+                        <p>报名 ${currentYear} 年 ${festivalInfo} 超度法会</p>
             `;
 
             // 添加物品列表
