@@ -85,15 +85,8 @@
         .print-btn:hover {
             background-color: #45a049;
         }
-        .debug-info {
-            background-color: #f0f0f0;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            font-size: 12px;
-        }
         @media print {
-            .payment-select, .print-btn, .debug-info {
+            .payment-select, .print-btn {
                 display: none !important;
             }
         }
@@ -116,11 +109,6 @@
         </select>
     </div>
 
-    <div class="debug-info">
-        <strong>调试信息:</strong><br>
-        <span id="debugText">等待接收数据...</span>
-    </div>
-
     <div id="receiptInfo" class="receipt-info"></div>
     <div id="summarySection" class="total-section"></div>
 
@@ -134,17 +122,6 @@
         let currentData = {};
         let isRendered = false;
         let SYSTEM_ID = 'festival_system'; // 固定系统ID用于测试
-
-        function updateDebugInfo() {
-            const debugText = document.getElementById('debugText');
-            debugText.innerHTML = `
-                系统ID: ${SYSTEM_ID}<br>
-                当前付款方式: ${document.getElementById('paymentSelect').value}<br>
-                收据号: ${currentData.receiptNo || '未生成'}<br>
-                总金额: ${currentData.total || '未计算'}<br>
-                数据状态: ${JSON.stringify(currentData, null, 2) || '未初始化'}
-            `;
-        }
 
         function setReceiptNumberIfEmpty() {
             const input = window.opener?.document.getElementById("receiptNumber");
@@ -216,7 +193,7 @@
                 const parsed = JSON.parse(str);
                 return Array.isArray(parsed) ? parsed : defaultValue;
             } catch (e) {
-                console.warn(`JSON解析失败，返回默认值:`, e);
+                console.warn(`JSON解析失败，返回默认值:`);
                 return defaultValue;
             }
         }
@@ -248,9 +225,6 @@
             // 保存回localStorage
             try {
                 localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
-                console.log(`收据已缓存: ${data.receiptNo || 'N/A'}`);
-                console.log(`缓存键: ${cacheKey}`);
-                console.log(`缓存数据:`, cachedReceipts);
             } catch (e) {
                 console.error('保存到localStorage失败:', e);
             }
@@ -348,9 +322,6 @@
             // 重新渲染以显示最新的付款方式
             renderReceipt(currentData);
             
-            // 更新调试信息
-            updateDebugInfo();
-            
             // 执行打印
             window.print();
         }
@@ -375,9 +346,6 @@
                 
                 // 添加打印按钮
                 addPrintButton();
-                
-                // 更新调试信息
-                updateDebugInfo();
             } catch (error) {
                 console.error("小票数据处理错误:", error);
             }
@@ -388,7 +356,6 @@
             if (isRendered) {
                 renderReceipt(currentData);
             }
-            updateDebugInfo();
         });
     </script>
 </body>
