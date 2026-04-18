@@ -134,20 +134,7 @@
         // 全局变量存储数据
         let currentData = {};
         let isRendered = false;
-        let SYSTEM_ID = '';
-
-        // 定义系统ID，每个实例需要设置不同的ID
-        function getSystemId() {
-            // 尝试从URL参数获取系统ID
-            const urlParams = new URLSearchParams(window.location.search);
-            const systemId = urlParams.get('system_id');
-            
-            if (systemId && systemId.trim()) {
-                return systemId.trim();
-            }
-            
-            return "system_1";
-        }
+        let SYSTEM_ID = 'festival_system'; // 固定系统ID用于测试
 
         function updateDebugInfo() {
             const debugText = document.getElementById('debugText');
@@ -228,8 +215,8 @@
         function cacheReceiptData(data) {
             const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
             
-            // 为超度系统使用特定的缓存键
-            const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
+            // 使用固定的系统ID
+            const cacheKey = `daily_receipts_${today}_festival_system`;
             
             // 获取现有的缓存数据
             let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey) || []);
@@ -242,7 +229,7 @@
                     paymentMethod: data.paymentMethod || 'Cash',
                     total: data.total || calculateTotal(data)
                 },
-                systemId: SYSTEM_ID
+                systemId: 'festival_system'
             };
             
             cachedReceipts.push(receiptEntry);
@@ -254,7 +241,7 @@
             console.log(`缓存键: ${cacheKey}`);
             console.log(`缓存数据:`, cachedReceipts);
             
-            alert(`数据已保存！\n缓存键: ${cacheKey}\n收据号: ${data.receiptNo || 'N/A'}\n总金额: RM ${receiptEntry.receiptData.total}`);
+            alert(`数据已保存！\n缓存键: ${cacheKey}\n收据号: ${data.receiptNo || 'N/A'}\n总金额: RM ${receiptEntry.receiptData.total}\n系统ID: festival_system`);
         }
 
         function renderReceipt(data) {
@@ -363,9 +350,6 @@
             try {
                 const data = JSON.parse(event.data);
                 currentData = {...data}; // 保存原始数据
-                
-                // 初始化系统ID
-                SYSTEM_ID = getSystemId();
                 
                 renderReceipt(data);
                 
