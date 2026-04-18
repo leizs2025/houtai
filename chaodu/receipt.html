@@ -2,254 +2,322 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=80mm">
-    <title>打印小票</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超度日汇总报表</title>
     <style>
         body {
-            width: 80mm;
             font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 10px;
+            margin: 20px;
+            font-size: 14px;
         }
         .header {
             text-align: center;
-            border-bottom: 1px dashed #000;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .receipt-item {
+            border: 1px solid #ccc;
             margin-bottom: 10px;
+            padding: 10px;
+            page-break-inside: avoid;
         }
-        .header h2 {
-            margin: 0;
-            font-size: 18px;
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
         }
-        .header p {
-            margin: 2px 0;
-            font-size: 14px;
-        }
-        .receipt-info p {
-            margin: 2px 0;
-            line-height: 1.3;
-            font-size: 15px;
-        }
-        .item-row {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-        .label {
-            flex: 2;
+        .summary-table th, .summary-table td {
+            border: 1px solid #000;
+            padding: 8px;
             text-align: left;
-            min-width: 120px;
         }
-        .formula {
-            flex: 1;
-            text-align: center;
-            min-width: 70px;
+        .summary-table th {
+            background-color: #f0f0f0;
         }
-        .amount {
-            flex: 1;
-            text-align: right;
-            min-width: 60px;
-        }
-        .footer {
-            text-align: center;
-            font-size: 14px;
-            font-style: italic;
-            color: #000;
-            border-top: 1px dashed #000;
-            padding-top: 10px;
-            margin-top: 10px;
+        .total-row {
+            font-weight: bold;
         }
         @media print {
-            .print-button {
-                display: none !important;
+            body {
+                margin: 0;
+            }
+            .no-print {
+                display: none;
             }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h2>PERSATUAN MIAO LI TANG SIBU</h2>
-        <p>Tel: 013980446 (寺)</p>
-        <p>JALAN PASAI SIONG OFF 25TH MILE</p>
-        <p>JALAN OYA, SIBU SARAWAK</p>
-        <h2>DONATION</h2>
-        <p>CASH</p>
+        <h1>超度日汇总报表</h1>
+        <div class="controls no-print">
+            <label>选择日期: <input type="date" id="datePicker"></label>
+            <button onclick="loadDailyReceipts()">加载收据</button>
+            <button onclick="printSummary()">打印汇总</button>
+            <button onclick="clearCache()">清空缓存</button>
+            <button onclick="exportToExcel()">导出Excel</button>
+        </div>
     </div>
-
-    <div id="receiptInfo" class="receipt-info"></div>
-    <div id="summarySection" class="total-section"></div>
-
-    <div class="footer">
-        <p> 愿一切吉祥如意，功德圆满 </p>
-        <p>欢迎再次光临</p>
-    </div>
+    
+    <div id="receiptList"></div>
+    <div id="summaryTable"></div>
 
     <script>
-        // 定义系统ID，每个实例需要设置不同的ID
-        // 可以从URL参数、配置或其他方式获取
-        const SYSTEM_ID = getSystemId(); // 默认为"system_1"，你可以根据实际情况修改
-        
-        function getSystemId() {
-            // 尝试从URL参数获取系统ID
+        function getCurrentSystemId() {
             const urlParams = new URLSearchParams(window.location.search);
             const systemId = urlParams.get('system_id');
-            
             if (systemId && systemId.trim()) {
                 return systemId.trim();
             }
-            
-            // 或者从其他地方获取，比如配置文件、全局变量等
-            // 这里默认返回"system_1"，实际使用时应确保每个系统实例有不同的ID
-            return "system_1"; // 请根据实际情况修改，如 "system_1", "system_2", "system_3"
+            return 'system_1';
         }
 
-        function generateReceiptNumber() {
-            const now = new Date();
-            const year = String(now.getFullYear()).slice(-2);           // "25"
-            const month = String(now.getMonth() + 1).padStart(2, '0');  // "05"
-            const ymKey = `${year}${month}`;                            // "2505"
-
-            // 使用系统特定的键名
-            const counterKey = `receiptCounter_${SYSTEM_ID}`;
-            const yearMonthKey = `receiptYearMonth_${SYSTEM_ID}`;
-
-            const storedYM = localStorage.getItem(yearMonthKey);
-
-            if (storedYM !== ymKey) {
-                localStorage.setItem(counterKey, 1);
-                localStorage.setItem(yearMonthKey, ymKey);
-            }
-
-            let counter = parseInt(localStorage.getItem(counterKey), 10);
-            if (isNaN(counter) || counter < 1) {
-                counter = 1;
-            }
-
-            const receiptNumber = `MLTS-${ymKey}-${String(counter).padStart(4, '0')}`;
-            localStorage.setItem(counterKey, counter + 1);
-            return receiptNumber;
-        }
-
-        function setReceiptNumberIfEmpty() {
-            const input = window.opener?.document.getElementById("receiptNumber");
-            const currentReceiptNo = input?.value?.trim();
+        function getDailyCachedReceipts(date = null) {
+            const SYSTEM_ID = getCurrentSystemId();
+            const today = date || new Date().toISOString().split('T')[0];
             
-            // 如果已有编号，不再生成
-            if (currentReceiptNo && currentReceiptNo !== "") {
-                return currentReceiptNo;
-            }
-
-            // 生成新的编号并保存到 input
-            const newNumber = generateReceiptNumber();
-            if (input) input.value = newNumber;
-            
-            return newNumber;
-        }
-
-        // 缓存当日收据的功能
-        function cacheReceiptData(data) {
-            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-            
-            // 为超度系统使用特定的缓存键
             const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
-            
-            // 获取现有的缓存数据
-            let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey) || []);
-            
-            // 添加当前收据数据
-            const receiptEntry = {
-                timestamp: new Date().toISOString(),
-                receiptData: data,
-                systemId: SYSTEM_ID
-            };
-            
-            cachedReceipts.push(receiptEntry);
-            
-            // 保存回localStorage
-            localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
-            
-            console.log(`收据已缓存: ${data.receiptNo || 'N/A'}`);
+            return JSON.parse(localStorage.getItem(cacheKey) || []);
         }
 
-        function renderReceipt(data) {
-            const receiptNumber = data.receiptNo || setReceiptNumberIfEmpty();
-            const currentYear = new Date().getFullYear();
-            let content = `
-                <div>
-                    <p><strong>D/NO:</strong> ${receiptNumber}</p>
-                    <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
-                    <p><strong>主祈者:</strong> ${data.name || "未填写"}</p>
-                    <p><strong>电话:</strong> ${data.phone || "未填写"}</p>
-                    <p><strong>报名 ${currentYear} 年</strong> ${data.festival || "未选择"} 超度法会</p>
-                </div>
-            `;
+        function clearDailyCache(date = null) {
+            const SYSTEM_ID = getCurrentSystemId();
+            const today = date || new Date().toISOString().split('T')[0];
+            
+            const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
+            localStorage.removeItem(cacheKey);
+            console.log(`已清空 ${today} 的缓存数据`);
+        }
 
-            let total = parseFloat(data.donation || 0);
+        function loadDailyReceipts() {
+            const selectedDate = document.getElementById('datePicker').value || 
+                               new Date().toISOString().split('T')[0];
+            const receipts = getDailyCachedReceipts(selectedDate);
+            
+            if (receipts.length === 0) {
+                document.getElementById('receiptList').innerHTML = '<p>该日期没有收据记录</p>';
+                return;
+            }
+
+            let html = `<h2>${selectedDate} 日收据汇总 (${receipts.length} 张)</h2>`;
+            
+            let totalAmount = 0;
+            receipts.forEach((item, index) => {
+                const receiptData = item.receiptData;
+                const time = new Date(item.timestamp).toLocaleTimeString();
+                
+                html += `
+                    <div class="receipt-item">
+                        <h4>收据 #${index + 1} - ${time}</h4>
+                        <p><strong>收据号:</strong> ${receiptData.receiptNo || 'N/A'}</p>
+                        <p><strong>主祈者:</strong> ${receiptData.name || 'N/A'}</p>
+                        <p><strong>电话:</strong> ${receiptData.phone || 'N/A'}</p>
+                        <p><strong>法会类型:</strong> ${receiptData.festival || 'N/A'}</p>
+                        <p><strong>报名供养金:</strong> RM ${(receiptData.donation || 0).toFixed(2)}</p>
+                        <p><strong>总金额:</strong> RM ${receiptData.total || '0.00'}</p>
+                        
+                        <!-- 超度详情 -->
+                        ${renderFestivalDetails(receiptData)}
+                    </div>
+                `;
+                
+                totalAmount += parseFloat(receiptData.total || 0);
+            });
+
+            // 生成汇总表
+            const summaryHtml = generateSummaryTable(receipts);
+
+            document.getElementById('receiptList').innerHTML = html;
+            document.getElementById('summaryTable').innerHTML = summaryHtml;
+
+            // 更新日期选择器
+            document.getElementById('datePicker').value = selectedDate;
+        }
+
+        function renderFestivalDetails(receiptData) {
             const priceMap = { token: 5, boat: 30, lotus: 6, paper3: 3, paper6: 6, paper27: 27 };
-            const nameMap = { token: "超度令牌", boat: "法船配套", lotus: "莲花", paper3: "纸金 3", paper6: "纸金 6", paper27: "纸金 27" };
-            const summary = {};
+            const nameMap = { 
+                token: "超度令牌", 
+                boat: "法船配套", 
+                lotus: "莲花", 
+                paper3: "纸金 3", 
+                paper6: "纸金 6", 
+                paper27: "纸金 27" 
+            };
+
+            let detailsHTML = '<div><strong>超度项目:</strong><br>';
+            let hasItems = false;
 
             ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
-                (data[group] || []).forEach(item => {
-                    Object.entries(item).forEach(([key, value]) => {
-                        if (value && priceMap[key]) {
-                            const quantity = parseFloat(value);
-                            if (!isNaN(quantity)) {
-                                if (!summary[key]) summary[key] = 0;
-                                summary[key] += quantity;
-                                total += quantity * priceMap[key];
+                if (receiptData[group] && Array.isArray(receiptData[group])) {
+                    receiptData[group].forEach(item => {
+                        Object.entries(item).forEach(([key, value]) => {
+                            if (value && value != '0' && priceMap[key]) {
+                                const quantity = parseFloat(value);
+                                if (!isNaN(quantity) && quantity > 0) {
+                                    detailsHTML += `<p>&nbsp;&nbsp;${nameMap[key]}: ${quantity} ${getUnit(key)} (RM ${(quantity * priceMap[key]).toFixed(2)})</p>`;
+                                    hasItems = true;
+                                }
                             }
-                        }
+                        });
                     });
-                });
+                }
             });
-
-            let items = "";
-            Object.entries(summary).forEach(([key, qty]) => {
-                const subtotal = qty * priceMap[key];
-                const unit = key === 'lotus' ? '朵' : key.startsWith('paper') ? '份' : key === 'boat' ? '套' : '个';
-                items += `
-                    <div class="item-row">
-                        <span class="label">${nameMap[key]}</span>
-                        <span class="formula">${priceMap[key]} × ${qty}</span>
-                        <span class="amount">${subtotal.toFixed(2)}</span>
-                    </div>
-                `;
-            });
-
-            if (total > 0) {
-                items += `
-                    <div class="item-row">
-                        <span class="label">超度报名供养金</span>
-                        <span class="formula"></span>
-                        <span class="amount">${parseFloat(data.donation || 0).toFixed(2)}</span>
-                    </div>
-                `;
-            }
-
-            content += items + `
-                <div class="item-row" style="font-weight: bold; margin-top: 5px;">
-                    <span class="label">总计</span>
-                    <span class="formula"></span>
-                    <span class="amount">RM ${total.toFixed(2)}</span>
-                </div>
-            `;
-
-            document.getElementById("receiptInfo").innerHTML = content;
             
-            // ✅ 缓存收据数据
-            cacheReceiptData(data);
+            if (!hasItems) {
+                detailsHTML += '<p>&nbsp;&nbsp;无额外项目</p>';
+            }
+            
+            detailsHTML += '</div>';
+            return detailsHTML;
         }
 
-        window.addEventListener("message", (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                renderReceipt(data);
-                setTimeout(() => window.print(), 500);
-            } catch (error) {
-                console.error("小票数据处理错误:", error);
+        function getUnit(key) {
+            switch(key) {
+                case 'lotus': return '朵';
+                case 'boat': return '套';
+                case 'paper3': case 'paper6': case 'paper27': return '份';
+                default: return '个';
             }
-        });
+        }
+
+        function generateSummaryTable(receipts) {
+            // 统计各项数量和金额
+            let token = 0, boat = 0, lotus = 0, paper3 = 0, paper6 = 0, paper27 = 0;
+            let donationTotal = 0;
+            let totalAmount = 0;
+            let receiptCount = 0;
+
+            receipts.forEach(item => {
+                const data = item.receiptData;
+                
+                // 统计各项物品数量
+                ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
+                    if (data[group] && Array.isArray(data[group])) {
+                        data[group].forEach(item => {
+                            Object.entries(item).forEach(([key, value]) => {
+                                const quantity = parseFloat(value);
+                                if (!isNaN(quantity) && quantity > 0) {
+                                    switch(key) {
+                                        case 'token': token += quantity; break;
+                                        case 'boat': boat += quantity; break;
+                                        case 'lotus': lotus += quantity; break;
+                                        case 'paper3': paper3 += quantity; break;
+                                        case 'paper6': paper6 += quantity; break;
+                                        case 'paper27': paper27 += quantity; break;
+                                    }
+                                }
+                            });
+                        });
+                    }
+                });
+                
+                // 统计报名费
+                donationTotal += parseFloat(data.donation || 0);
+                totalAmount += parseFloat(data.total || 0);
+                receiptCount++;
+            });
+
+            const tokenAmt = token * 5;
+            const boatAmt = boat * 30;
+            const lotusAmt = lotus * 6;
+            const paper3Amt = paper3 * 3;
+            const paper6Amt = paper6 * 6;
+            const paper27Amt = paper27 * 27;
+
+            return `
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>统计项目</th>
+                            <th>数量</th>
+                            <th>单价</th>
+                            <th>金额 (RM)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>超度令牌</td>
+                            <td>${token}</td>
+                            <td>5</td>
+                            <td>${tokenAmt.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>法船配套</td>
+                            <td>${boat}</td>
+                            <td>30</td>
+                            <td>${boatAmt.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>莲花</td>
+                            <td>${lotus}</td>
+                            <td>6</td>
+                            <td>${lotusAmt.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>纸金 3</td>
+                            <td>${paper3}</td>
+                            <td>3</td>
+                            <td>${paper3Amt.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>纸金 6</td>
+                            <td>${paper6}</td>
+                            <td>6</td>
+                            <td>${paper6Amt.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>纸金 27</td>
+                            <td>${paper27}</td>
+                            <td>27</td>
+                            <td>${paper27Amt.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>报名供养金</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>${donationTotal.toFixed(2)}</td>
+                        </tr>
+                        <tr>
+                            <td>收据张数</td>
+                            <td>${receiptCount}</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td colspan="3">总收入</td>
+                            <td>${totalAmount.toFixed(2)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function printSummary() {
+            window.print();
+        }
+
+        function clearCache() {
+            if (confirm('确定要清空今日缓存数据吗？此操作不可恢复！')) {
+                const selectedDate = document.getElementById('datePicker').value || 
+                                   new Date().toISOString().split('T')[0];
+                clearDailyCache(selectedDate);
+                alert('缓存已清空！');
+            }
+        }
+
+        function exportToExcel() {
+            alert('Excel导出功能待实现');
+        }
+
+        // 页面加载时设置默认日期
+        window.onload = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('datePicker').value = today;
+        };
     </script>
 </body>
 </html>
