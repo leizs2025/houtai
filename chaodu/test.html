@@ -202,22 +202,23 @@
                     });
                 });
 
+                // 过滤掉0值物品，只显示非0值
                 const items = [
                     `法会：${d.festival || '中元节'}`,
-                    `令牌×${token}`,
-                    `法船×${boat}`,
-                    `莲花×${lotus}`,
-                    `纸金3×${paper3}`,
-                    `纸金6×${paper6}`,
-                    `纸金27×${paper27}`,
+                    ...(token > 0 ? [`令牌×${token}`] : []),
+                    ...(boat > 0 ? [`法船×${boat}`] : []),
+                    ...(lotus > 0 ? [`莲花×${lotus}`] : []),
+                    ...(paper3 > 0 ? [`纸金3×${paper3}`] : []),
+                    ...(paper6 > 0 ? [`纸金6×${paper6}`] : []),
+                    ...(paper27 > 0 ? [`纸金27×${paper27}`] : []),
                     ...(parseFloat(d.donation || 0) > 0 ? [`供养金 RM ${parseFloat(d.donation).toFixed(2)}`] : [])
                 ].join('｜');
 
                 html += `
                     <div class="receipt-item">
                         <div class="receipt-header">
-                            <span class="receipt-no">${d.receiptNo || 'N/A'} - ${d.name || '未填写'}</span>
-                            <span class="receipt-meta">${d.paymentMethod || 'Cash'} - RM ${d.total || '0.00'} · ${new Date(receipt.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                            <span class="receipt-no">收据编号：${d.receiptNo || 'N/A'}｜阳上报恩人：${d.name || '未填写'}</span>
+                            <span class="receipt-meta">手机号：${d.phone || '未填写'}｜${d.paymentMethod || 'Cash'} - RM ${d.total || '0.00'} · ${new Date(receipt.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                         </div>
                         <div class="receipt-detail">
                             <span class="items-line">${items}</span>
