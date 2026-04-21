@@ -31,7 +31,6 @@
         .date-selector {
             margin-bottom: 10px;
             text-align: center;
-            display: none; /* 打印时不显示 */
         }
         .date-selector input {
             padding: 6px;
@@ -102,7 +101,6 @@
         .search-box {
             margin-bottom: 10px;
             text-align: center;
-            display: none; /* 打印时不显示 */
         }
         .search-box input {
             padding: 6px;
@@ -153,8 +151,11 @@
             margin: 2px 0;
         }
         
-        /* 打印样式 */
+        /* 打印样式 - 隐藏不需要打印的元素 */
         @media print {
+            .date-selector, .search-box, .btn {
+                display: none !important;
+            }
             body {
                 background-color: white;
                 padding: 0;
@@ -162,9 +163,6 @@
             .container {
                 box-shadow: none;
                 padding: 5px;
-            }
-            .date-selector, .search-box, .btn {
-                display: none !important;
             }
             .header h1 {
                 font-size: 16px;
