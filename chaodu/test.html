@@ -8,100 +8,105 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 10px;
             background-color: #f5f5f5;
         }
         .container {
             max-width: 1000px;
             margin: 0 auto;
             background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
         }
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
         .header h1 {
             color: #333;
             margin: 0;
+            font-size: 18px;
         }
         .date-selector {
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             text-align: center;
+            display: none; /* 打印时不显示 */
         }
         .date-selector input {
-            padding: 8px;
-            margin: 0 10px;
+            padding: 6px;
+            margin: 0 5px;
             border: 1px solid #ddd;
             border-radius: 4px;
         }
         .summary-card {
             background-color: #f9f9f9;
             border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 10px;
-            margin-bottom: 10px;
+            border-radius: 4px;
+            padding: 6px;
+            margin-bottom: 6px;
         }
         .summary-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 5px;
+            margin-bottom: 4px;
+            padding-bottom: 3px;
             border-bottom: 1px solid #eee;
         }
         .summary-content {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 6px;
         }
         .summary-item {
             background-color: white;
-            padding: 8px;
-            border-radius: 4px;
-            border-left: 4px solid #007bff;
-            font-size: 14px;
+            padding: 5px;
+            border-radius: 3px;
+            border-left: 3px solid #007bff;
+            font-size: 13px;
         }
         .summary-total {
             background-color: #e7f3ff;
-            padding: 12px;
-            border-radius: 8px;
-            margin-top: 15px;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
             text-align: center;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
         }
         .loading {
             text-align: center;
-            padding: 20px;
+            padding: 15px;
             color: #666;
         }
         .no-data {
             text-align: center;
-            padding: 20px;
+            padding: 15px;
             color: #999;
         }
         .receipt-list {
-            margin-top: 10px;
-            padding-top: 10px;
+            margin-top: 6px;
+            padding-top: 6px;
             border-top: 1px solid #eee;
         }
         .receipt-item {
-            padding: 8px 0;
+            padding: 4px 0;
             border-bottom: 1px solid #f0f0f0;
+            font-size: 12px;
+            line-height: 1.2;
         }
         .receipt-item:last-child {
             border-bottom: none;
         }
         .search-box {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             text-align: center;
+            display: none; /* 打印时不显示 */
         }
         .search-box input {
-            padding: 8px;
-            width: 300px;
+            padding: 6px;
+            width: 250px;
             border: 1px solid #ddd;
             border-radius: 4px;
         }
@@ -109,10 +114,11 @@
             background-color: #007bff;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
-            margin: 0 5px;
+            margin: 0 3px;
+            font-size: 12px;
         }
         .btn:hover {
             background-color: #0056b3;
@@ -136,15 +142,54 @@
             background-color: #c82333;
         }
         .detail-section {
-            margin-top: 8px;
-            padding-left: 15px;
-            font-size: 13px;
+            margin-top: 4px;
+            padding-left: 10px;
+            font-size: 11px;
             color: #555;
         }
         .detail-row {
             display: flex;
             justify-content: space-between;
-            margin: 3px 0;
+            margin: 2px 0;
+        }
+        
+        /* 打印样式 */
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 5px;
+            }
+            .date-selector, .search-box, .btn {
+                display: none !important;
+            }
+            .header h1 {
+                font-size: 16px;
+            }
+            .summary-card {
+                padding: 4px;
+                margin-bottom: 4px;
+            }
+            .summary-header {
+                margin-bottom: 3px;
+                padding-bottom: 2px;
+            }
+            .summary-item {
+                padding: 4px;
+                font-size: 12px;
+            }
+            .receipt-item {
+                padding: 3px 0;
+                font-size: 11px;
+            }
+            .detail-section {
+                font-size: 10px;
+                margin-top: 2px;
+                padding-left: 8px;
+            }
         }
     </style>
 </head>
@@ -269,17 +314,17 @@
             let summaryHTML = `
                 <div class="summary-card">
                     <div class="summary-header">
-                        <h3>汇总信息 - ${date}</h3>
-                        <span>共 ${receiptCount} 笔记录</span>
+                        <h3 style="font-size: 14px; margin: 0;">汇总信息 - ${date}</h3>
+                        <span style="font-size: 12px;">共 ${receiptCount} 笔</span>
                     </div>
                     <div class="summary-content">
                         <div class="summary-item">
-                            <h4>总金额</h4>
-                            <p style="color: #007bff; font-size: 18px;">RM ${totalAmount.toFixed(2)}</p>
+                            <h4 style="font-size: 12px; margin: 0;">总金额</h4>
+                            <p style="color: #007bff; font-size: 14px; margin: 0;">RM ${totalAmount.toFixed(2)}</p>
                         </div>
                         <div class="summary-item">
-                            <h4>收据数量</h4>
-                            <p style="color: #28a745; font-size: 18px;">${receiptCount}</p>
+                            <h4 style="font-size: 12px; margin: 0;">收据数</h4>
+                            <p style="color: #28a745; font-size: 14px; margin: 0;">${receiptCount}</p>
                         </div>
                     </div>
                 </div>
@@ -289,14 +334,14 @@
             summaryHTML += `
                 <div class="summary-card">
                     <div class="summary-header">
-                        <h3>收据详情</h3>
+                        <h3 style="font-size: 14px; margin: 0;">收据详情</h3>
                     </div>
                     <div class="receipt-list" id="receiptList">
             `;
 
             receipts.forEach((receipt, index) => {
                 const data = receipt.receiptData;
-                const timestamp = new Date(receipt.timestamp).toLocaleString();
+                const timestamp = new Date(receipt.timestamp).toLocaleTimeString();
                 
                 // 计算各类物品数量
                 let tokenCount = 0, boatCount = 0, lotusCount = 0, paper3Count = 0, paper6Count = 0, paper27Count = 0;
@@ -321,14 +366,14 @@
                 
                 summaryHTML += `
                     <div class="receipt-item" data-index="${index}">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
                                 <strong>${data.receiptNo || 'N/A'}</strong> - 
                                 ${data.name || '未填写'} - 
-                                ${data.phone || '未填写'} - 
-                                ${data.paymentMethod || 'Cash'}
+                                ${data.phone || '未填写'}
                             </div>
-                            <div>
+                            <div style="text-align: right; min-width: 100px;">
+                                ${data.paymentMethod || 'Cash'} - 
                                 RM ${data.total || '0.00'} - 
                                 <small>${timestamp}</small>
                             </div>
@@ -341,10 +386,8 @@
                             
                             ${(tokenCount > 0 || boatCount > 0 || lotusCount > 0 || paper3Count > 0 || paper6Count > 0 || paper27Count > 0) ? `
                                 <div class="detail-row">
-                                    <span>超度令牌: ${tokenCount}, 法船配套: ${boatCount}, 莲花: ${lotusCount}</span>
-                                </div>
-                                <div class="detail-row">
-                                    <span>纸金3: ${paper3Count}, 纸金6: ${paper6Count}, 纸金27: ${paper27Count}</span>
+                                    <span>令牌:${tokenCount} 法船:${boatCount} 莲花:${lotusCount}</span>
+                                    <span>纸金3:${paper3Count} 纸金6:${paper6Count} 纸金27:${paper27Count}</span>
                                 </div>
                             ` : ''}
                             
