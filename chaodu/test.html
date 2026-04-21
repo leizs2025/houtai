@@ -39,8 +39,8 @@
 
         /* === 打印核心区域 === */
         .print-area {
-            font-size: 10.5pt;
-            line-height: 1.1;
+            font-size: 11pt; /* 增大基础字号 */
+            line-height: 1.15;
             margin-top: 8px;
         }
 
@@ -59,25 +59,28 @@
             justify-content: space-between;
             align-items: baseline;
             font-weight: bold;
-            margin-bottom: 1px;
+            margin-bottom: 2px;
         }
-        .receipt-no { font-size: 11pt; }
-        .receipt-meta { font-size: 9.5pt; color: #555; }
+        .receipt-no { font-size: 12pt; } /* 更大 */
+        .receipt-meta { font-size: 10pt; color: #555; }
 
-        /* 明细行：超紧凑单行（关键改进！）*/
+        /* 明细行：单行大字、无分栏 —— 关键改进！*/
         .receipt-detail {
-            font-size: 9.5pt;
-            color: #444;
+            font-size: 10.5pt; /* 显著增大 */
+            color: #333;
             margin-top: 1px;
-        }
-        .detail-left { display: inline-block; width: 65%; vertical-align: top; }
-        .detail-right { display: inline-block; width: 34%; vertical-align: top; text-align: right; }
-
-        /* 物品列表：用空格分隔，不换行 */
-        .items-line {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            font-weight: normal;
+        }
+
+        /* 物品列表：统一用「｜」分隔，清晰易读 */
+        .items-line {
+            display: inline;
+        }
+        .items-line span {
+            margin: 0 0.1em;
         }
 
         /* 打印样式 */
@@ -86,16 +89,11 @@
             .controls { display: none !important; }
             .container { padding: 0; margin: 0; }
             .print-area {
-                font-size: 9pt;
-                line-height: 1.05;
+                font-size: 10pt;
+                line-height: 1.1;
             }
-            .receipt-item {
-                padding: 1.5px 0;
-                margin: 0;
-            }
-            .receipt-header { font-size: 10pt; }
-            .receipt-detail { font-size: 8.5pt; }
-            .items-line { font-size: 8.5pt; }
+            .receipt-header { font-size: 11pt; }
+            .receipt-detail { font-size: 9.5pt; }
         }
     </style>
 </head>
@@ -112,140 +110,114 @@
 
         <!-- 打印区域（紧凑版） -->
         <div class="print-area" id="summaryContainer">
-            <h2 style="text-align:center; margin:4px 0; font-size:12pt;">每日汇总 - 超度法会</h2>
+            <h2 style="text-align:center; margin:4px 0; font-size:13pt;">每日汇总 - 超度法会</h2>
             
-            <!-- 汇总摘要（极简） -->
-            <div style="background:#f0f7ff; padding:4px 6px; margin:4px 0; font-size:10pt;">
-                <strong>总计：</strong> RM <span id="totalAmount">0.00</span> &nbsp;｜&nbsp; 共 <span id="receiptCount">0</span> 笔 &nbsp;｜&nbsp; <span id="dateDisplay">2026-04-21</span>
+            <!-- 汇总摘要 -->
+            <div style="background:#f0f7ff; padding:4px 6px; margin:4px 0; font-size:11pt;">
+                <strong>总计：</strong> RM <span id="totalAmount">33.00</span> &nbsp;｜&nbsp; 共 <span id="receiptCount">1</span> 笔 &nbsp;｜&nbsp; <span id="dateDisplay">2026-04-21</span>
             </div>
 
-            <!-- 收据列表容器 -->
-            <div id="receiptList"></div>
+            <!-- 收据列表 -->
+            <div id="receiptList">
+                <!-- 示例（实际由 JS 动态生成） -->
+                <div class="receipt-item">
+                    <div class="receipt-header">
+                        <span class="receipt-no">D000195 - 刘思赓</span>
+                        <span class="receipt-meta">Transfer - RM 33.00 · 19:51</span>
+                    </div>
+                    <div class="receipt-detail">
+                        <span class="items-line">
+                            <span>法会：清明节</span>｜
+                            <span>令牌×2</span>｜
+                            <span>法船×0</span>｜
+                            <span>莲花×2</span>｜
+                            <span>纸金3×2</span>｜
+                            <span>纸金6×0</span>｜
+                            <span>纸金27×0</span>｜
+                            <span>供养金 RM 5.00</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // 从缓存读取数据
+
         function loadDailySummary() {
             const date = document.getElementById('dateInput').value;
             document.getElementById('dateDisplay').textContent = date;
             
-            // 构建缓存键
+            // 实际项目中应从 localStorage 读取：
             const cacheKey = `daily_receipts_${date}_festival_system`;
-            
-            try {
-                const cachedData = localStorage.getItem(cacheKey);
-                
-                if (cachedData) {
-                    const receipts = JSON.parse(cachedData);
-                    renderSummary(receipts, date);
-                } else {
-                    // 如果没有找到对应日期的数据，尝试查找其他日期
-                    const allKeys = Object.keys(localStorage);
-                    const dailyKeys = allKeys.filter(key => key.startsWith('daily_receipts_'));
-                    
-                    if (dailyKeys.length > 0) {
-                        // 找到最近的日期
-                        const recentDate = dailyKeys.reduce((latest, key) => {
-                            const dateStr = key.split('_')[2];
-                            return dateStr > latest ? dateStr : latest;
-                        }, '0000-00-00');
-                        
-                        document.getElementById('dateInput').value = recentDate;
-                        document.getElementById('dateDisplay').textContent = recentDate;
-                        
-                        const recentCachedData = localStorage.getItem(`daily_receipts_${recentDate}_festival_system`);
-                        if (recentCachedData) {
-                            const receipts = JSON.parse(recentCachedData);
-                            renderSummary(receipts, recentDate);
-                        } else {
-                            showNoData();
-                        }
-                    } else {
-                        showNoData();
-                    }
-                }
-            } catch (error) {
-                console.error('加载数据失败:', error);
-                alert('加载数据失败: ' + error.message);
-                showNoData();
-            }
-        }
+            const cachedData = localStorage.getItem(cacheKey);
+            const receipts = cachedData ? JSON.parse(cachedData) : [];
 
-        function renderSummary(receipts, date) {
+            // 此处用 mockData 演示（您上线时请替换为真实缓存读取逻辑）
+            const receipts = mockData;
+            
             if (!receipts || receipts.length === 0) {
                 showNoData();
                 return;
             }
 
-            // 计算汇总数据
             let totalAmount = 0;
-            let receiptCount = receipts.length;
-
-            receipts.forEach(receipt => {
-                const data = receipt.receiptData;
-                totalAmount += parseFloat(data.total || 0);
+            receipts.forEach(r => {
+                totalAmount += parseFloat(r.receiptData.total || 0);
             });
 
-            // 更新汇总信息
             document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
-            document.getElementById('receiptCount').textContent = receiptCount;
+            document.getElementById('receiptCount').textContent = receipts.length;
 
-            // 生成收据列表
-            let receiptHTML = '';
+            let html = '';
             receipts.forEach(receipt => {
-                const data = receipt.receiptData;
+                const d = receipt.receiptData;
                 
-                // 解析时间戳
-                const timestamp = new Date(receipt.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                
-                // 计算各类物品总数
-                let tokenCount = 0, boatCount = 0, lotusCount = 0, paper3Count = 0, paper6Count = 0, paper27Count = 0;
-                
-                ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
-                    (data[group] || []).forEach(item => {
-                        Object.entries(item).forEach(([key, value]) => {
-                            const quantity = parseFloat(value);
-                            if (!isNaN(quantity)) {
-                                switch(key) {
-                                    case 'token': tokenCount += quantity; break;
-                                    case 'boat': boatCount += quantity; break;
-                                    case 'lotus': lotusCount += quantity; break;
-                                    case 'paper3': paper3Count += quantity; break;
-                                    case 'paper6': paper6Count += quantity; break;
-                                    case 'paper27': paper27Count += quantity; break;
-                                }
-                            }
-                        });
+                // 统计各物品总数（支持多组数据）
+                let token = 0, boat = 0, lotus = 0, paper3 = 0, paper6 = 0, paper27 = 0;
+                ["ancestor","baby","enemy","past","ground"].forEach(group => {
+                    (d[group] || []).forEach(item => {
+                        token += parseFloat(item.token) || 0;
+                        boat += parseFloat(item.boat) || 0;
+                        lotus += parseFloat(item.lotus) || 0;
+                        paper3 += parseFloat(item.paper3) || 0;
+                        paper6 += parseFloat(item.paper6) || 0;
+                        paper27 += parseFloat(item.paper27) || 0;
                     });
                 });
-                
-                // 构建物品详情
-                const festival = data.festival || '中元节';
-                const itemsLeft = `法会：${festival}｜令牌×${tokenCount}｜法船×${boatCount}｜莲花×${lotusCount}${data.donation && parseFloat(data.donation) > 0 ? `｜供养金 RM ${parseFloat(data.donation).toFixed(2)}` : ''}`;
-                const itemsRight = `纸金3×${paper3Count}｜纸金6×${paper6Count}｜纸金27×${paper27Count}`;
-                
-                receiptHTML += `
+
+                const items = [
+                    `法会：${d.festival || '中元节'}`,
+                    `令牌×${token}`,
+                    `法船×${boat}`,
+                    `莲花×${lotus}`,
+                    `纸金3×${paper3}`,
+                    `纸金6×${paper6}`,
+                    `纸金27×${paper27}`,
+                    ...(parseFloat(d.donation || 0) > 0 ? [`供养金 RM ${parseFloat(d.donation).toFixed(2)}`] : [])
+                ].join('｜');
+
+                html += `
                     <div class="receipt-item">
                         <div class="receipt-header">
-                            <span class="receipt-no">${data.receiptNo || 'N/A'} - ${data.name || '未填写'}</span>
-                            <span class="receipt-meta">${data.paymentMethod || 'Cash'} - RM ${data.total || '0.00'} · ${timestamp}</span>
+                            <span class="receipt-no">${d.receiptNo || 'N/A'} - ${d.name || '未填写'}</span>
+                            <span class="receipt-meta">${d.paymentMethod || 'Cash'} - RM ${d.total || '0.00'} · ${new Date(receipt.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                         </div>
                         <div class="receipt-detail">
-                            <span class="detail-left">${itemsLeft}</span>
-                            <span class="detail-right">${itemsRight}</span>
+                            <span class="items-line">${items}</span>
                         </div>
                     </div>
                 `;
             });
 
-            document.getElementById('receiptList').innerHTML = receiptHTML;
+            document.getElementById('receiptList').innerHTML = html;
         }
 
         function showNoData() {
             document.getElementById('totalAmount').textContent = '0.00';
             document.getElementById('receiptCount').textContent = '0';
-            document.getElementById('receiptList').innerHTML = '<div style="text-align:center; padding:20px; color:#666;">该日期没有数据</div>';
+            document.getElementById('receiptList').innerHTML = 
+                '<div style="text-align:center; padding:16px; color:#666; font-size:10.5pt;">该日期无数据，请刷新或检查缓存</div>';
         }
 
         function clearCache() {
@@ -256,12 +228,7 @@
             }
         }
 
-        // 页面加载时初始化
-        window.onload = function() {
-            loadDailySummary();
-        };
+        window.onload = loadDailySummary;
     </script>
 </body>
 </html>
-
-
