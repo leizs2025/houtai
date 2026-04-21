@@ -5,185 +5,312 @@
     <title>每日汇总 - 超度法会</title>
     <style>
         body {
-            font-family: "Microsoft YaHei", Arial, sans-serif;
+            font-family: Arial, sans-serif;
             margin: 0;
-            padding: 0;
-            background: #f8f9fa;
+            padding: 10px;
+            background-color: #f5f5f5;
         }
         .container {
             max-width: 1000px;
             margin: 0 auto;
+            background-color: white;
             padding: 10px;
-        }
-
-        /* === 界面控件（屏幕可见，打印隐藏）=== */
-        .controls {
-            text-align: center;
-            margin-bottom: 12px;
-            padding: 6px;
-            background: #f0f4f8;
             border-radius: 4px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            color: #333;
+            margin: 0;
+            font-size: 18px;
+        }
+        .controls {
+            margin-bottom: 10px;
+            text-align: center;
         }
         .controls input, .controls button {
-            padding: 5px 8px;
-            font-size: 12px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
+            padding: 6px;
+            margin: 0 3px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
         .btn {
-            background: #007bff; color: white; border: none; cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 3px;
+            font-size: 12px;
         }
-        .btn-print { background: #28a745; }
-        .btn-refresh { background: #6c757d; }
-        .btn-clear { background: #dc3545; }
-
-        /* === 打印核心区域 === */
-        .print-area {
-            font-size: 10.5pt;
-            line-height: 1.1;
-            margin-top: 8px;
+        .btn:hover {
+            background-color: #0056b3;
         }
-
+        .btn-print {
+            background-color: #28a745;
+        }
+        .btn-print:hover {
+            background-color: #218838;
+        }
+        .btn-refresh {
+            background-color: #6c757d;
+        }
+        .btn-refresh:hover {
+            background-color: #545b62;
+        }
+        .summary-card {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 6px;
+            margin-bottom: 6px;
+        }
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #eee;
+        }
+        .summary-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 6px;
+        }
+        .summary-item {
+            background-color: white;
+            padding: 5px;
+            border-radius: 3px;
+            border-left: 3px solid #007bff;
+            font-size: 13px;
+        }
+        .receipt-list {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px solid #eee;
+        }
         .receipt-item {
-            padding: 2px 0;
-            border-bottom: 1px dashed #ddd;
-            page-break-inside: avoid;
+            padding: 4px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 12px;
+            line-height: 1.2;
         }
         .receipt-item:last-child {
             border-bottom: none;
         }
-
-        /* 收据主行：单行紧凑布局 */
-        .receipt-header {
+        .detail-section {
+            margin-top: 2px;
+            padding-left: 10px;
+            font-size: 11px;
+            color: #555;
+        }
+        .detail-row {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
-            font-weight: bold;
-            margin-bottom: 1px;
+            margin: 2px 0;
         }
-        .receipt-no { font-size: 11pt; }
-        .receipt-meta { font-size: 9.5pt; color: #555; }
-
-        /* 明细行：超紧凑单行（关键改进！）*/
-        .receipt-detail {
-            font-size: 9.5pt;
-            color: #444;
-            margin-top: 1px;
-        }
-        .detail-left { display: inline-block; vertical-align: top; }
-        .detail-right { display: inline-block; vertical-align: top; text-align: right; }
-
-        /* 物品列表：用空格分隔，不换行 */
-        .items-line {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
+        
         /* 打印样式 */
         @media print {
-            body { background: white; padding: 0; }
-            .controls { display: none !important; }
-            .container { padding: 0; margin: 0; }
-            .print-area {
-                font-size: 9pt;
-                line-height: 1.05;
+            .controls {
+                display: none;
+            }
+            body {
+                background-color: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                padding: 5px;
+            }
+            .header h1 {
+                font-size: 16px;
+            }
+            .summary-card {
+                padding: 4px;
+                margin-bottom: 4px;
+            }
+            .summary-header {
+                margin-bottom: 3px;
+                padding-bottom: 2px;
+            }
+            .summary-item {
+                padding: 4px;
+                font-size: 12px;
             }
             .receipt-item {
-                padding: 1.5px 0;
-                margin: 0;
+                padding: 3px 0;
+                font-size: 11px;
             }
-            .receipt-header { font-size: 10pt; }
-            .receipt-detail { font-size: 8.5pt; }
-            .items-line { font-size: 8.5pt; }
+            .detail-section {
+                font-size: 10px;
+                margin-top: 2px;
+                padding-left: 8px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 屏幕控件（打印时隐藏） -->
-        <div class="controls">
-            <label>日期：</label>
-            <input type="date" id="dateInput" value="2026-07-15">
-            <button class="btn btn-refresh">刷新</button>
-            <button class="btn btn-print" onclick="window.print()">🖨️ 打印当前页</button>
-            <button class="btn btn-clear">清理缓存</button>
+        <div class="header">
+            <h1>每日汇总 - 超度法会</h1>
         </div>
-
-        <!-- 打印区域（紧凑版） -->
-        <div class="print-area">
-            <h2 style="text-align:center; margin:4px 0; font-size:12pt;">每日汇总 - 超度法会</h2>
-            
-            <!-- 汇总摘要（极简） -->
-            <div style="background:#f0f7ff; padding:4px 6px; margin:4px 0; font-size:10pt;">
-                <strong>总计：</strong> RM 1,245.00 &nbsp;｜&nbsp; 共 12 笔 &nbsp;｜&nbsp; 2026-07-15
-            </div>
-
-            <!-- 收据列表（每笔仅2行） -->
-            <div class="receipt-item">
-                <div class="receipt-header">
-                    <span class="receipt-no">D000195 - 刘思赓</span>
-                    <span class="receipt-meta">Transfer - RM 33.00 · 19:51:57</span>
-                </div>
-                <div class="receipt-detail">
-                    <span class="detail-left">法会：清明节｜令牌×2｜莲花×2｜供养金 RM 5.00</span>
-                    <span class="detail-right">纸金3×2｜纸金6×0｜纸金27×0</span>
-                </div>
-            </div>
-
-            <div class="receipt-item">
-                <div class="receipt-header">
-                    <span class="receipt-no">D000196 - 张伟明</span>
-                    <span class="receipt-meta">Cash - RM 48.00 · 20:03:22</span>
-                </div>
-                <div class="receipt-detail">
-                    <span class="detail-left">法会：中元节｜令牌×1｜法船×1｜莲花×1｜供养金 RM 10.00</span>
-                    <span class="detail-right">纸金3×1｜纸金6×1｜纸金27×0</span>
-                </div>
-            </div>
-
-            <div class="receipt-item">
-                <div class="receipt-header">
-                    <span class="receipt-no">D000197 - 李秀英</span>
-                    <span class="receipt-meta">FPX - RM 27.00 · 20:15:08</span>
-                </div>
-                <div class="receipt-detail">
-                    <span class="detail-left">法会：盂兰盆节｜令牌×0｜法船×0｜莲花×3｜供养金 RM 0.00</span>
-                    <span class="detail-right">纸金3×0｜纸金6×3｜纸金27×1</span>
-                </div>
-            </div>
-
-            <!-- 更多示例... -->
-            <div class="receipt-item">
-                <div class="receipt-header">
-                    <span class="receipt-no">D000198 - 陈家辉</span>
-                    <span class="receipt-meta">Touch 'n Go - RM 65.00 · 20:22:41</span>
-                </div>
-                <div class="receipt-detail">
-                    <span class="detail-left">法会：中元节｜令牌×3｜法船×1｜莲花×0｜供养金 RM 20.00</span>
-                    <span class="detail-right">纸金3×2｜纸金6×1｜纸金27×2</span>
-                </div>
-            </div>
-
-            <div class="receipt-item">
-                <div class="receipt-header">
-                    <span class="receipt-no">D000199 - 林美玲</span>
-                    <span class="receipt-meta">Bank Transfer - RM 15.00 · 20:30:17</span>
-                </div>
-                <div class="receipt-detail">
-                    <span class="detail-left">法会：清明节｜令牌×1｜莲花×1｜供养金 RM 5.00</span>
-                    <span class="detail-right">纸金3×1｜纸金6×0｜纸金27×0</span>
-                </div>
-            </div>
+        
+        <div class="controls">
+            <label for="dateInput">选择日期: </label>
+            <input type="date" id="dateInput" value="2026-04-21">
+            <button class="btn btn-refresh" onclick="loadDailySummary()">刷新</button>
+            <button class="btn btn-print" onclick="window.print()">打印当前页</button>
+        </div>
+        
+        <div id="summaryContainer">
+            <div class="loading">正在加载数据...</div>
         </div>
     </div>
 
     <script>
-        // 实际使用时替换为您的数据渲染逻辑
+        // 从缓存读取数据
         function loadDailySummary() {
-            // 此处应调用 localStorage 数据并动态生成 .receipt-item
-            console.log("加载数据...");
+            const date = document.getElementById('dateInput').value;
+            const cacheKey = `daily_receipts_${date}_festival_system`;
+            
+            const container = document.getElementById('summaryContainer');
+            container.innerHTML = '<div class="loading">正在加载数据...</div>';
+            
+            try {
+                const cachedData = localStorage.getItem(cacheKey);
+                if (cachedData) {
+                    const receipts = JSON.parse(cachedData);
+                    renderSummary(receipts, date);
+                } else {
+                    container.innerHTML = '<div class="no-data">该日期没有数据</div>';
+                }
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                container.innerHTML = '<div class="no-data">加载数据失败: ' + error.message + '</div>';
+            }
         }
+
+        function renderSummary(receipts, date) {
+            if (!receipts || receipts.length === 0) {
+                document.getElementById('summaryContainer').innerHTML = '<div class="no-data">该日期没有数据</div>';
+                return;
+            }
+
+            // 统计各项数据
+            let totalAmount = 0;
+            let receiptCount = receipts.length;
+
+            receipts.forEach(receipt => {
+                const data = receipt.receiptData;
+                totalAmount += parseFloat(data.total || 0);
+            });
+
+            // 渲染汇总卡片
+            let summaryHTML = `
+                <div class="summary-card">
+                    <div class="summary-header">
+                        <h3 style="font-size: 14px; margin: 0;">汇总信息 - ${date}</h3>
+                        <span style="font-size: 12px;">共 ${receiptCount} 笔</span>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-item">
+                            <h4 style="font-size: 12px; margin: 0;">总金额</h4>
+                            <p style="color: #007bff; font-size: 14px; margin: 0;">RM ${totalAmount.toFixed(2)}</p>
+                        </div>
+                        <div class="summary-item">
+                            <h4 style="font-size: 12px; margin: 0;">收据数</h4>
+                            <p style="color: #28a745; font-size: 14px; margin: 0;">${receiptCount}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 详细收据列表
+            summaryHTML += `
+                <div class="summary-card">
+                    <div class="summary-header">
+                        <h3 style="font-size: 14px; margin: 0;">收据详情</h3>
+                    </div>
+                    <div class="receipt-list" id="receiptList">
+            `;
+
+            receipts.forEach((receipt, index) => {
+                const data = receipt.receiptData;
+                const timestamp = new Date(receipt.timestamp).toLocaleTimeString();
+                
+                // 计算各类物品数量
+                let tokenCount = 0, boatCount = 0, lotusCount = 0, paper3Count = 0, paper6Count = 0, paper27Count = 0;
+                
+                ["ancestor", "baby", "enemy", "past", "ground"].forEach(group => {
+                    (data[group] || []).forEach(item => {
+                        Object.entries(item).forEach(([key, value]) => {
+                            const quantity = parseFloat(value);
+                            if (!isNaN(quantity)) {
+                                switch(key) {
+                                    case 'token': tokenCount += quantity; break;
+                                    case 'boat': boatCount += quantity; break;
+                                    case 'lotus': lotusCount += quantity; break;
+                                    case 'paper3': paper3Count += quantity; break;
+                                    case 'paper6': paper6Count += quantity; break;
+                                    case 'paper27': paper27Count += quantity; break;
+                                }
+                            }
+                        });
+                    });
+                });
+                
+                summaryHTML += `
+                    <div class="receipt-item">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <strong>${data.receiptNo || 'N/A'}</strong> - 
+                                ${data.name || '未填写'} - 
+                                ${data.phone || '未填写'}
+                            </div>
+                            <div style="text-align: right; min-width: 100px;">
+                                ${data.paymentMethod || 'Cash'} - 
+                                RM ${data.total || '0.00'} - 
+                                <small>${timestamp}</small>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-row">
+                                <span>法会: ${data.festival || '中元节'}</span>
+                            </div>
+                            
+                            ${(tokenCount > 0 || boatCount > 0 || lotusCount > 0 || paper3Count > 0 || paper6Count > 0 || paper27Count > 0) ? `
+                                <div class="detail-row">
+                                    <span>令牌:${tokenCount} 法船:${boatCount} 莲花:${lotusCount}</span>
+                                    <span>纸金3:${paper3Count} 纸金6:${paper6Count} 纸金27:${paper27Count}</span>
+                                </div>
+                            ` : ''}
+                            
+                            ${parseFloat(data.donation || 0) > 0 ? `
+                                <div class="detail-row">
+                                    <span>供养金: RM ${parseFloat(data.donation || 0).toFixed(2)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            summaryHTML += '</div></div>';
+
+            document.getElementById('summaryContainer').innerHTML = summaryHTML;
+        }
+
+        // 初始化
+        window.onload = function() {
+            loadDailySummary();
+        };
     </script>
 </body>
 </html>
