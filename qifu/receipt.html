@@ -195,6 +195,20 @@
                 `;
                 document.getElementById("summarySection").innerHTML = summaryHtml;
 
+                // 【新增】创建包含支付方式的完整数据对象，并发送给主程序
+                const completeReceiptData = {
+                    ...data,
+                    paymentMethod: selectEl.value, // 添加当前支付方式
+                    total: grandTotal.toFixed(2), // 添加总金额
+                    timestamp: new Date().toISOString() // 添加时间戳
+                };
+
+                // 将包含支付方式的数据发送给主程序，用于后续的日结报表
+                parent.postMessage({
+                    type: 'receipt_data_for_cache',
+                    receiptData: completeReceiptData
+                }, '*');
+
             } catch (e) {
                 console.error("数据解析失败", e);
                 document.getElementById("receiptInfo").innerHTML = "<p>数据格式错误</p>";
