@@ -53,28 +53,14 @@
             border-bottom: none;
         }
 
-        /* 收据主行：改为 flex + 固定宽度布局，右侧紧凑 */
+        /* 收据主行：单行文本，无分栏 */
         .receipt-header {
-            display: flex;
-            align-items: baseline;
             font-weight: bold;
             margin-bottom: 2px;
-        }
-        .receipt-left {
-            flex: 1;
-            min-width: 0;
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-        }
-        .receipt-right {
-            flex: 0 0 auto; /* 不伸缩，内容多宽就多宽 */
-            white-space: nowrap;
-        }
-
-        /* 字体统一加粗 + 更大 */
-        .receipt-no, .receipt-meta {
             font-size: 12pt;
-            font-weight: bold;
         }
 
         /* 特别放大金额部分 */
@@ -114,7 +100,6 @@
             }
             .receipt-header { font-size: 11pt; }
             .receipt-detail { font-size: 9.5pt; }
-            .receipt-no, .receipt-meta { font-size: 11pt; }
             .amount-highlight { font-size: 13pt !important; } /* 打印时也放大 */
         }
     </style>
@@ -235,22 +220,16 @@
                     ...(parseFloat(d.donation || 0) > 0 ? [`供养金 RM ${parseFloat(d.donation).toFixed(2)}`] : [])
                 ].join('｜');
 
-                // 构建右侧信息：手机号｜支付方式（特别处理金额部分）
-                const paymentText = `${d.paymentMethod || 'Cash'} - RM ${d.total || '0.00'} · ${new Date(receipt.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                // 构建完整单行文本（关键修改）
+                // 使用多个空格或全角空格来对齐右侧信息
+                const receiptLine = `收据编号：${d.receiptNo || 'N/A'}｜阳上报恩人：${d.name || '未填写'}　　　　　手机号：${d.phone || '未填写'}｜${d.paymentMethod || 'Cash'} - RM ${d.total || '0.00'} · ${new Date(receipt.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
                 
-                // 将金额部分包裹在特殊class中以便放大
-                const highlightedPaymentText = paymentText.replace(/(RM \d+\.?\d*)/, '<span class="amount-highlight">$1</span>');
+                // 对金额部分进行高亮处理
+                const highlightedReceiptLine = receiptLine.replace(/(RM \d+\.?\d*)/, '<span class="amount-highlight">$1</span>');
 
                 html += `
                     <div class="receipt-item">
-                        <div class="receipt-header">
-                            <div class="receipt-left">
-                                <span class="receipt-no">收据编号：${d.receiptNo || 'N/A'}｜阳上报恩人：${d.name || '未填写'}</span>
-                            </div>
-                            <div class="receipt-right">
-                                <span class="receipt-meta">手机号：${d.phone || '未填写'}｜${highlightedPaymentText}</span>
-                            </div>
-                        </div>
+                        <div class="receipt-header">${highlightedReceiptLine}</div>
                         <div class="receipt-detail">
                             <span class="items-line">${items}</span>
                         </div>
