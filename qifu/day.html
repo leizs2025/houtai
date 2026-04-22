@@ -12,6 +12,12 @@
         .summary-table th, .summary-table td { border: 1px solid #000; padding: 8px; text-align: left; }
         .summary-table th { background-color: #f0f0f0; }
         .total-row { font-weight: bold; background-color: #e0e0e0; }
+        /* 新增：汇总表格大号字体样式 */
+        .summary-table td:last-child {
+            font-size: 1.2em; /* 加大字体 */
+            font-weight: bold; /* 加粗 */
+            text-align: center;
+        }
         @media print {
             body { margin: 0; }
             .no-print { display: none; }
@@ -44,7 +50,6 @@
             if (systemId && systemId.trim()) {
                 return systemId.trim();
             }
-            // 如果没有URL参数，尝试读取上次使用的系统ID（防止直接打开页面读不到数据）
             const rememberedId = localStorage.getItem('current_active_system_id');
             if (rememberedId) {
                 return rememberedId;
@@ -56,7 +61,6 @@
             const SYSTEM_ID = getCurrentSystemId();
             const today = date || new Date().toISOString().split('T')[0];
             const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
-            // ✅ 修复：使用 '[]' 字符串作为默认值，防止 JSON.parse 报错
             return JSON.parse(localStorage.getItem(cacheKey) || '[]');
         }
 
@@ -65,7 +69,6 @@
             const today = date || new Date().toISOString().split('T')[0];
             const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
             localStorage.removeItem(cacheKey);
-            console.log(`已清空 ${today} 的缓存数据`);
         }
 
         // --- 2. 主逻辑：加载并渲染收据 ---
@@ -79,7 +82,7 @@
                 return;
             }
 
-            // 生成收据列表 HTML (左右分栏排版)
+            // 生成收据列表 HTML
             let html = `<h3 style="border-bottom:1px solid #ccc; padding-bottom:10px;">
                             ${selectedDate} 汇总 (${receipts.length} 笔)
                         </h3>`;
@@ -88,28 +91,29 @@
                 const d = item.receiptData;
                 const time = new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
                 
-                // 格式化手机号
-                const phone = d.phoneNumber ? d.phoneNumber.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3') : 'N/A';
+                // 格式化手机号 (正则处理空格)
+                const rawPhone = d.phoneNumber || "";
+                const phone = rawPhone.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3');
                 const amount = d.total ? parseFloat(d.total).toFixed(2) : "0.00";
 
+                // ✅ 修改排版：手机号独立一行，统一加粗
                 html += `
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px; border-bottom:1px dashed #eee; padding-bottom:5px;">
-                        <!-- 左侧信息 -->
-                        <div style="flex:1;">
+                    <div style="margin-bottom:10px; font-size:14px; border-bottom:1px dashed #eee; padding-bottom:8px;">
+                        <!-- 第一行：编号与名字 -->
+                        <div style="margin-bottom:4px;">
                             <span style="font-weight:bold;">收据编号: ${d.receiptNumber || 'N/A'}</span> 
                             <span style="margin-left:10px;">| 阳上报恩: <strong>${d.mainName || '匿名'}</strong></span>
-                            <div style="font-size:12px; color:#555; margin-top:2px;">
-                                法会: ${d.dharmaType || 'N/A'}
-                            </div>
                         </div>
 
-                        <!-- 右侧信息 -->
-                        <div style="text-align:right; flex:1;">
-                            <div>
-                                <span style="font-family:monospace;">${phone}</span> 
-                                <span style="margin-left:10px;">| Cash - RM ${amount}</span>
-                                <span style="font-size:12px; color:#888;">• ${time}</span>
-                            </div>
+                        <!-- 第二行：手机号码（独立一行，统一加粗） -->
+                        <div style="font-weight:bold; margin-bottom:4px;">
+                            手机号码：${phone}
+                        </div>
+
+                        <!-- 第三行：金额与时间 -->
+                        <div style="text-align:right; color:#333;">
+                            <span>Cash - RM ${amount}</span>
+                            <span style="font-size:12px; color:#888; margin-left:10px;">• ${time}</span>
                         </div>
                     </div>
                 `;
@@ -118,7 +122,6 @@
             // 生成下方的汇总表
             const summaryHtml = generateSummaryTable(receipts);
             
-            // 写入页面
             document.getElementById('receiptList').innerHTML = html;
             document.getElementById('summaryTable').innerHTML = summaryHtml;
             document.getElementById('datePicker').value = selectedDate;
@@ -126,7 +129,6 @@
 
         // --- 3. 智能汇总表生成器 ---
         function generateSummaryTable(receipts) {
-            // 初始化统计对象
             let stats = {
                 token: { count: 0, label: "祈福令牌" },
                 fire:  { count: 0, label: "小护摩片" }, 
@@ -137,14 +139,10 @@
             let totalAmount = 0;
             let totalReceipts = receipts.length;
 
-            // 遍历所有收据累加数据
             receipts.forEach(item => {
                 const data = item.receiptData;
-                
-                // 累加总金额
                 totalAmount += parseFloat(data.total || 0);
 
-                // 累加贡品数量
                 if (data.data && Array.isArray(data.data)) {
                     data.data.forEach(p => {
                         stats.token.count += +p.token || 0;
@@ -155,7 +153,6 @@
                 }
             });
 
-            // 拼接统计字符串 (只有数量 > 0 才拼接)
             let itemsStr = [];
             if (stats.token.count > 0) itemsStr.push(`${stats.token.label}×${stats.token.count}`);
             if (stats.fire.count > 0)  itemsStr.push(`${stats.fire.label}×${stats.fire.count}`);
@@ -164,7 +161,6 @@
             
             const itemsText = itemsStr.length > 0 ? itemsStr.join(' | ') : '无贡品记录';
 
-            // 返回 HTML 表格
             return `
                 <table class="summary-table">
                     <thead>
@@ -191,28 +187,23 @@
         }
 
         // --- 4. 其他功能 ---
-        function printSummary() {
-            window.print();
-        }
-
+        function printSummary() { window.print(); }
+        
         function clearCache() {
-            if (confirm('确定要清空今日缓存数据吗？此操作不可恢复！')) {
+            if (confirm('确定要清空今日缓存数据吗？')) {
                 const selectedDate = document.getElementById('datePicker').value || new Date().toISOString().split('T')[0];
                 clearDailyCache(selectedDate);
                 alert('缓存已清空！');
-                loadDailyReceipts(); // 刷新视图
+                loadDailyReceipts();
             }
         }
 
-        function exportToExcel() {
-            alert('Excel导出功能待实现');
-        }
+        function exportToExcel() { alert('Excel导出功能待实现'); }
 
-        // 页面加载时设置默认日期
         window.onload = function() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('datePicker').value = today;
-            loadDailyReceipts(); // 自动加载当天数据
+            loadDailyReceipts();
         };
     </script>
 </body>
