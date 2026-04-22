@@ -95,7 +95,7 @@
         <p>JALAN PASAI SIONG OFF 25TH MILE</p>
         <p>JALAN OYA, SIBU SARAWAK</p>
         <h2>DONATION</h2>
-        <p>CASH</p>
+        
     </div>
 
     <div id="receiptInfo" class="receipt-info"></div>
@@ -109,33 +109,31 @@
     <button id="printBtn" class="print-button">🖨️ 打印小票</button>
 
     <script>
-        window.addEventListener("message", function (event) {
-            try {
-                const data = JSON.parse(event.data);
-                
-                // 获取当前年份
-                const currentYear = new Date().getFullYear();
-    
-                // 读取缓存的支付方式，如果没有则默认为 'cash'
-                const savedPayMethod = localStorage.getItem('printPayMethod') || 'cash';
+window.addEventListener("message", function (event) {
+    try {
+        const data = JSON.parse(event.data);
 
-                // 填充基本信息 (在这里加入了 select 下拉框)
-                const receiptInfo = `
-                    <div>
-                        <p><strong>D/NO:</strong> ${data.receiptNumber || "未生成"}</p>
-                        <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
-                        <p><strong>主祈者:</strong> ${data.mainName || "未填写"}</p>
-                        <p><strong>电话:</strong> ${data.phoneNumber || "未填写"}</p>
-                        <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || "未选择"} 祈福</p>
-                        
-                        <!-- 新增的支付方式选择框 -->
-                        <select id="payMethod">
-                            <option value="cash" ${savedPayMethod === 'cash' ? 'selected' : ''}>1. 现金 (Cash)</option>
-                            <option value="transfer" ${savedPayMethod === 'transfer' ? 'selected' : ''}>2. 转账 (Transfer)</option>
-                        </select>
-                    </div>
-                `;
-                document.getElementById("receiptInfo").innerHTML = receiptInfo;
+        // 1. 读取缓存里的支付方式（如果没有则默认为 CASH）
+        const savedPayMethod = localStorage.getItem('payMethod') || 'CASH';
+
+        // 2. 更新页面上显示的支付方式文字
+        document.getElementById('payMethodDisplay').innerText = savedPayMethod;
+
+        // --- 以下是原有的填充逻辑，保持不变 ---
+        const currentYear = new Date().getFullYear();
+
+        const receiptInfo = `
+            <div>
+                <p><strong>D/NO:</strong> ${data.receiptNumber || "未生成"}</p>
+                <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                <p><strong>主祈者:</strong> ${data.mainName || "未填写"}</p>
+                <p><strong>电话:</strong> ${data.phoneNumber || "未填写"}</p>
+                <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || "未选择"} 祈福</p>
+            </div>
+        `;
+        document.getElementById("receiptInfo").innerHTML = receiptInfo;
+
+        // ... (后面的贡品计算逻辑保持不变) ...
     
                 // 贡品计算
                 let tokenTotal = 0;
