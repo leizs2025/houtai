@@ -32,20 +32,9 @@
         .receipt-info p {
             margin: 4px 0;
         }
-        /* 下拉框样式：仅在屏幕显示，打印时隐藏 */
-        #payMethod {
-            width: 100%;
-            padding: 5px;
-            margin-top: 5px;
-            margin-bottom: 10px;
-            font-size: 14px;
-            border: 1px solid #000;
-            background: #fff;
-            display: block; /* 屏幕显示 */
-        }
         .item-row {
             display: flex;
-            align-items: center;
+            justify-content: space-between;
             margin-bottom: 5px;
             font-size: 14px;
         }
@@ -73,10 +62,12 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        /* 打印时隐藏下拉框，但保留文字 */
+        /* 隐藏下拉框，只在屏幕上显示用于操作 */
+        #payMethodSelect {
+            display: none;
+        }
         @media print {
             .print-button { display: none !important; }
-            #payMethod { display: none !important; } /* 打印时强制隐藏下拉框 */
         }
     </style>
 </head>
@@ -87,15 +78,18 @@
         <p>JALAN PASAI SIONG OFF 25TH MILE</p>
         <p>JALAN OYA, SIBU SARAWAK</p>
         <h2>DONATION</h2>
-        
-        <!-- 这里显示支付方式文字 (打印时显示) -->
-        <p id="payMethodDisplay" style="font-weight: bold; margin: 5px 0;">CASH</p>
+
+        <!-- 1. 这是下拉框 (屏幕上看得到，打印看不见) -->
+        <select id="payMethodSelect" onchange="updatePayMethod()">
+            <option value="CASH">CASH</option>
+            <option value="TRANSFER">TRANSFER</option>
+        </select>
+
+        <!-- 2. 这是显示的文字 (打印出来的内容) -->
+        <p id="payMethodDisplay" style="font-weight: bold; margin-top: 5px;">CASH</p>
     </div>
 
-    <div id="receiptInfo" class="receipt-info">
-        <!-- 这里包含隐藏的 下拉框 (仅屏幕操作) -->
-    </div>
-    
+    <div id="receiptInfo" class="receipt-info"></div>
     <div id="summarySection" class="total-section"></div>
 
     <div class="footer">
@@ -106,19 +100,29 @@
     <button id="printBtn" class="print-button">🖨️ 打印小票</button>
 
     <script>
+        // 页面加载完成后执行
+        window.addEventListener("load", function() {
+            // 读取缓存，如果有就显示，没有就默认 CASH
+            const savedMethod = localStorage.getItem('payMethod') || 'CASH';
+            document.getElementById('payMethodSelect').value = savedMethod;
+            document.getElementById('payMethodDisplay').innerText = savedMethod;
+        });
+
+        // 当下拉框改变时，更新显示的文字并保存缓存
+        function updatePayMethod() {
+            const selected = document.getElementById('payMethodSelect').value;
+            document.getElementById('payMethodDisplay').innerText = selected;
+            localStorage.setItem('payMethod', selected);
+        }
+
         window.addEventListener("message", function (event) {
             try {
                 const data = JSON.parse(event.data);
-                
-                // 1. 读取缓存里的支付方式（如果没有则默认为 CASH）
-                const savedPayMethod = localStorage.getItem('payMethod') || 'CASH';
-                
-                // 2. 更新页面上显示的支付方式文字 (Header 下方)
-                document.getElementById('payMethodDisplay').innerText = savedPayMethod;
 
+                // --- 恢复你原本的数据填充逻辑 ---
                 const currentYear = new Date().getFullYear();
 
-                // 3. 填充基本信息 (在这里加入隐藏的下拉框，用于用户修改)
+                // 填充基本信息
                 const receiptInfo = `
                     <div>
                         <p><strong>D/NO:</strong> ${data.receiptNumber || "未生成"}</p>
@@ -126,33 +130,29 @@
                         <p><strong>主祈者:</strong> ${data.mainName || "未填写"}</p>
                         <p><strong>电话:</strong> ${data.phoneNumber || "未填写"}</p>
                         <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || "未选择"} 祈福</p>
-                        
-                        <!-- 下拉框：用于修改，打印时会被 CSS 隐藏 -->
-                        <select id="payMethod">
-                            <option value="CASH" ${savedPayMethod === 'CASH' ? 'selected' : ''}>1. 现金 (Cash)</option>
-                            <option value="TRANSFER" ${savedPayMethod === 'TRANSFER' ? 'selected' : ''}>2. 转账 (Transfer)</option>
-                        </select>
                     </div>
                 `;
                 document.getElementById("receiptInfo").innerHTML = receiptInfo;
-    
+
                 // 贡品计算
                 let tokenTotal = 0;
                 let fireTotal = 0;
                 let pg3Total = 0;
                 let pg6Total = 0;
                 let sponsorTotal = data.sponsorAmount || 0;
-    
-                data.data.forEach(item => {
-                    tokenTotal += (item.token || 0) * 5;
-                    fireTotal += (item.fire || 0) * 1;
-                    pg3Total += (item.pg3 || 0) * 3;
-                    pg6Total += (item.pg6 || 0) * 6;
-                });
-    
+
+                if(data.data && Array.isArray(data.data)) {
+                    data.data.forEach(item => {
+                        tokenTotal += (item.token || 0) * 5;
+                        fireTotal += (item.fire || 0) * 1;
+                        pg3Total += (item.pg3 || 0) * 3;
+                        pg6Total += (item.pg6 || 0) * 6;
+                    });
+                }
+
                 const grandTotal = tokenTotal + fireTotal + pg3Total + pg6Total + sponsorTotal;
-    
-                // 填充小票内容
+
+                // 填充金额列表
                 const summarySection = `
                     <div class="item-row">
                         <span class="label">祈福令牌</span>
@@ -175,36 +175,26 @@
                         <span class="amount">${pg6Total.toFixed(2)}</span>
                     </div>
                     <div class="item-row">
-                        <span class="label">祈福报名供养金</span>
+                        <span class="label">供养金</span>
                         <span class="formula">-</span>
                         <span class="amount">${sponsorTotal.toFixed(2)}</span>
                     </div>
-                    <div class="item-row" style="font-weight: bold; margin-top: 5px;">
+                    <div class="item-row" style="font-weight: bold; border-top: 1px solid #000; margin-top: 10px; padding-top:5px;">
                         <span class="label">总计</span>
                         <span class="formula"></span>
                         <span class="amount">RM ${grandTotal.toFixed(2)}</span>
                     </div>
                 `;
-
                 document.getElementById("summarySection").innerHTML = summarySection;
-    
-                // 打印按钮逻辑
-                document.getElementById("printBtn").addEventListener("click", () => {
-                    // 获取当前下拉框选中的值
-                    const currentMethod = document.getElementById('payMethod').value;
-                    
-                    // 写入缓存
-                    localStorage.setItem('payMethod', currentMethod);
-                    
-                    // 更新显示的文字 (防止用户刚选了还没刷新)
-                    document.getElementById('payMethodDisplay').innerText = currentMethod;
 
-                    window.print();
-                });
-    
             } catch (error) {
-                console.error("小票数据处理错误:", error);
+                console.error("错误:", error);
             }
+        });
+
+        // 打印按钮
+        document.getElementById("printBtn").addEventListener("click", () => {
+            window.print();
         });
     </script>
 </body>
