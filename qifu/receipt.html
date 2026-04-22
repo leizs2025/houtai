@@ -195,47 +195,53 @@
                 `;
                 document.getElementById("summarySection").innerHTML = summaryHtml;
 
-// ✅ 将完整数据（包括当前支付方式）写入缓存（按收据号去重）
-const now = new Date();
-if (isNaN(now.getTime())) {
-    now.setTime(Date.now());
-}
+                // ✅ 将完整数据（包括当前支付方式）写入缓存（按收据号去重）
+                const now = new Date();
+                if (isNaN(now.getTime())) {
+                    now.setTime(Date.now());
+                }
 
-const receiptNumber = data.receiptNumber || 'UNKNOWN';
-const receiptDataWithPayment = {
-    ...data,
-    paymentMethod: selectEl.value, // 当前选中的支付方式
-    timestamp: now.toISOString()
-};
+                const receiptNumber = data.receiptNumber || 'UNKNOWN';
+                const receiptDataWithPayment = {
+                    ...data,
+                    paymentMethod: selectEl.value, // 当前选中的支付方式
+                    timestamp: now.toISOString()
+                };
 
-// 获取系统ID参数
-const urlParams = new URLSearchParams(window.location.search);
-const systemId = urlParams.get('system_id') || 'system_1';
+                // 获取系统ID参数
+                const urlParams = new URLSearchParams(window.location.search);
+                const systemId = urlParams.get('system_id') || 'system_1';
 
-// 构建缓存键
-const today = now.toISOString().split('T')[0];
-const cacheKey = `daily_receipts_${today}_${systemId}`;
+                // 构建缓存键
+                const today = now.toISOString().split('T')[0];
+                const cacheKey = `daily_receipts_${today}_${systemId}`;
 
-// 获取现有缓存
-let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey)) || [];
+                // 获取现有缓存
+                let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey)) || [];
 
-// 🔑 按收据号查找是否存在
-const existingIndex = cachedReceipts.findIndex(item => 
-    item.receiptData && item.receiptData.receiptNumber === receiptNumber
-);
+                // 🔑 按收据号查找是否存在
+                const existingIndex = cachedReceipts.findIndex(item => 
+                    item.receiptData && item.receiptData.receiptNumber === receiptNumber
+                );
 
-if (existingIndex !== -1) {
-    // 如果已存在相同收据号，则**更新**而不是追加
-    cachedReceipts[existingIndex] = { receiptData: receiptDataWithPayment };
-    console.log(`🔄 更新收据 ${receiptNumber}（支付方式: ${selectEl.value}）`);
-} else {
-    // 如果是新收据号，则追加
-    cachedReceipts.push({ receiptData: receiptDataWithPayment });
-    console.log(`✅ 新增收据 ${receiptNumber}（支付方式: ${selectEl.value}）`);
-}
+                if (existingIndex !== -1) {
+                    // 如果已存在相同收据号，则**更新**而不是追加
+                    cachedReceipts[existingIndex] = { receiptData: receiptDataWithPayment };
+                    console.log(`🔄 更新收据 ${receiptNumber}（支付方式: ${selectEl.value}）`);
+                } else {
+                    // 如果是新收据号，则追加
+                    cachedReceipts.push({ receiptData: receiptDataWithPayment });
+                    console.log(`✅ 新增收据 ${receiptNumber}（支付方式: ${selectEl.value}）`);
+                }
 
-// 保存回缓存
-localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
+                // 保存回缓存
+                localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
+
+            } catch (e) {
+                console.error("数据解析失败", e);
+                document.getElementById("receiptInfo").innerHTML = "<p>数据格式错误</p>";
+            }
+        });
 
         // 3. 打印按钮逻辑
         document.getElementById("printBtn").addEventListener("click", () => {
