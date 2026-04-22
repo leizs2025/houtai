@@ -16,40 +16,50 @@
             border-bottom: 1px dashed #ccc; 
         }
         
-        /* 第一行：使用 Flex 布局强制左右分布 */
+        /* 第一行：左右两端对齐 */
         .row-main { 
             display: flex; 
             justify-content: space-between; 
-            font-size: 14px; 
-            margin-bottom: 4px; 
             align-items: center;
+            margin-bottom: 5px; 
         }
         
-        /* 第二行：明细信息 */
-        .row-detail { 
-            font-size: 13px; 
-            color: #555; 
-            padding-left: 2px;
+        /* 左侧信息：紧凑排列 */
+        .info-left { font-size: 14px; color: #333; }
+        
+        /* 右侧支付信息：加大加粗 */
+        .info-right { 
+            font-size: 16px; 
+            font-weight: 800; 
+            color: #000; 
+            text-align: right;
+            background: #f0f0f0;
+            padding: 2px 8px;
+            border-radius: 4px;
         }
-
-        .highlight-phone { font-family: monospace; font-weight: bold; }
+        
+        /* 第二行：贡品汇总 */
+        .row-offering { 
+            font-size: 14px; 
+            color: #d9534f; /* 红色强调 */
+            font-weight: bold;
+            padding-left: 2px;
+            margin-top: 5px;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+        }
 
         /* 汇总表格样式 */
         .summary-table { width: 100%; border-collapse: collapse; margin-top: 30px; }
         .summary-table th, .summary-table td { border: 1px solid #000; padding: 8px; text-align: left; }
         .summary-table th { background-color: #f0f0f0; }
-        /* 让汇总表的数字列变大 */
-        .summary-table td.count-col { 
-            font-size: 1.2em; 
-            font-weight: bold; 
-            text-align: center; 
-            background-color: #e8f4fd;
-        }
+        .summary-table td.count-col { font-size: 1.2em; font-weight: bold; text-align: center; background-color: #e8f4fd; }
         .total-amount { font-size: 1.3em; color: #d9534f; text-align: right; margin-top: 10px; font-weight: bold; }
 
         @media print {
             .no-print { display: none; }
             body { margin: 0; }
+            .info-right { background: none; border: 1px solid #ccc; }
         }
     </style>
 </head>
@@ -90,9 +100,10 @@
             }
 
             let html = `<h3>日期：${selectedDate} | 共 ${receipts.length} 笔</h3>`;
-            
-            // 统计总金额
             let grandTotal = 0;
+
+            // 用于底部统计的变量
+            let summaryStats = { token: 0, fire: 0, pg3: 0, pg6: 0 };
 
             receipts.forEach((item) => {
                 const d = item.receiptData;
@@ -100,79 +111,78 @@
                 const totalAmount = parseFloat(d.total || 0).toFixed(2);
                 grandTotal += parseFloat(totalAmount);
 
-                // 支付方式判断
+                // 支付方式
                 const payMethod = d.transferSlip ? "Transfer" : "Cash";
-                // 手机号格式化 (6m01 2887 3022)
-                const phone = d.phoneNumber ? d.phoneNumber.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3') : 'N/A';
+                
+                // 手机号：直接获取，不加空格
+                const phone = d.phoneNumber || 'N/A';
 
-                // 1. 生成贡品明细字符串 (例如：令牌x2 | 莲花x1)
-                let items = [];
+                // --- 贡品统计逻辑 ---
+                let offeringText = "";
+                let hasOfferings = false;
+
                 if (d.data && Array.isArray(d.data)) {
                     d.data.forEach(p => {
-                        if(p.token > 0) items.push(`令牌×${p.token}`);
-                        if(p.fire > 0) items.push(`护摩×${p.fire}`);
-                        if(p.pg3 > 0) items.push(`纸金3×${p.pg3}`);
-                        if(p.pg6 > 0) items.push(`纸金6×${p.pg6}`);
+                        // 累加到全局统计
+                        summaryStats.token += parseInt(p.token) || 0;
+                        summaryStats.fire += parseInt(p.fire) || 0;
+                        summaryStats.pg3 += parseInt(p.pg3) || 0;
+                        summaryStats.pg6 += parseInt(p.pg6) || 0;
+
+                        // 构建当前收据的显示文本
+                        let parts = [];
+                        if(p.token > 0) parts.push(`令牌 × ${p.token}`);
+                        if(p.fire > 0) parts.push(`护摩 × ${p.fire}`);
+                        if(p.pg3 > 0) parts.push(`纸金3 × ${p.pg3}`);
+                        if(p.pg6 > 0) parts.push(`纸金6 × ${p.pg6}`);
+
+                        if(parts.length > 0) {
+                            hasOfferings = true;
+                            // 如果一个人有多种贡品，用逗号隔开；如果只有一个，直接显示
+                            offeringText += parts.join(', ') + " | "; 
+                        }
                     });
                 }
-                
-                // 如果没有具体贡品，显示提示
-                const detailText = items.length > 0 
-                    ? items.join(' | ') 
-                    : '无具体贡品';
 
-                // 2. 拼接 HTML (严格按照你的排版要求)
+                // 清理末尾多余的 "|"
+                if(offeringText) offeringText = offeringText.slice(0, -3);
+
+                // 如果没有贡品，显示随喜或无明细
+                if (!hasOfferings) {
+                    offeringText = d.sponsorAmount > 0 ? `随喜赞助 RM ${d.sponsorAmount}` : "无具体贡品";
+                }
+
+                // --- 拼接 HTML ---
                 html += `
                     <div class="receipt-item">
-                        <!-- 第一行：左边是编号/名字/手机号，右边是支付信息 -->
+                        <!-- 第一行：左侧紧凑信息 | 右侧加大加粗支付信息 -->
                         <div class="row-main">
-                            <div>
+                            <div class="info-left">
                                 收据编号: <strong>${d.receiptNumber || 'N/A'}</strong> | 
-                                阳上报恩: <strong>${d.mainName || '匿名'}</strong> |
-                                手机号: <span class="highlight-phone">${phone}</span>
+                                阳上报恩: <strong>${d.mainName || '匿名'}</strong> | 
+                                手机号: <strong>${phone}</strong>
                             </div>
-                            <div style="text-align: right;">
+                            <div class="info-right">
                                 ${payMethod} - RM ${totalAmount} • ${time}
                             </div>
                         </div>
 
-                        <!-- 第二行：明细信息 -->
-                        <div class="row-detail">
-                            法会: ${d.dharmaType || '-'} | ${detailText}
-                            ${d.sponsorAmount > 0 ? `| 供养金 RM ${d.sponsorAmount}` : ''}
+                        <!-- 第二行：贡品汇总 -->
+                        <div class="row-offering">
+                            供奉: ${offeringText}
                         </div>
                     </div>
                 `;
             });
 
-            // 添加总计
             html += `<div class="total-amount">总计金额: RM ${grandTotal.toFixed(2)}</div>`;
-
-            // 生成下方的统计表
-            html += generateSummaryTable(receipts);
+            html += generateSummaryTable(summaryStats);
 
             document.getElementById('reportContent').innerHTML = html;
         }
 
         // --- 生成底部统计表 ---
-        function generateSummaryTable(receipts) {
-            // 统计逻辑
-            let stats = {
-                token: 0, fire: 0, pg3: 0, pg6: 0, count: receipts.length
-            };
-
-            receipts.forEach(item => {
-                if (item.receiptData.data && Array.isArray(item.receiptData.data)) {
-                    item.receiptData.data.forEach(p => {
-                        stats.token += parseInt(p.token) || 0;
-                        stats.fire += parseInt(p.fire) || 0;
-                        stats.pg3 += parseInt(p.pg3) || 0;
-                        stats.pg6 += parseInt(p.pg6) || 0;
-                    });
-                }
-            });
-
-            // 只有当有物品被统计时才显示表格
+        function generateSummaryTable(stats) {
             if (stats.token === 0 && stats.fire === 0 && stats.pg3 === 0 && stats.pg6 === 0) {
                 return '';
             }
@@ -181,8 +191,8 @@
                 <table class="summary-table">
                     <thead>
                         <tr>
-                            <th>项目</th>
-                            <th style="text-align:center;">数量</th>
+                            <th>项目汇总</th>
+                            <th style="text-align:center;">总数量</th>
                         </tr>
                     </thead>
                     <tbody>
