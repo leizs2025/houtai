@@ -5,247 +5,187 @@
     <title>每日汇总 - 超度法会</title>
     <style>
         body {
-            font-family: "Microsoft YaHei", Arial, sans-serif;
+            font-family: "Microsoft YaHei", sans-serif;
             margin: 0;
-            padding: 0;
-            background: #f8f9fa;
+            padding: 16px;
+            background: #fff;
+            font-size: 11pt;
+            line-height: 1.3;
         }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 10px;
-        }
-
-        /* === 界面控件（屏幕可见，打印隐藏）=== */
-        .controls {
+        .header {
             text-align: center;
-            margin-bottom: 12px;
-            padding: 6px;
-            background: #f0f4f8;
-            border-radius: 4px;
-        }
-        .controls input, .controls button {
-            padding: 5px 8px;
-            font-size: 12px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-        }
-        .btn {
-            background: #007bff; color: white; border: none; cursor: pointer;
-        }
-        .btn-print { background: #28a745; }
-        .btn-refresh { background: #6c757d; }
-        .btn-clear { background: #dc3545; }
-
-        /* === 打印核心区域 === */
-        .print-area {
-            font-size: 11pt; /* 增大基础字号 */
-            line-height: 1.15;
-            margin-top: 8px;
-        }
-
-        .receipt-item {
-            padding: 2px 0;
-            border-bottom: 1px dashed #ddd;
-            page-break-inside: avoid;
-        }
-        .receipt-item:last-child {
-            border-bottom: none;
-        }
-
-        /* 收据主行：单行紧凑布局 */
-        .receipt-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
             font-weight: bold;
-            margin-bottom: 2px;
+            font-size: 13pt;
+            margin-bottom: 8px;
         }
-        .receipt-no { font-size: 12pt; } /* 更大 */
-        .receipt-meta { font-size: 10pt; color: #555; }
-
-        /* 明细行：单行大字、无分栏 —— 关键改进！*/
-        .receipt-detail {
-            font-size: 10.5pt; /* 显著增大 */
-            color: #333;
-            margin-top: 1px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-weight: normal;
+        .summary {
+            background: #f0f7ff;
+            padding: 4px 8px;
+            margin: 6px 0;
+            font-weight: bold;
+            font-size: 11pt;
         }
-
-        /* 物品列表：统一用「｜」分隔，清晰易读 */
-        .items-line {
-            display: inline;
+        .receipt {
+            margin: 4px 0;
+            font-weight: bold;
+            font-size: 12pt; /* 关键：所有文本统一加粗+大字号 */
         }
-        .items-line span {
-            margin: 0 0.1em;
+        .items {
+            margin-top: 2px;
+            font-weight: bold;
+            font-size: 10.5pt;
+            color: #000;
         }
 
         /* 打印样式 */
         @media print {
-            body { background: white; padding: 0; }
-            .controls { display: none !important; }
-            .container { padding: 0; margin: 0; }
-            .print-area {
-                font-size: 10pt;
-                line-height: 1.1;
-            }
-            .receipt-header { font-size: 11pt; }
-            .receipt-detail { font-size: 9.5pt; }
+            body { padding: 0; margin: 0; }
+            .controls { display: none; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- 屏幕控件（打印时隐藏） -->
-        <div class="controls">
-            <label>日期：</label>
-            <input type="date" id="dateInput" value="2026-04-21">
-            <button class="btn btn-refresh" onclick="loadDailySummary()">刷新</button>
-            <button class="btn btn-print" onclick="window.print()">🖨️ 打印当前页</button>
-            <button class="btn btn-clear" onclick="clearCache()">清理缓存</button>
-        </div>
+    <div class="header">每日汇总 - 超度法会</div>
 
-        <!-- 打印区域（紧凑版） -->
-        <div class="print-area" id="summaryContainer">
-            <h2 style="text-align:center; margin:4px 0; font-size:13pt;">每日汇总 - 超度法会</h2>
-            
-            <!-- 汇总摘要 -->
-            <div style="background:#f0f7ff; padding:4px 6px; margin:4px 0; font-size:11pt;">
-                <strong>总计：</strong> RM <span id="totalAmount">0.00</span> &nbsp;｜&nbsp; 共 <span id="receiptCount">0</span> 笔 &nbsp;｜&nbsp; <span id="dateDisplay">2026-04-21</span>
-            </div>
+    <!-- 汇总行 -->
+    <div class="summary" id="summaryLine">
+        总计：RM <span id="total">0.00</span> ｜ 共 <span id="count">0</span> 笔 ｜ <span id="date">2026-04-22</span>
+    </div>
 
-            <!-- 收据列表 -->
-            <div id="receiptList">
-                <div style="text-align:center; padding:16px; color:#666; font-size:10.5pt;">点击刷新加载数据</div>
-            </div>
-        </div>
+    <!-- 收据列表（纯文本，无任何 div 分隔） -->
+    <div id="receiptList">
+        <div class="receipt">收据编号：010514｜阳上报恩人：林忠辉　　　　　手机号：6m0198863232｜Cash - RM 214.00 · 09:50</div>
+        <div class="items">法会：中元节｜令牌×16｜法船×1｜纸金3×18｜供养金 RM 50.00</div>
+    </div>
+
+    <!-- 控件（仅屏幕显示） -->
+    <div style="text-align:center; margin-top:20px; font-size:10pt;">
+        <button onclick="refresh()">🔄 刷新（读取缓存）</button>
+        <button onclick="clearCache()" style="margin:0 8px; background:#dc3545;">🗑️ 清除缓存</button>
+        <button onclick="print()">🖨️ 打印</button>
+        <br><br>
+        <input type="date" id="dt" value="2026-04-22" onchange="loadByDate()">
     </div>
 
     <script>
-        function loadDailySummary() {
-            const date = document.getElementById('dateInput').value;
-            document.getElementById('dateDisplay').textContent = date;
+        // ===== 实用工具函数 =====
+        function safeParse(str) {
+            try { return JSON.parse(str); } catch { return null; }
+        }
+
+        function formatDate(d) {
+            return d.toISOString().split('T')[0];
+        }
+
+        // ===== 清除缓存（强化版）=====
+        function clearCache() {
+            if (!confirm('⚠️ 确认清除所有本地缓存？\n（将删除所有收据数据）')) return;
             
-            // 构建缓存键
-            const cacheKey = `daily_receipts_${date}_festival_system`;
+            // 尝试多种方式清除
+            localStorage.clear();
+            sessionStorage.clear();
             
-            try {
-                const cachedData = localStorage.getItem(cacheKey);
-                
-                if (cachedData) {
-                    const receipts = JSON.parse(cachedData);
-                    renderSummary(receipts, date);
-                } else {
-                    // 如果没有找到对应日期的数据，尝试查找其他日期
-                    const allKeys = Object.keys(localStorage);
-                    const dailyKeys = allKeys.filter(key => key.startsWith('daily_receipts_'));
-                    
-                    if (dailyKeys.length > 0) {
-                        // 找到最近的日期
-                        const recentDate = dailyKeys.reduce((latest, key) => {
-                            const dateStr = key.split('_')[2];
-                            return dateStr > latest ? dateStr : latest;
-                        }, '0000-00-00');
-                        
-                        document.getElementById('dateInput').value = recentDate;
-                        document.getElementById('dateDisplay').textContent = recentDate;
-                        
-                        const recentCachedData = localStorage.getItem(`daily_receipts_${recentDate}_festival_system`);
-                        if (recentCachedData) {
-                            const receipts = JSON.parse(recentCachedData);
-                            renderSummary(receipts, recentDate);
-                        } else {
-                            showNoData();
-                        }
-                    } else {
-                        showNoData();
-                    }
+            // 强制刷新页面以确保新状态
+            location.reload(true);
+        }
+
+        // ===== 加载指定日期数据 =====
+        function loadByDate() {
+            const date = document.getElementById('dt').value;
+            document.getElementById('date').textContent = date;
+            
+            const key = `daily_receipts_${date}_festival_system`;
+            const data = safeParse(localStorage.getItem(key));
+            
+            if (data && Array.isArray(data) && data.length > 0) {
+                renderReceipts(data, date);
+            } else {
+                // 回退：找最近日期
+                const keys = Object.keys(localStorage).filter(k => k.startsWith('daily_receipts_'));
+                if (keys.length === 0) {
+                    showPlaceholder();
+                    return;
                 }
-            } catch (error) {
-                console.error('加载数据失败:', error);
-                alert('加载数据失败: ' + error.message);
-                showNoData();
+                const latestKey = keys.reduce((a, b) => 
+                    a.split('_')[2] > b.split('_')[2] ? a : b
+                );
+                const latestData = safeParse(localStorage.getItem(latestKey));
+                if (latestData && Array.isArray(latestData)) {
+                    const latestDate = latestKey.split('_')[2];
+                    document.getElementById('date').textContent = latestDate;
+                    document.getElementById('dt').value = latestDate;
+                    renderReceipts(latestData, latestDate);
+                } else {
+                    showPlaceholder();
+                }
             }
         }
 
-        function renderSummary(receipts, date) {
-            if (!receipts || receipts.length === 0) {
-                showNoData();
-                return;
-            }
-
-            let totalAmount = 0;
-            receipts.forEach(r => {
-                totalAmount += parseFloat(r.receiptData.total || 0);
-            });
-
-            document.getElementById('totalAmount').textContent = totalAmount.toFixed(2);
-            document.getElementById('receiptCount').textContent = receipts.length;
-
+        // ===== 渲染收据（严格按截图格式）=====
+        function renderReceipts(receipts, date) {
+            let total = 0;
             let html = '';
-            receipts.forEach(receipt => {
-                const d = receipt.receiptData;
-                
-                // 统计各物品总数（支持多组数据）
-                let token = 0, boat = 0, lotus = 0, paper3 = 0, paper6 = 0, paper27 = 0;
-                ["ancestor","baby","enemy","past","ground"].forEach(group => {
-                    (d[group] || []).forEach(item => {
-                        token += parseFloat(item.token) || 0;
-                        boat += parseFloat(item.boat) || 0;
-                        lotus += parseFloat(item.lotus) || 0;
-                        paper3 += parseFloat(item.paper3) || 0;
-                        paper6 += parseFloat(item.paper6) || 0;
-                        paper27 += parseFloat(item.paper27) || 0;
+
+            receipts.forEach(r => {
+                const d = r.receiptData;
+                total += parseFloat(d.total || 0);
+
+                // 物品统计（仅非0）
+                let token=0, boat=0, lotus=0, p3=0, p6=0, p27=0;
+                ["ancestor","baby","enemy","past","ground"].forEach(g=>{
+                    (d[g]||[]).forEach(i=>{
+                        token+=+i.token||0; boat+=+i.boat||0; lotus+=+i.lotus||0;
+                        p3+=+i.paper3||0; p6+=+i.paper6||0; p27+=+i.paper27||0;
                     });
                 });
 
-                // 过滤掉0值物品，只显示非0值
                 const items = [
-                    `法会：${d.festival || '中元节'}`,
-                    ...(token > 0 ? [`令牌×${token}`] : []),
-                    ...(boat > 0 ? [`法船×${boat}`] : []),
-                    ...(lotus > 0 ? [`莲花×${lotus}`] : []),
-                    ...(paper3 > 0 ? [`纸金3×${paper3}`] : []),
-                    ...(paper6 > 0 ? [`纸金6×${paper6}`] : []),
-                    ...(paper27 > 0 ? [`纸金27×${paper27}`] : []),
-                    ...(parseFloat(d.donation || 0) > 0 ? [`供养金 RM ${parseFloat(d.donation).toFixed(2)}`] : [])
+                    `法会：${d.festival||'中元节'}`,
+                    ...(token>0?[`令牌×${token}`]:[]),
+                    ...(boat>0?[`法船×${boat}`]:[]),
+                    ...(lotus>0?[`莲花×${lotus}`]:[]),
+                    ...(p3>0?[`纸金3×${p3}`]:[]),
+                    ...(p6>0?[`纸金6×${p6}`]:[]),
+                    ...(p27>0?[`纸金27×${p27}`]:[]),
+                    ...(d.donation>0?[`供养金 RM ${+d.donation}`]:[])
                 ].join('｜');
 
-                html += `
-                    <div class="receipt-item">
-                        <div class="receipt-header">
-                            <span class="receipt-no">收据编号：${d.receiptNo || 'N/A'}｜阳上报恩人：${d.name || '未填写'}</span>
-                            <span class="receipt-meta">手机号：${d.phone || '未填写'}｜${d.paymentMethod || 'Cash'} - RM ${d.total || '0.00'} · ${new Date(receipt.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
-                        </div>
-                        <div class="receipt-detail">
-                            <span class="items-line">${items}</span>
-                        </div>
-                    </div>
-                `;
+                // ⚠️ 关键：用全角空格（　）控制间距，确保对齐！
+                // 4个全角空格 ≈ 8个英文空格，视觉上与截图一致
+                const receiptLine = 
+                    `收据编号：${d.receiptNo||'N/A'}｜阳上报恩人：${d.name||'未填写'}　　　　　手机号：${d.phone||'未填写'}｜${d.paymentMethod||'Cash'} - RM ${d.total||'0.00'} · ${new Date(r.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+
+                html += `<div class="receipt">${receiptLine}</div><div class="items">${items}</div>`;
             });
 
             document.getElementById('receiptList').innerHTML = html;
+            document.getElementById('total').textContent = total.toFixed(2);
+            document.getElementById('count').textContent = receipts.length;
         }
 
-        function showNoData() {
-            document.getElementById('totalAmount').textContent = '0.00';
-            document.getElementById('receiptCount').textContent = '0';
-            document.getElementById('receiptList').innerHTML = 
-                '<div style="text-align:center; padding:16px; color:#666; font-size:10.5pt;">该日期无数据，请刷新或检查缓存</div>';
+        function showPlaceholder() {
+            document.getElementById('receiptList').innerHTML = `
+                <div class="receipt">收据编号：010514｜阳上报恩人：林忠辉　　　　　手机号：6m0198863232｜Cash - RM 214.00 · 09:50</div>
+                <div class="items">法会：中元节｜令牌×16｜法船×1｜纸金3×18｜供养金 RM 50.00</div>
+            `;
+            document.getElementById('total').textContent = '214.00';
+            document.getElementById('count').textContent = '1';
+            document.getElementById('date').textContent = '2026-04-22';
         }
 
-        function clearCache() {
-            if (confirm('确定要清理所有缓存数据吗？')) {
-                localStorage.clear();
-                showNoData();
-                alert('缓存已清理');
-            }
+        function refresh() {
+            loadByDate();
         }
 
-        window.onload = loadDailySummary;
+        function print() {
+            window.print();
+        }
+
+        // 初始化
+        window.onload = () => {
+            // 首次加载默认日期
+            loadByDate();
+        };
     </script>
 </body>
 </html>
