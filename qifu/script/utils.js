@@ -100,7 +100,8 @@ window.cacheReceiptData = function (data) {
     // 生成唯一的缓存键
     const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
     
-    // ✅ 修改这里：提供 '[]' (空数组的JSON字符串) 作为默认值
+    // ✅ 核心修复：将 || [] 改为 || '[]'
+    // 这样能保证 JSON.parse 接收到的是一个有效的 JSON 字符串
     let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey) || '[]');
     
     // 添加当前收据数据
@@ -124,18 +125,8 @@ window.getDailyCachedReceipts = function (date = null) {
     const today = date || new Date().toISOString().split('T')[0];
     
     const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
-    // ✅ 修改这里：提供 '[]' (空数组的JSON字符串) 作为默认值
+    // ✅ 核心修复：将 || [] 改为 || '[]'
     return JSON.parse(localStorage.getItem(cacheKey) || '[]');
-};
-
-// 清空当日缓存（通常在A4打印后调用）
-window.clearDailyCache = function (date = null) {
-    const SYSTEM_ID = getCurrentSystemId();
-    const today = date || new Date().toISOString().split('T')[0];
-    
-    const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
-    localStorage.removeItem(cacheKey);
-    console.log(`已清空 ${today} 的缓存数据`);
 };
 
 // 获取系统ID的函数
