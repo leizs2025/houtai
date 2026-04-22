@@ -105,28 +105,39 @@
                     : (d.sponsorAmount > 0 ? `随喜赞助 RM ${d.sponsorAmount}` : '无明细');
 
                 // 2. 拼接 HTML (严格按照你的排版要求)
-                html += `
-                    <div class="receipt-item">
-                        <!-- 第一行：核心信息 -->
-                        <div class="row-main">
-                            <div>
-                                收据编号: <strong>${d.receiptNumber || 'N/A'}</strong> | 
-                                阳上报恩: <strong>${d.mainName || '匿名'}</strong>
-                            </div>
-                            <div>
-                                手机号: <span class="highlight-phone">${phone}</span> | 
-                                ${payMethod} - RM ${totalAmount} • ${time}
-                            </div>
-                        </div>
+               // 格式化手机号
+const phone = d.phoneNumber ? d.phoneNumber.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3') : 'N/A';
+const payMethod = "Cash"; // 默认支付方式
+const totalAmount = d.total ? parseFloat(d.total).toFixed(2) : "0.00";
 
-                        <!-- 第二行：明细信息 -->
-                        <div class="row-detail">
-                            法会: ${d.dharmaType || '-'} | ${detailText}
-                            ${d.sponsorAmount > 0 && items.length > 0 ? `| 供养金 RM ${d.sponsorAmount}` : ''}
-                        </div>
-                    </div>
-                `;
-            });
+html += `
+    <div class="receipt-item">
+        <!-- 第一行：收据编号 | 名字   手机号 | 支付信息 -->
+        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px;">
+            <div>
+                收据编号: <strong>${d.receiptNumber || 'N/A'}</strong> | 
+                阳上报恩: <strong>${d.mainName || '匿名'}</strong>
+            </div>
+            <div style="text-align: right;">
+                手机号: <strong>${phone}</strong> | 
+                ${payMethod} - RM ${totalAmount} • ${time}
+            </div>
+        </div>
+
+        <!-- 第二行：法会类型 + 贡品明细 -->
+        <div style="font-size: 13px; color: #555; padding-left: 2px;">
+            法会: ${d.dharmaType || 'N/A'} | 
+            ${d.data && d.data.length > 0 ? d.data.map(item => {
+                let details = [];
+                if(item.token) details.push(`令牌×${item.token}`);
+                if(item.fire) details.push(`莲花×${item.fire}`);
+                if(item.pg3) details.push(`纸金3×${item.pg3}`);
+                if(item.pg6) details.push(`纸金6×${item.pg6}`);
+                return details.join(' ');
+            }).join(' | ') : '无贡品记录'}
+        </div>
+    </div>
+`;
 
             // 添加总计
             html += `<div class="total-amount">总计金额: RM ${grandTotal.toFixed(2)}</div>`;
