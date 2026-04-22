@@ -77,6 +77,13 @@
             font-weight: bold;
         }
 
+        /* 特别放大金额部分 */
+        .amount-highlight {
+            font-size: 14pt !important; /* 比整体更大 */
+            font-weight: bold;
+            color: #000;
+        }
+
         /* 明细行：单行大字、无分栏 */
         .receipt-detail {
             font-size: 10.5pt;
@@ -108,6 +115,7 @@
             .receipt-header { font-size: 11pt; }
             .receipt-detail { font-size: 9.5pt; }
             .receipt-no, .receipt-meta { font-size: 11pt; }
+            .amount-highlight { font-size: 13pt !important; } /* 打印时也放大 */
         }
     </style>
 </head>
@@ -227,11 +235,11 @@
                     ...(parseFloat(d.donation || 0) > 0 ? [`供养金 RM ${parseFloat(d.donation).toFixed(2)}`] : [])
                 ].join('｜');
 
-                // 构建右侧紧凑信息：手机号｜支付方式
-                const rightInfo = [
-                    `手机号：${d.phone || '未填写'}`,
-                    `${d.paymentMethod || 'Cash'} - RM ${d.total || '0.00'} · ${new Date(receipt.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`
-                ].join('｜');
+                // 构建右侧信息：手机号｜支付方式（特别处理金额部分）
+                const paymentText = `${d.paymentMethod || 'Cash'} - RM ${d.total || '0.00'} · ${new Date(receipt.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                
+                // 将金额部分包裹在特殊class中以便放大
+                const highlightedPaymentText = paymentText.replace(/(RM \d+\.?\d*)/, '<span class="amount-highlight">$1</span>');
 
                 html += `
                     <div class="receipt-item">
@@ -240,7 +248,7 @@
                                 <span class="receipt-no">收据编号：${d.receiptNo || 'N/A'}｜阳上报恩人：${d.name || '未填写'}</span>
                             </div>
                             <div class="receipt-right">
-                                <span class="receipt-meta">${rightInfo}</span>
+                                <span class="receipt-meta">手机号：${d.phone || '未填写'}｜${highlightedPaymentText}</span>
                             </div>
                         </div>
                         <div class="receipt-detail">
