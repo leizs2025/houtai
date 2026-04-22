@@ -2,259 +2,193 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>祈福日汇总报表</title>
+    <meta name="viewport" content="width=80mm">
+    <title>打印小票</title>
     <style>
-        body { font-family: "Microsoft JhengHei", Arial, sans-serif; margin: 20px; font-size: 14px; background: #fff; }
-        .header { text-align: center; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-        .controls { margin-bottom: 20px; text-align: center; }
-        
-        /* 收据条目样式 */
-        .receipt-item { 
-            margin-bottom: 15px; 
-            padding-bottom: 10px; 
-            border-bottom: 1px dashed #ccc; 
+        body {
+            width: 80mm;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
         }
-        
-        /* 第一行：左右两端对齐 */
-        .row-main { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            margin-bottom: 5px; 
+        .header {
+            text-align: center;
+            border-bottom: 1px dashed #000;
+            margin-bottom: 10px;
         }
-        
-        /* 左侧信息：紧凑排列 */
-        .left-info { font-size: 14px; color: #333; }
-        
-        /* 右侧金额：加大加粗 */
-        .right-info { 
-            font-size: 16px; 
-            font-weight: 800; 
-            color: #d9534f; 
-            font-family: monospace;
+        .header h2 {
+            margin: 0;
+            font-size: 18px;
         }
-        
-        /* 第二行：明细信息 */
-        .row-detail { 
-            font-size: 14px; 
-            color: #555; 
-            margin-top: 5px; 
-            border-top: 1px solid #eee;
-            padding-top: 5px;
+        .header p {
+            margin: 2px 0;
+            font-size: 14px;
         }
-        .label { font-weight: bold; color: #000; }
+        .receipt-info {
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+        .receipt-info p {
+            margin: 4px 0; /* 减小段落间距 */
+        }
+        .item-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 5px;
+        font-size: 14px;
+        }
+        .label {
+        flex: 1;
+        text-align: left;
+    }
+    .formula {
+        flex: 1;
+        text-align: center;
+    }
+    .amount {
+        flex: 1;
+        text-align: right;
+    }
 
-        /* 汇总表格样式 - 修复出界问题 */
-        .summary-table { 
-            width: 98%; /* 稍微小于100%，防止溢出 */
-            margin-top: 30px; 
-            border-collapse: collapse; 
-            table-layout: fixed; /* 固定表格布局，强制不换行 */
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            font-style: italic;
+            color: #000;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+            margin-top: 10px;
         }
-        .summary-table th, .summary-table td { 
-            border: 1px solid #000; 
-            padding: 6px 8px; /* 稍微减小内边距 */
-            text-align: left; 
-            word-break: break-all; /* 防止长单词撑破表格 */
+        .print-button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
         }
-        .summary-table th { background-color: #f0f0f0; }
-        .summary-table td.count-col { 
-            font-size: 1.2em; 
-            font-weight: bold; 
-            text-align: center; 
-            background-color: #e8f4fd;
-        }
-        .total-amount { font-size: 1.3em; color: #d9534f; text-align: right; margin-top: 20px; font-weight: bold; }
-
-        /* 打印专用样式 */
         @media print {
-            @page { size: auto; margin: 10mm 10mm; } /* 强制设置打印边距 */
-            body { margin: 0; padding: 0; }
-            .no-print { display: none; }
-            .receipt-item { break-inside: avoid; } /* 防止收据被切断 */
-            .summary-table { width: 100%; } /* 打印时恢复100%宽度 */
+            .print-button {
+                display: none !important;
+            }
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>📅 祈福日结报表</h1>
-        <div class="controls no-print">
-            <label>选择日期: <input type="date" id="datePicker"></label>
-            <button onclick="loadDailyReceipts()">🔄 加载数据</button>
-            <button onclick="printSummary()">🖨️ 打印报表</button>
-            <button onclick="clearCache()" style="color:red;">⚠️ 清空缓存</button>
-        </div>
+        <h2>PERSATUAN MIAO LI TANG SIBU</h2>
+        <p>Tel: 013980446 (寺)</p>
+        <p>JALAN PASAI SIONG OFF 25TH MILE</p>
+        <p>JALAN OYA, SIBU SARAWAK</p>
+        <h2>DONATION</h2>
+        <!-- 这里默认显示 CASH，JS 会根据数据修改 -->
+        <p id="paymentHeader">CASH</p>
     </div>
 
-    <div id="reportContent"></div>
+    <div id="receiptInfo" class="receipt-info"></div>
+    <div id="summarySection" class="total-section"></div>
+
+    <div class="footer">
+        <p> 愿一切吉祥如意，功德圆满 </p>
+        <p>欢迎再次光临</p>
+    </div>
+
+    <button id="printBtn" class="print-button">🖨️ 打印小票</button>
 
     <script>
-        // --- 工具函数 ---
-        function getCurrentSystemId() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('system_id') || 'system_1';
-        }
-
-        function getDailyCachedReceipts(date) {
-            const SYSTEM_ID = getCurrentSystemId();
-            const cacheKey = `daily_receipts_${date}_${SYSTEM_ID}`;
-            return JSON.parse(localStorage.getItem(cacheKey) || '[]');
-        }
-
-        // --- 主逻辑：生成报表 ---
-        function loadDailyReceipts() {
-            const selectedDate = document.getElementById('datePicker').value || new Date().toISOString().split('T')[0];
-            const receipts = getDailyCachedReceipts(selectedDate);
-
-            if (receipts.length === 0) {
-                document.getElementById('reportContent').innerHTML = '<p style="text-align:center; color:#888;">该日期暂无数据</p>';
-                return;
-            }
-
-            let html = `<h3>日期：${selectedDate} | 共 ${receipts.length} 笔</h3>`;
-            
-            // 统计总金额
-            let grandTotal = 0;
-
-            receipts.forEach((item) => {
-                const d = item.receiptData;
-                const time = new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-                const totalAmount = parseFloat(d.total || 0).toFixed(2);
-                grandTotal += parseFloat(totalAmount);
-
-                // 支付方式判断
-                const payMethod = d.transferSlip ? "Transfer" : "Cash";
-                // 手机号处理
-                const phone = d.phoneNumber ? d.phoneNumber.replace(/[-\s]/g, '') : 'N/A';
-
-                // --- 智能汇总贡品 ---
-                let counts = { token: 0, fire: 0, pg3: 0, pg6: 0 };
+        window.addEventListener("message", function (event) {
+            try {
+                const data = JSON.parse(event.data);
                 
-                if (d.data && Array.isArray(d.data)) {
-                    d.data.forEach(p => {
-                        counts.token += parseInt(p.token) || 0;
-                        counts.fire += parseInt(p.fire) || 0;
-                        counts.pg3 += parseInt(p.pg3) || 0;
-                        counts.pg6 += parseInt(p.pg6) || 0;
-                    });
-                }
-
-                // 生成汇总后的贡品字符串
-                let itemStr = [];
-                if (counts.token > 0) itemStr.push(`令牌 × ${counts.token}`);
-                if (counts.fire > 0) itemStr.push(`护摩 × ${counts.fire}`);
-                if (counts.pg3 > 0) itemStr.push(`纸金3 × ${counts.pg3}`);
-                if (counts.pg6 > 0) itemStr.push(`纸金6 × ${counts.pg6}`);
+                // 获取当前年份
+                const currentYear = new Date().getFullYear();
+    
+                // --- 核心修改：判断支付方式 ---
+                // 如果 transferSlip 为 true 显示 TRANSFER，否则显示 CASH
+                const payMethod = data.transferSlip ? "TRANSFER" : "CASH";
                 
-                const offeringText = itemStr.length > 0 
-                    ? itemStr.join(' | ') 
-                    : (d.sponsorAmount > 0 ? `随喜 RM ${d.sponsorAmount}` : '无明细');
-
-                // --- 生成 HTML ---
-                html += `
-                    <div class="receipt-item">
-                        <div class="row-main">
-                            <div class="left-info">
-                                收据编号: <strong>${d.receiptNumber || 'N/A'}</strong> | 
-                                阳上报恩: <strong>${d.mainName || '匿名'}</strong> | 
-                                手机号: <span style="font-family:monospace">${phone}</span>
-                            </div>
-                            <div class="right-info">
-                                ${payMethod} - RM ${totalAmount} • ${time}
-                            </div>
-                        </div>
-
-                        <div class="row-detail">
-                            <span class="label">法会:</span> ${d.dharmaType || '-'} | 
-                            <span class="label">供奉:</span> ${offeringText}
-                        </div>
+                // 填充基本信息
+                const receiptInfo = `
+                    <div>
+                        <p><strong>D/NO:</strong> ${data.receiptNumber || "未生成"}</p>
+                        <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                        <p><strong>主祈者:</strong> ${data.mainName || "未填写"}</p>
+                        <p><strong>电话:</strong> ${data.phoneNumber || "未填写"}</p>
+                        <p><strong>支付方式:</strong> <span style="font-weight:bold; color:red;">${payMethod}</span></p>
+                        <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || "未选择"} 祈福</p>
                     </div>
                 `;
-            });
+                document.getElementById("receiptInfo").innerHTML = receiptInfo;
 
-            html += `<div class="total-amount">总计金额: RM ${grandTotal.toFixed(2)}</div>`;
-            html += generateSummaryTable(receipts);
+                // 同时修改顶部的标题文字
+                document.getElementById("paymentHeader").innerText = payMethod;
+    
+                // 贡品计算
+                let tokenTotal = 0;
+                let fireTotal = 0;
+                let pg3Total = 0;
+                let pg6Total = 0;
+                let sponsorTotal = data.sponsorAmount || 0;
+    
+                data.data.forEach(item => {
+                    tokenTotal += (item.token || 0) * 5;
+                    fireTotal += (item.fire || 0) * 1;
+                    pg3Total += (item.pg3 || 0) * 3;
+                    pg6Total += (item.pg6 || 0) * 6;
+                });
+    
+                const grandTotal = tokenTotal + fireTotal + pg3Total + pg6Total + sponsorTotal;
+    
+                // 填充小票内容
+                const summarySection = `
+                    <div class="item-row">
+                        <span class="label">祈福令牌</span>
+                        <span class="formula">5 × ${tokenTotal / 5} 个</span>
+                        <span class="amount">${tokenTotal.toFixed(2)}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="label">小护摩片</span>
+                        <span class="formula">1 × ${fireTotal} 片</span>
+                        <span class="amount">${fireTotal.toFixed(2)}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="label">纸金 3</span>
+                        <span class="formula">3 × ${pg3Total / 3} 份</span>
+                        <span class="amount">${pg3Total.toFixed(2)}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="label">纸金 6</span>
+                        <span class="formula">6 × ${pg6Total / 6} 份</span>
+                        <span class="amount">${pg6Total.toFixed(2)}</span>
+                    </div>
+                    <div class="item-row">
+                        <span class="label">祈福报名供养金</span>
+                        <span class="formula">-</span>
+                        <span class="amount">${sponsorTotal.toFixed(2)}</span>
+                    </div>
+                    <div class="item-row" style="font-weight: bold; margin-top: 5px;">
+                        <span class="label">总计</span>
+                        <span class="formula"></span>
+                        <span class="amount">RM ${grandTotal.toFixed(2)}</span>
+                    </div>
+                `;
 
-            document.getElementById('reportContent').innerHTML = html;
-        }
-
-        // --- 生成底部统计表 ---
-        function generateSummaryTable(receipts) {
-            let stats = { token: 0, fire: 0, pg3: 0, pg6: 0 };
-            // 新增：支付方式统计
-            let payStats = { cashCount: 0, cashAmt: 0, transferCount: 0, transferAmt: 0 };
-
-            receipts.forEach(item => {
-                const d = item.receiptData;
-                
-                // 1. 统计贡品
-                if (d.data && Array.isArray(d.data)) {
-                    d.data.forEach(p => {
-                        stats.token += parseInt(p.token) || 0;
-                        stats.fire += parseInt(p.fire) || 0;
-                        stats.pg3 += parseInt(p.pg3) || 0;
-                        stats.pg6 += parseInt(p.pg6) || 0;
-                    });
-                }
-
-                // 2. 统计支付方式
-                const amount = parseFloat(d.total) || 0;
-                if (d.transferSlip) {
-                    payStats.transferCount++;
-                    payStats.transferAmt += amount;
-                } else {
-                    payStats.cashCount++;
-                    payStats.cashAmt += amount;
-                }
-            });
-
-            // 构建表格 HTML
-            let tableHtml = `<table class="summary-table">
-                <thead>
-                    <tr>
-                        <th>项目</th>
-                        <th style="text-align:center;">统计</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-
-            // 显示支付方式统计
-            if (payStats.cashCount > 0) {
-                tableHtml += `<tr><td>💰 现金收款</td><td class="count-col">${payStats.cashCount} 笔 (RM ${payStats.cashAmt.toFixed(2)})</td></tr>`;
+                document.getElementById("summarySection").innerHTML = summarySection;
+    
+                // 显示打印按钮
+                document.getElementById("printBtn").addEventListener("click", () => {
+                    window.print();
+                });
+    
+            } catch (error) {
+                console.error("小票数据处理错误:", error);
             }
-            if (payStats.transferCount > 0) {
-                tableHtml += `<tr><td>💳 转账收款</td><td class="count-col">${payStats.transferCount} 笔 (RM ${payStats.transferAmt.toFixed(2)})</td></tr>`;
-            }
-
-            // 显示贡品统计
-            if (stats.token > 0) tableHtml += `<tr><td>祈福令牌</td><td class="count-col">${stats.token}</td></tr>`;
-            if (stats.fire > 0) tableHtml += `<tr><td>小护摩片</td><td class="count-col">${stats.fire}</td></tr>`;
-            if (stats.pg3 > 0) tableHtml += `<tr><td>纸金 3</td><td class="count-col">${stats.pg3}</td></tr>`;
-            if (stats.pg6 > 0) tableHtml += `<tr><td>纸金 6</td><td class="count-col">${stats.pg6}</td></tr>`;
-
-            tableHtml += `</tbody></table>`;
-            return tableHtml;
-        }
-
-        // --- 其他功能 ---
-        function printSummary() { window.print(); }
-
-        function clearCache() {
-            if (confirm('确定要清空今日数据吗？')) {
-                const selectedDate = document.getElementById('datePicker').value || new Date().toISOString().split('T')[0];
-                const SYSTEM_ID = getCurrentSystemId();
-                localStorage.removeItem(`daily_receipts_${selectedDate}_${SYSTEM_ID}`);
-                loadDailyReceipts();
-            }
-        }
-
-        // 初始化
-        window.onload = function() {
-            document.getElementById('datePicker').value = new Date().toISOString().split('T')[0];
-            loadDailyReceipts();
-        };
+        });
     </script>
+    
 </body>
 </html>
