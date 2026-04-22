@@ -8,7 +8,6 @@
         body { font-family: Arial, sans-serif; margin: 20px; font-size: 14px; }
         .header { text-align: center; margin-bottom: 20px; }
         .controls { margin-bottom: 20px; text-align: center; }
-        .receipt-item { border: 1px solid #ccc; margin-bottom: 10px; padding: 10px; page-break-inside: avoid; }
         .summary-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         .summary-table th, .summary-table td { border: 1px solid #000; padding: 8px; text-align: left; }
         .summary-table th { background-color: #f0f0f0; }
@@ -31,19 +30,24 @@
         </div>
     </div>
 
-    <!-- 收据列表区域（已移除祈福详情显示） -->
+    <!-- 收据列表区域 -->
     <div id="receiptList"></div>
     
     <!-- 汇总表格区域 -->
     <div id="summaryTable"></div>
 
     <script>
-        // --- 通用工具函数 ---
+        // --- 1. 通用工具函数 ---
         function getCurrentSystemId() {
             const urlParams = new URLSearchParams(window.location.search);
             const systemId = urlParams.get('system_id');
             if (systemId && systemId.trim()) {
                 return systemId.trim();
+            }
+            // 如果没有URL参数，尝试读取上次使用的系统ID（防止直接打开页面读不到数据）
+            const rememberedId = localStorage.getItem('current_active_system_id');
+            if (rememberedId) {
+                return rememberedId;
             }
             return 'system_1';
         }
@@ -64,110 +68,129 @@
             console.log(`已清空 ${today} 的缓存数据`);
         }
 
-        // --- 主逻辑 ---
+        // --- 2. 主逻辑：加载并渲染收据 ---
         function loadDailyReceipts() {
             const selectedDate = document.getElementById('datePicker').value || new Date().toISOString().split('T')[0];
             const receipts = getDailyCachedReceipts(selectedDate);
 
             if (receipts.length === 0) {
-                document.getElementById('receiptList').innerHTML = '<p>该日期没有收据记录</p>';
+                document.getElementById('receiptList').innerHTML = '<p style="text-align:center; color:#666;">该日期没有收据记录</p>';
                 document.getElementById('summaryTable').innerHTML = '';
                 return;
             }
 
-            // 1. 生成收据列表（仅显示基本信息，去掉了祈福详情）
-            let html = `<h2>${selectedDate} 日收据汇总 (${receipts.length} 张)</h2>`;
-            let totalAmount = 0;
+            // 生成收据列表 HTML (左右分栏排版)
+            let html = `<h3 style="border-bottom:1px solid #ccc; padding-bottom:10px;">
+                            ${selectedDate} 汇总 (${receipts.length} 笔)
+                        </h3>`;
 
-            receipts.forEach((item, index) => {
-                const receiptData = item.receiptData;
-                const time = new Date(item.timestamp).toLocaleTimeString();
+            receipts.forEach((item) => {
+                const d = item.receiptData;
+                const time = new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
                 
+                // 格式化手机号
+                const phone = d.phoneNumber ? d.phoneNumber.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3') : 'N/A';
+                const amount = d.total ? parseFloat(d.total).toFixed(2) : "0.00";
+
                 html += `
-                    <div class="receipt-item">
-                        <h4>收据 #${index + 1} - ${time}</h4>
-                        <p><strong>收据号:</strong> ${receiptData.receiptNumber || 'N/A'}</p>
-                        <p><strong>主祈者:</strong> ${receiptData.mainName || 'N/A'}</p>
-                        <p><strong>电话:</strong> ${receiptData.phoneNumber || 'N/A'}</p>
-                        <p><strong>法会类型:</strong> ${receiptData.dharmaType || 'N/A'}</p>
-                        <p><strong>随喜赞助:</strong> RM ${(receiptData.sponsorAmount || 0).toFixed(2)}</p>
-                        <p><strong>总金额:</strong> RM ${receiptData.total || '0.00'}</p>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px; border-bottom:1px dashed #eee; padding-bottom:5px;">
+                        <!-- 左侧信息 -->
+                        <div style="flex:1;">
+                            <span style="font-weight:bold;">收据编号: ${d.receiptNumber || 'N/A'}</span> 
+                            <span style="margin-left:10px;">| 阳上报恩: <strong>${d.mainName || '匿名'}</strong></span>
+                            <div style="font-size:12px; color:#555; margin-top:2px;">
+                                法会: ${d.dharmaType || 'N/A'}
+                            </div>
+                        </div>
+
+                        <!-- 右侧信息 -->
+                        <div style="text-align:right; flex:1;">
+                            <div>
+                                <span style="font-family:monospace;">${phone}</span> 
+                                <span style="margin-left:10px;">| Cash - RM ${amount}</span>
+                                <span style="font-size:12px; color:#888;">• ${time}</span>
+                            </div>
+                        </div>
                     </div>
                 `;
-                totalAmount += parseFloat(receiptData.total || 0);
             });
 
-            // 2. 生成汇总表（智能显示）
+            // 生成下方的汇总表
             const summaryHtml = generateSummaryTable(receipts);
             
+            // 写入页面
             document.getElementById('receiptList').innerHTML = html;
             document.getElementById('summaryTable').innerHTML = summaryHtml;
             document.getElementById('datePicker').value = selectedDate;
         }
 
-        // --- 智能汇总表生成器 ---
- // --- 主逻辑：加载并渲染收据 (替换原本的 loadDailyReceipts) ---
-function loadDailyReceipts() {
-    const selectedDate = document.getElementById('datePicker').value || new Date().toISOString().split('T')[0];
-    const receipts = getDailyCachedReceipts(selectedDate);
+        // --- 3. 智能汇总表生成器 ---
+        function generateSummaryTable(receipts) {
+            // 初始化统计对象
+            let stats = {
+                token: { count: 0, label: "祈福令牌" },
+                fire:  { count: 0, label: "小护摩片" }, 
+                pg3:   { count: 0, label: "纸金 3" },
+                pg6:   { count: 0, label: "纸金 6" }
+            };
 
-    if (receipts.length === 0) {
-        document.getElementById('receiptList').innerHTML = '<p style="text-align:center; color:#666;">该日期没有收据记录</p>';
-        document.getElementById('summaryTable').innerHTML = '';
-        return;
-    }
+            let totalAmount = 0;
+            let totalReceipts = receipts.length;
 
-    // 生成收据列表 HTML
-    let html = `<h3 style="border-bottom:1px solid #ccc; padding-bottom:10px;">
-                    ${selectedDate} 汇总 (${receipts.length} 笔)
-                </h3>`;
+            // 遍历所有收据累加数据
+            receipts.forEach(item => {
+                const data = item.receiptData;
+                
+                // 累加总金额
+                totalAmount += parseFloat(data.total || 0);
 
-    receipts.forEach((item) => {
-        const d = item.receiptData;
-        const time = new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-        
-        // 格式化手机号 (简单的加空格)
-        const phone = d.phoneNumber ? d.phoneNumber.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3') : 'N/A';
+                // 累加贡品数量
+                if (data.data && Array.isArray(data.data)) {
+                    data.data.forEach(p => {
+                        stats.token.count += +p.token || 0;
+                        stats.fire.count  += +p.fire  || 0;
+                        stats.pg3.count   += +p.pg3   || 0;
+                        stats.pg6.count   += +p.pg6   || 0;
+                    });
+                }
+            });
 
-        // 支付方式逻辑 (假设如果有转账记录则显示Transfer，否则Cash，这里简化处理)
-        // 实际项目中你可能需要更复杂的逻辑来判断支付方式
-        const payMethod = "Cash"; // 默认 Cash
-        const amount = d.total ? parseFloat(d.total).toFixed(2) : "0.00";
+            // 拼接统计字符串 (只有数量 > 0 才拼接)
+            let itemsStr = [];
+            if (stats.token.count > 0) itemsStr.push(`${stats.token.label}×${stats.token.count}`);
+            if (stats.fire.count > 0)  itemsStr.push(`${stats.fire.label}×${stats.fire.count}`);
+            if (stats.pg3.count > 0)   itemsStr.push(`${stats.pg3.label}×${stats.pg3.count}`);
+            if (stats.pg6.count > 0)   itemsStr.push(`${stats.pg6.label}×${stats.pg6.count}`);
+            
+            const itemsText = itemsStr.length > 0 ? itemsStr.join(' | ') : '无贡品记录';
 
-        // ✅ 核心排版：使用 Flex 布局实现左右对齐
-        html += `
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px; border-bottom:1px dashed #eee; padding-bottom:5px;">
-                <!-- 左侧信息 -->
-                <div style="flex:1;">
-                    <span style="font-weight:bold;">收据编号: ${d.receiptNumber || 'N/A'}</span> 
-                    <span style="margin-left:10px;">| 阳上报恩: <strong>${d.mainName || '匿名'}</strong></span>
-                    <div style="font-size:12px; color:#555; margin-top:2px;">
-                        法会: ${d.dharmaType || 'N/A'}
-                    </div>
-                </div>
+            // 返回 HTML 表格
+            return `
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th colspan="2" style="background:#f0f0f0">每日汇总统计</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>统计项目</strong></td>
+                            <td>${itemsText}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>收据张数</strong></td>
+                            <td>${totalReceipts} 张</td>
+                        </tr>
+                        <tr class="total-row">
+                            <td><strong>总计金额</strong></td>
+                            <td>RM ${totalAmount.toFixed(2)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            `;
+        }
 
-                <!-- 右侧信息 -->
-                <div style="text-align:right; flex:1;">
-                    <div>
-                        <span style="font-family:monospace;">${phone}</span> 
-                        <span style="margin-left:10px;">| ${payMethod} - RM ${amount}</span>
-                        <span style="font-size:12px; color:#888;">• ${time}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-
-    // 2. 生成下方的汇总表
-    const summaryHtml = generateSummaryTable(receipts);
-    
-    // 写入页面
-    document.getElementById('receiptList').innerHTML = html;
-    document.getElementById('summaryTable').innerHTML = summaryHtml;
-    document.getElementById('datePicker').value = selectedDate;
-}
-
-        // --- 其他功能 ---
+        // --- 4. 其他功能 ---
         function printSummary() {
             window.print();
         }
