@@ -32,29 +32,48 @@
         .receipt-info p {
             margin: 4px 0;
         }
+        /* 打印时才显示的支付方式文本 */
+        #printMethodDisplay {
+            display: none; /* 默认隐藏 */
+            font-weight: bold;
+            font-size: 16px;
+            margin: 5px 0;
+            text-align: center;
+        }
+        /* 屏幕上操作的下拉框 */
+        #payMethodSelect {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            border: 1px solid #000;
+        }
         .item-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
             font-size: 14px;
+            margin-bottom: 4px;
         }
-        .label { flex: 1; text-align: left; }
-        .formula { flex: 1; text-align: center; }
-        .amount { flex: 1; text-align: right; }
-
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+        }
         .footer {
             text-align: center;
             font-size: 14px;
             font-style: italic;
-            color: #000;
+            margin-top: 20px;
             border-top: 1px dashed #000;
             padding-top: 10px;
-            margin-top: 10px;
         }
         .print-button {
             width: 100%;
             padding: 10px;
-            margin-bottom: 10px;
             background-color: #007bff;
             color: #fff;
             border: none;
@@ -62,87 +81,101 @@
             cursor: pointer;
             border-radius: 5px;
         }
-        /* 隐藏下拉框，只在屏幕上显示用于操作 */
-        #payMethodSelect {
-            display: none;
-        }
+        /* 打印时隐藏按钮和下拉框，显示文本 */
         @media print {
-            .print-button { display: none !important; }
+            .print-button, #payMethodSelect {
+                display: none !important;
+            }
+            #printMethodDisplay {
+                display: block !important;
+            }
+            body {
+                padding: 0; /* 打印时去除边距 */
+            }
         }
     </style>
 </head>
 <body>
+
     <div class="header">
         <h2>PERSATUAN MIAO LI TANG SIBU</h2>
         <p>Tel: 013980446 (寺)</p>
         <p>JALAN PASAI SIONG OFF 25TH MILE</p>
         <p>JALAN OYA, SIBU SARAWAK</p>
         <h2>DONATION</h2>
-
-        <!-- 1. 这是下拉框 (屏幕上看得到，打印看不见) -->
-        <select id="payMethodSelect" onchange="updatePayMethod()">
-            <option value="CASH">CASH</option>
-            <option value="TRANSFER">TRANSFER</option>
-        </select>
-
-        <!-- 2. 这是显示的文字 (打印出来的内容) -->
-        <p id="payMethodDisplay" style="font-weight: bold; margin-top: 5px;">CASH</p>
     </div>
 
-    <div id="receiptInfo" class="receipt-info"></div>
-    <div id="summarySection" class="total-section"></div>
+    <!-- 打印时显示的支付方式 -->
+    <div id="printMethodDisplay"></div>
+
+    <!-- 屏幕上操作的下拉框 -->
+    <select id="payMethodSelect">
+        <option value="CASH">CASH</option>
+        <option value="DUITNOW">DUITNOW</option>
+        <option value="BANK TRANSFER">BANK TRANSFER</option>
+    </select>
+
+    <!-- 这里填充收据详情 -->
+    <div id="receiptInfo" class="receipt-info">
+        <!-- 数据加载前显示 -->
+        <p>等待数据...</p>
+    </div>
+
+    <!-- 这里填充贡品列表 -->
+    <div id="summarySection"></div>
 
     <div class="footer">
-        <p> 愿一切吉祥如意，功德圆满 </p>
+        <p>愿一切吉祥如意，功德圆满</p>
         <p>欢迎再次光临</p>
     </div>
 
     <button id="printBtn" class="print-button">🖨️ 打印小票</button>
 
     <script>
-        // 页面加载完成后执行
-        window.addEventListener("load", function() {
-            // 读取缓存，如果有就显示，没有就默认 CASH
-            const savedMethod = localStorage.getItem('payMethod') || 'CASH';
-            document.getElementById('payMethodSelect').value = savedMethod;
-            document.getElementById('payMethodDisplay').innerText = savedMethod;
+        // 1. 初始化：读取上次保存的支付方式
+        const selectEl = document.getElementById('payMethodSelect');
+        const printDisplayEl = document.getElementById('printMethodDisplay');
+        const savedMethod = localStorage.getItem('payMethod') || 'CASH';
+        
+        selectEl.value = savedMethod;
+        printDisplayEl.innerText = savedMethod;
+
+        // 监听下拉框变化，实时保存
+        selectEl.addEventListener('change', function() {
+            const val = this.value;
+            localStorage.setItem('payMethod', val);
+            printDisplayEl.innerText = val;
         });
 
-        // 当下拉框改变时，更新显示的文字并保存缓存
-        function updatePayMethod() {
-            const selected = document.getElementById('payMethodSelect').value;
-            document.getElementById('payMethodDisplay').innerText = selected;
-            localStorage.setItem('payMethod', selected);
-        }
-
+        // 2. 监听主程序发来的数据
         window.addEventListener("message", function (event) {
             try {
-                const data = JSON.parse(event.data);
+                // 尝试解析数据
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
 
-                // --- 恢复你原本的数据填充逻辑 ---
+                // --- 填充基本信息 ---
                 const currentYear = new Date().getFullYear();
-
-                // 填充基本信息
-                const receiptInfo = `
-                    <div>
-                        <p><strong>D/NO:</strong> ${data.receiptNumber || "未生成"}</p>
-                        <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
-                        <p><strong>主祈者:</strong> ${data.mainName || "未填写"}</p>
-                        <p><strong>电话:</strong> ${data.phoneNumber || "未填写"}</p>
-                        <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || "未选择"} 祈福</p>
-                    </div>
+                const infoHtml = `
+                    <p><strong>D/NO:</strong> ${data.receiptNumber || '---'}</p>
+                    <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                    <p><strong>主祈者:</strong> ${data.mainName || '---'}</p>
+                    <p><strong>电话:</strong> ${data.phoneNumber || '---'}</p>
+                    <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || '---'} 祈福</p>
                 `;
-                document.getElementById("receiptInfo").innerHTML = receiptInfo;
+                document.getElementById("receiptInfo").innerHTML = infoHtml;
 
-                // 贡品计算
+                // --- 计算并填充贡品 ---
                 let tokenTotal = 0;
                 let fireTotal = 0;
                 let pg3Total = 0;
                 let pg6Total = 0;
                 let sponsorTotal = data.sponsorAmount || 0;
 
-                if(data.data && Array.isArray(data.data)) {
+                // 只有当 data.data 存在且是数组时才遍历
+                if (Array.isArray(data.data)) {
                     data.data.forEach(item => {
+                        // 注意：这里假设传来的字段名是 token, fire, pg3, pg6
+                        // 如果打印出来是0，请检查这里字段名是否和主程序一致
                         tokenTotal += (item.token || 0) * 5;
                         fireTotal += (item.fire || 0) * 1;
                         pg3Total += (item.pg3 || 0) * 3;
@@ -152,47 +185,23 @@
 
                 const grandTotal = tokenTotal + fireTotal + pg3Total + pg6Total + sponsorTotal;
 
-                // 填充金额列表
-                const summarySection = `
-                    <div class="item-row">
-                        <span class="label">祈福令牌</span>
-                        <span class="formula">5 × ${tokenTotal / 5} 个</span>
-                        <span class="amount">${tokenTotal.toFixed(2)}</span>
-                    </div>
-                    <div class="item-row">
-                        <span class="label">小护摩片</span>
-                        <span class="formula">1 × ${fireTotal} 片</span>
-                        <span class="amount">${fireTotal.toFixed(2)}</span>
-                    </div>
-                    <div class="item-row">
-                        <span class="label">纸金 3</span>
-                        <span class="formula">3 × ${pg3Total / 3} 份</span>
-                        <span class="amount">${pg3Total.toFixed(2)}</span>
-                    </div>
-                    <div class="item-row">
-                        <span class="label">纸金 6</span>
-                        <span class="formula">6 × ${pg6Total / 6} 份</span>
-                        <span class="amount">${pg6Total.toFixed(2)}</span>
-                    </div>
-                    <div class="item-row">
-                        <span class="label">供养金</span>
-                        <span class="formula">-</span>
-                        <span class="amount">${sponsorTotal.toFixed(2)}</span>
-                    </div>
-                    <div class="item-row" style="font-weight: bold; border-top: 1px solid #000; margin-top: 10px; padding-top:5px;">
-                        <span class="label">总计</span>
-                        <span class="formula"></span>
-                        <span class="amount">RM ${grandTotal.toFixed(2)}</span>
-                    </div>
+                const summaryHtml = `
+                    <div class="item-row"><span class="label">祈福令牌</span><span>5 × ${tokenTotal / 5}</span><span>${tokenTotal.toFixed(2)}</span></div>
+                    <div class="item-row"><span class="label">小护摩片</span><span>1 × ${fireTotal}</span><span>${fireTotal.toFixed(2)}</span></div>
+                    <div class="item-row"><span class="label">纸金 3</span><span>3 × ${pg3Total / 3}</span><span>${pg3Total.toFixed(2)}</span></div>
+                    <div class="item-row"><span class="label">纸金 6</span><span>6 × ${pg6Total / 6}</span><span>${pg6Total.toFixed(2)}</span></div>
+                    <div class="item-row"><span class="label">供养金</span><span>-</span><span>${sponsorTotal.toFixed(2)}</span></div>
+                    <div class="total-row"><span>总计</span><span>RM ${grandTotal.toFixed(2)}</span></div>
                 `;
-                document.getElementById("summarySection").innerHTML = summarySection;
+                document.getElementById("summarySection").innerHTML = summaryHtml;
 
-            } catch (error) {
-                console.error("错误:", error);
+            } catch (e) {
+                console.error("数据解析失败", e);
+                document.getElementById("receiptInfo").innerHTML = "<p>数据格式错误</p>";
             }
         });
 
-        // 打印按钮
+        // 3. 打印按钮逻辑
         document.getElementById("printBtn").addEventListener("click", () => {
             window.print();
         });
