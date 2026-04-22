@@ -72,6 +72,7 @@
       <button id="btnDelete" class="btn btn-danger">删除</button>
       <button onclick="printEntry()" class="btn btn-secondary">打印</button>
       <button onclick="openReceiptPrint()">🖨️ 打印小票</button>
+      <button onclick="openDailySummary()" class="btn btn-info">📊 每日汇总</button>
     </div>
   </div>
 
@@ -544,7 +545,12 @@ function initGroups() {
             location.href = "https://leizs2025.github.io/houtai/login.html";
           }
         </script>
-    
+    // 打开每日汇总打印页面的函数
+   function openDailySummary() {
+    // 打开新的窗口/标签页，指向您的每日汇总页面
+    // 请根据您的实际文件名调整路径
+    window.open('day.html', '_blank');
+}
 </body>
 </html>
 
