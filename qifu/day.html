@@ -105,12 +105,7 @@
                     : (d.sponsorAmount > 0 ? `随喜赞助 RM ${d.sponsorAmount}` : '无明细');
 
                 // 2. 拼接 HTML (严格按照你的排版要求)
-               // 格式化手机号
-const phone = d.phoneNumber ? d.phoneNumber.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3') : 'N/A';
-const payMethod = "Cash"; // 默认支付方式
-const totalAmount = d.total ? parseFloat(d.total).toFixed(2) : "0.00";
-
-html += `
+ html += `
     <div class="receipt-item">
         <!-- 第一行：收据编号 | 名字   手机号 | 支付信息 -->
         <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px;">
