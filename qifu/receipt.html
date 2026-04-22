@@ -147,15 +147,15 @@
         printDisplayEl.innerText = val;
     });
 
-    // 2. 监听主程序发来的数据
-    let currentReceiptData = null; // 存储接收到的数据
+    // 2. 全局变量存储数据
+    let currentReceiptData = null;
 
+    // 3. 监听主程序发来的数据
     window.addEventListener("message", function (event) {
         try {
-            // 尝试解析数据
             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
             
-            // 保存数据到变量，但暂不缓存
+            // ✅ 只保存数据，不缓存
             currentReceiptData = data;
 
             // --- 填充基本信息 ---
@@ -176,11 +176,8 @@
             let pg6Total = 0;
             let sponsorTotal = data.sponsorAmount || 0;
 
-            // 只有当 data.data 存在且是数组时才遍历
             if (Array.isArray(data.data)) {
                 data.data.forEach(item => {
-                    // 注意：这里假设传来的字段名是 token, fire, pg3, pg6
-                    // 如果打印出来是0，请检查这里字段名是否和主程序一致
                     tokenTotal += (item.token || 0) * 5;
                     fireTotal += (item.fire || 0) * 1;
                     pg3Total += (item.pg3 || 0) * 3;
@@ -206,9 +203,9 @@
         }
     });
 
-    // 3. 打印按钮逻辑（✅ 现在在这里执行缓存）
+    // 4. ✅ 打印按钮逻辑（只在这个函数里执行缓存）
     document.getElementById("printBtn").addEventListener("click", () => {
-        // ✅ 只有在点击打印时才执行缓存
+        // ✅ 只有在点击打印时才缓存
         if (currentReceiptData) {
             // 将当前选择的支付方式注入数据
             const finalData = { ...currentReceiptData, paymentMethod: selectEl.value };
