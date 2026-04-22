@@ -97,11 +97,13 @@ window.cacheReceiptData = function (data) {
     const SYSTEM_ID = getCurrentSystemId();
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     
+    // ✅ 新增这一行：把当前系统ID单独存一份，给汇总页做“记忆”用
+    localStorage.setItem('current_active_system_id', SYSTEM_ID);
+
     // 生成唯一的缓存键
     const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
     
-    // ✅ 核心修复：将 || [] 改为 || '[]'
-    // 这样能保证 JSON.parse 接收到的是一个有效的 JSON 字符串
+    // 获取现有的缓存数据
     let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey) || '[]');
     
     // 添加当前收据数据
@@ -125,7 +127,8 @@ window.getDailyCachedReceipts = function (date = null) {
     const today = date || new Date().toISOString().split('T')[0];
     
     const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
-    // ✅ 核心修复：将 || [] 改为 || '[]'
+    
+    // ✅ 核心修复：使用 '[]' 字符串作为默认值，防止 JSON.parse 报错
     return JSON.parse(localStorage.getItem(cacheKey) || '[]');
 };
 
