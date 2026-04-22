@@ -23,43 +23,52 @@
             align-items: center;
             margin-bottom: 5px; 
         }
-        
+
         /* 左侧信息：紧凑排列 */
-        .info-left { font-size: 14px; color: #333; }
-        
+        .info-left {
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+        .info-left span {
+            margin-right: 5px; /* 分隔符间距 */
+        }
+
         /* 右侧支付信息：加大加粗 */
-        .info-right { 
-            font-size: 16px; 
-            font-weight: 800; 
-            color: #000; 
-            text-align: right;
+        .info-right {
+            font-size: 16px; /* 加大 */
+            font-weight: 800; /* 加粗 */
+            color: #000;
             background: #f0f0f0;
             padding: 2px 8px;
             border-radius: 4px;
         }
         
-        /* 第二行：贡品汇总 */
-        .row-offering { 
-            font-size: 14px; 
-            color: #d9534f; /* 红色强调 */
-            font-weight: bold;
-            padding-left: 2px;
+        /* 第二行：明细信息 */
+        .row-detail { 
+            font-size: 13px; 
+            color: #555; 
             margin-top: 5px;
-            border-top: 1px solid #eee;
-            padding-top: 5px;
         }
+        .dharma-label { font-weight: bold; color: #000; }
+        .offerings-text { color: #c0392b; font-weight: 500; } /* 供奉文字红色 */
 
         /* 汇总表格样式 */
         .summary-table { width: 100%; border-collapse: collapse; margin-top: 30px; }
         .summary-table th, .summary-table td { border: 1px solid #000; padding: 8px; text-align: left; }
         .summary-table th { background-color: #f0f0f0; }
-        .summary-table td.count-col { font-size: 1.2em; font-weight: bold; text-align: center; background-color: #e8f4fd; }
+        .summary-table td.count-col { 
+            font-size: 1.2em; 
+            font-weight: bold; 
+            text-align: center; 
+            background-color: #e8f4fd;
+        }
         .total-amount { font-size: 1.3em; color: #d9534f; text-align: right; margin-top: 10px; font-weight: bold; }
 
         @media print {
             .no-print { display: none; }
             body { margin: 0; }
-            .info-right { background: none; border: 1px solid #ccc; }
         }
     </style>
 </head>
@@ -100,10 +109,10 @@
             }
 
             let html = `<h3>日期：${selectedDate} | 共 ${receipts.length} 笔</h3>`;
+            
+            // 全局统计（用于底部的汇总表）
+            let globalStats = { token: 0, fire: 0, pg3: 0, pg6: 0 };
             let grandTotal = 0;
-
-            // 用于底部统计的变量
-            let summaryStats = { token: 0, fire: 0, pg3: 0, pg6: 0 };
 
             receipts.forEach((item) => {
                 const d = item.receiptData;
@@ -114,75 +123,87 @@
                 // 支付方式
                 const payMethod = d.transferSlip ? "Transfer" : "Cash";
                 
-                // 手机号：直接获取，不加空格
-                const phone = d.phoneNumber || 'N/A';
+                // 手机号处理：去除所有空格，不格式化
+                let phone = d.phoneNumber || 'N/A';
+                phone = phone.replace(/\s/g, ''); 
 
-                // --- 贡品统计逻辑 ---
-                let offeringText = "";
-                let hasOfferings = false;
-
+                // --- 贡品汇总逻辑 (关键修改) ---
+                // 1. 统计这一笔订单里的贡品总数
+                let orderStats = { token: 0, fire: 0, pg3: 0, pg6: 0, hasItems: false };
+                
                 if (d.data && Array.isArray(d.data)) {
                     d.data.forEach(p => {
+                        orderStats.token += parseInt(p.token) || 0;
+                        orderStats.fire += parseInt(p.fire) || 0;
+                        orderStats.pg3 += parseInt(p.pg3) || 0;
+                        orderStats.pg6 += parseInt(p.pg6) || 0;
+                        
                         // 累加到全局统计
-                        summaryStats.token += parseInt(p.token) || 0;
-                        summaryStats.fire += parseInt(p.fire) || 0;
-                        summaryStats.pg3 += parseInt(p.pg3) || 0;
-                        summaryStats.pg6 += parseInt(p.pg6) || 0;
+                        globalStats.token += orderStats.token;
+                        globalStats.fire += orderStats.fire;
+                        globalStats.pg3 += orderStats.pg3;
+                        globalStats.pg6 += orderStats.pg6;
 
-                        // 构建当前收据的显示文本
-                        let parts = [];
-                        if(p.token > 0) parts.push(`令牌 × ${p.token}`);
-                        if(p.fire > 0) parts.push(`护摩 × ${p.fire}`);
-                        if(p.pg3 > 0) parts.push(`纸金3 × ${p.pg3}`);
-                        if(p.pg6 > 0) parts.push(`纸金6 × ${p.pg6}`);
-
-                        if(parts.length > 0) {
-                            hasOfferings = true;
-                            // 如果一个人有多种贡品，用逗号隔开；如果只有一个，直接显示
-                            offeringText += parts.join(', ') + " | "; 
-                        }
+                        if(p.token > 0 || p.fire > 0 || p.pg3 > 0 || p.pg6 > 0) orderStats.hasItems = true;
                     });
                 }
 
-                // 清理末尾多余的 "|"
-                if(offeringText) offeringText = offeringText.slice(0, -3);
+                // 2. 生成汇总后的文字字符串 (例如：令牌 x 2, 护摩 x 14)
+                let offerParts = [];
+                if (orderStats.token > 0) offerParts.push(`令牌 × ${orderStats.token}`);
+                if (orderStats.fire > 0) offerParts.push(`护摩 × ${orderStats.fire}`);
+                if (orderStats.pg3 > 0) offerParts.push(`纸金3 × ${orderStats.pg3}`);
+                if (orderStats.pg6 > 0) offerParts.push(`纸金6 × ${orderStats.pg6}`);
 
-                // 如果没有贡品，显示随喜或无明细
-                if (!hasOfferings) {
-                    offeringText = d.sponsorAmount > 0 ? `随喜赞助 RM ${d.sponsorAmount}` : "无具体贡品";
+                // 如果有随喜但没有贡品，或者只是纯随喜
+                if (offerParts.length === 0) {
+                    if (d.sponsorAmount > 0) {
+                        offerParts.push(`随喜 RM ${d.sponsorAmount}`);
+                    } else {
+                        offerParts.push("无具体贡品");
+                    }
                 }
+                
+                const offeringsText = offerParts.join(', ');
 
-                // --- 拼接 HTML ---
+                // 3. 拼接 HTML
                 html += `
                     <div class="receipt-item">
-                        <!-- 第一行：左侧紧凑信息 | 右侧加大加粗支付信息 -->
+                        <!-- 第一行：左紧右粗 -->
                         <div class="row-main">
                             <div class="info-left">
-                                收据编号: <strong>${d.receiptNumber || 'N/A'}</strong> | 
-                                阳上报恩: <strong>${d.mainName || '匿名'}</strong> | 
-                                手机号: <strong>${phone}</strong>
+                                <span>收据编号: <strong>${d.receiptNumber || 'N/A'}</strong></span>
+                                <span>|</span>
+                                <span>阳上报恩: <strong>${d.mainName || '匿名'}</strong></span>
+                                <span>|</span>
+                                <span>手机号: <strong>${phone}</strong></span>
                             </div>
                             <div class="info-right">
                                 ${payMethod} - RM ${totalAmount} • ${time}
                             </div>
                         </div>
 
-                        <!-- 第二行：贡品汇总 -->
-                        <div class="row-offering">
-                            供奉: ${offeringText}
+                        <!-- 第二行：法会 + 汇总贡品 -->
+                        <div class="row-detail">
+                            <span class="dharma-label">法会: ${d.dharmaType || '-'}</span> | 
+                            <span class="offerings-text">供奉: ${offeringsText}</span>
                         </div>
                     </div>
                 `;
             });
 
+            // 添加总计
             html += `<div class="total-amount">总计金额: RM ${grandTotal.toFixed(2)}</div>`;
-            html += generateSummaryTable(summaryStats);
+
+            // 生成下方的统计表
+            html += generateSummaryTable(globalStats);
 
             document.getElementById('reportContent').innerHTML = html;
         }
 
         // --- 生成底部统计表 ---
         function generateSummaryTable(stats) {
+            // 只有当有物品被统计时才显示表格
             if (stats.token === 0 && stats.fire === 0 && stats.pg3 === 0 && stats.pg6 === 0) {
                 return '';
             }
@@ -191,7 +212,7 @@
                 <table class="summary-table">
                     <thead>
                         <tr>
-                            <th>项目汇总</th>
+                            <th>项目</th>
                             <th style="text-align:center;">总数量</th>
                         </tr>
                     </thead>
