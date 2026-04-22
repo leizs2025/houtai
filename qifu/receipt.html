@@ -148,6 +148,212 @@
         });
 
         // 2. 监听主程序发来的数据
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=80mm">
+    <title>打印小票</title>
+    <style>
+        body {
+            width: 80mm;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 1px dashed #000;
+            margin-bottom: 10px;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .header p {
+            margin: 2px 0;
+            font-size: 14px;
+        }
+        .receipt-info {
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+        .receipt-info p {
+            margin: 4px 0;
+        }
+        /* 打印时才显示的支付方式文本 */
+        #printMethodDisplay {
+            display: none; /* 默认隐藏 */
+            font-weight: bold;
+            font-size: 16px;
+            margin: 5px 0;
+            text-align: center;
+        }
+        /* 屏幕上操作的下拉框 */
+        #payMethodSelect {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            font-size: 14px;
+            border: 1px solid #000;
+        }
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            font-style: italic;
+            margin-top: 20px;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+        }
+        .print-button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        /* 打印时隐藏按钮和下拉框，显示文本 */
+        @media print {
+            .print-button, #payMethodSelect {
+                display: none !important;
+            }
+            #printMethodDisplay {
+                display: block !important;
+            }
+            body {
+                padding: 0; /* 打印时去除边距 */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>PERSATUAN MIAO LI TANG SIBU</h2>
+        <p>Tel: 013980446 (寺)</p>
+        <p>JALAN PASAI SIONG OFF 25TH MILE</p>
+        <p>JALAN OYA, SIBU SARAWAK</p>
+        <h2>DONATION</h2>
+    </div>
+
+    <!-- 打印时显示的支付方式 -->
+    <div id="printMethodDisplay"></div>
+
+    <!-- 屏幕上操作的下拉框 -->
+    <select id="payMethodSelect">
+        <option value="CASH">CASH</option>
+        <option value="DUITNOW">DUITNOW</option>
+        <option value="BANK TRANSFER">BANK TRANSFER</option>
+    </select>
+
+    <!-- 这里填充收据详情 -->
+    <div id="receiptInfo" class="receipt-info">
+        <!-- 数据加载前显示 -->
+        <p>等待数据...</p>
+    </div>
+
+    <!-- 这里填充贡品列表 -->
+    <div id="summarySection"></div>
+
+    <div class="footer">
+        <p>愿一切吉祥如意，功德圆满</p>
+        <p>欢迎再次光临</p>
+    </div>
+
+    <button id="printBtn" class="print-button">🖨️ 打印小票</button>
+
+    <script>
+        // 1. 初始化：读取上次保存的支付方式
+        const selectEl = document.getElementById('payMethodSelect');
+        const printDisplayEl = document.getElementById('printMethodDisplay');
+        const savedMethod = localStorage.getItem('payMethod') || 'CASH';
+        
+        selectEl.value = savedMethod;
+        printDisplayEl.innerText = savedMethod;
+
+        // 监听下拉框变化，实时保存
+        selectEl.addEventListener('change', function() {
+            const val = this.value;
+            localStorage.setItem('payMethod', val);
+            printDisplayEl.innerText = val;
+
+            // ✅ 新增：将支付方式写入收据缓存
+            updatePaymentMethodInCache(val);
+        });
+
+        // ✅ 新增函数：更新缓存中的支付方式
+        function updatePaymentMethodInCache(paymentMethod) {
+            try {
+                // 获取系统ID参数
+                const urlParams = new URLSearchParams(window.location.search);
+                const systemId = urlParams.get('system_id') || 'system_1';
+                
+                // 获取今天的日期
+                const today = new Date().toISOString().split('T')[0];
+                
+                // 构建缓存键
+                const cacheKey = `daily_receipts_${today}_${systemId}`;
+                
+                // 获取现有缓存
+                let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey)) || [];
+                
+                // 获取当前收据号
+                const receiptNumberElement = document.querySelector('#receiptInfo p:first-child strong');
+                if (!receiptNumberElement) {
+                    console.warn('无法获取收据号');
+                    return;
+                }
+                
+                const receiptNumberText = receiptNumberElement.parentElement.textContent;
+                const receiptNumberMatch = receiptNumberText.match(/D\/NO:\s*(.+)/);
+                const receiptNumber = receiptNumberMatch ? receiptNumberMatch[1].trim() : null;
+                
+                if (!receiptNumber) {
+                    console.warn('无法提取收据号');
+                    return;
+                }
+                
+                // 查找并更新对应的收据数据
+                const receiptIndex = cachedReceipts.findIndex(item => 
+                    item.receiptData && item.receiptData.receiptNumber === receiptNumber
+                );
+                
+                if (receiptIndex !== -1) {
+                    // 更新支付方式
+                    cachedReceipts[receiptIndex].receiptData.paymentMethod = paymentMethod;
+                    
+                    // 保存回缓存
+                    localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
+                    
+                    console.log(`✅ 已更新收据 ${receiptNumber} 的支付方式为: ${paymentMethod}`);
+                } else {
+                    console.warn(`⚠️ 未找到收据号为 ${receiptNumber} 的缓存数据`);
+                }
+            } catch (error) {
+                console.error('更新支付方式缓存时出错:', error);
+            }
+        }
+
+        // 2. 监听主程序发来的数据
         window.addEventListener("message", function (event) {
             try {
                 // 尝试解析数据
@@ -195,26 +401,19 @@
                 `;
                 document.getElementById("summarySection").innerHTML = summaryHtml;
 
-                // 【新增】创建包含支付方式的完整数据对象，并发送给主程序
-                const completeReceiptData = {
-                    ...data,
-                    paymentMethod: selectEl.value, // 添加当前支付方式
-                    total: grandTotal.toFixed(2), // 添加总金额
-                    timestamp: new Date().toISOString() // 添加时间戳
-                };
-
-                // 将包含支付方式的数据发送给主程序，用于后续的日结报表
-                parent.postMessage({
-                    type: 'receipt_data_for_cache',
-                    receiptData: completeReceiptData
-                }, '*');
-
             } catch (e) {
                 console.error("数据解析失败", e);
                 document.getElementById("receiptInfo").innerHTML = "<p>数据格式错误</p>";
             }
         });
 
+        // 3. 打印按钮逻辑
+        document.getElementById("printBtn").addEventListener("click", () => {
+            window.print();
+        });
+    </script>
+</body>
+</html>
         // 3. 打印按钮逻辑
         document.getElementById("printBtn").addEventListener("click", () => {
             window.print();
