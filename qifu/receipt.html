@@ -2,140 +2,302 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>祈福收银录入</title>
+    <meta name="viewport" content="width=80mm">
+    <title>打印小票</title>
     <style>
-        body { font-family: "Microsoft JhengHei", Arial, sans-serif; padding: 20px; background: #f4f4f4; }
-        .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #333; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; }
-        button:hover { background-color: #218838; }
-        .items-list { margin-bottom: 15px; border-top: 1px solid #eee; padding-top: 10px; }
-        .item-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-        .item-row input { flex: 1; }
+        body {
+            width: 80mm;
+            font-family: Arial, sans-serif;
+            margin: 0 auto;
+            padding: 10px;
+            background-color: #f0f0f0; /* 页面背景灰，突出小票 */
+        }
+        /* 模拟小票纸张 */
+        #receipt-paper {
+            background: #fff;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 1px dashed #000;
+            margin-bottom: 10px;
+        }
+        .header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .header p {
+            margin: 2px 0;
+            font-size: 14px;
+        }
+        .receipt-info {
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+        .receipt-info p {
+            margin: 4px 0;
+        }
+        .item-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        .label { flex: 1; text-align: left; }
+        .formula { flex: 1; text-align: center; }
+        .amount { flex: 1; text-align: right; }
+
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            font-style: italic;
+            color: #000;
+            border-top: 1px dashed #000;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        /* --- 控制面板样式 (非打印区域) --- */
+        #control-panel {
+            background: #fff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            width: 350px; /* 控制面板宽度 */
+        }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            width: 100%;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .btn:hover { background-color: #0056b3; }
+
+        /* --- 打印专用样式 --- */
+        @media print {
+            body { background: none; margin: 0; padding: 0; }
+            #control-panel, .no-print { display: none !important; }
+            #receipt-paper { border: none; padding: 0; }
+            @page { size: auto; margin: 0; }
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>🙏 祈福登记</h2>
-
-    <!-- 基本信息 -->
-    <div class="form-group">
-        <label>主祈者姓名</label>
-        <input type="text" id="mainName" placeholder="输入姓名">
-    </div>
-
-    <div class="form-group">
-        <label>电话号码</label>
-        <input type="text" id="phoneNumber" placeholder="输入电话">
-    </div>
-
-    <div class="form-group">
-        <label>法会类型</label>
-        <input type="text" id="dharmaType" value="中元节 祈福">
-    </div>
-
-    <!-- ★★★★★ 新增：支付方式下拉菜单 ★★★★★ -->
-    <div class="form-group">
-        <label>收款方式</label>
-        <select id="payMethod">
-            <option value="cash">1. 现金 (Cash)</option>
-            <option value="transfer">2. 转账 (Transfer)</option>
-        </select>
-    </div>
-
-    <!-- 贡品列表 -->
-    <div class="items-list">
-        <label>贡品数量</label>
-        <div class="item-row">
-            <span>令牌 (RM5)</span>
-            <input type="number" id="token" value="0" min="0">
-        </div>
-        <div class="item-row">
-            <span>护摩 (RM1)</span>
-            <input type="number" id="fire" value="0" min="0">
-        </div>
-        <div class="item-row">
-            <span>纸金3 (RM3)</span>
-            <input type="number" id="pg3" value="0" min="0">
-        </div>
-        <div class="item-row">
-            <span>纸金6 (RM6)</span>
-            <input type="number" id="pg6" value="0" min="0">
-        </div>
-    </div>
-
-    <button onclick="saveReceipt()">💾 保存并打印</button>
-</div>
-
-<script>
-    // 获取系统ID（如果有）
-    function getCurrentSystemId() {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('system_id') || 'system_1';
-    }
-
-    function saveReceipt() {
-        // 1. 收集表单数据
-        const mainName = document.getElementById('mainName').value;
-        const phoneNumber = document.getElementById('phoneNumber').value;
-        const dharmaType = document.getElementById('dharmaType').value;
+    <!-- 1. 控制面板：包含下拉菜单 -->
+    <div id="control-panel" class="no-print">
+        <h3>📝 录入收据信息</h3>
         
-        // ★★★★★ 获取下拉菜单的选择值 ★★★★★
-        const payMethod = document.getElementById('payMethod').value; // 得到 'cash' 或 'transfer'
+        <div class="form-group">
+            <label>收据编号</label>
+            <input type="text" id="inputReceiptNumber" placeholder="例如: LQFR-2604-0002" value="LQFR-2604-0002">
+        </div>
 
-        const token = parseInt(document.getElementById('token').value) || 0;
-        const fire = parseInt(document.getElementById('fire').value) || 0;
-        const pg3 = parseInt(document.getElementById('pg3').value) || 0;
-        const pg6 = parseInt(document.getElementById('pg6').value) || 0;
+        <div class="form-group">
+            <label>主祈者</label>
+            <input type="text" id="inputMainName" value="江琉骅">
+        </div>
 
-        if (!mainName) { alert("请输入主祈者姓名"); return; }
+        <div class="form-group">
+            <label>电话</label>
+            <input type="text" id="inputPhone" value="6y0128836988">
+        </div>
 
-        // 2. 计算总金额
-        const total = (token * 5) + (fire * 1) + (pg3 * 3) + (pg6 * 6);
+        <div class="form-group">
+            <label>法会类型</label>
+            <input type="text" id="inputDharma" value="中元节 祈福">
+        </div>
 
-        // 3. 构造数据对象
-        const receiptData = {
-            receiptNumber: 'LQFR-' + new Date().getTime().toString().slice(-6), // 简单生成单号
-            mainName: mainName,
-            phoneNumber: phoneNumber,
-            dharmaType: dharmaType,
-            total: total,
-            data: [
-                { name: '祈福令牌', count: token, price: 5 },
-                { name: '小护摩片', count: fire, price: 1 },
-                { name: '纸金3', count: pg3, price: 3 },
-                { name: '纸金6', count: pg6, price: 6 }
-            ],
-            // ★★★★★ 关键逻辑：根据下拉菜单设置 transferSlip 字段 ★★★★★
-            // 如果选的是 transfer，则 transferSlip 为 true，否则为 false
-            transferSlip: payMethod === 'transfer' 
-        };
+        <!-- 👇 新增的下拉菜单：收款方式 -->
+        <div class="form-group">
+            <label style="color: #d9534f;">💰 收款方式</label>
+            <select id="selectPayMethod">
+                <option value="cash">1. 现金 (Cash)</option>
+                <option value="transfer">2. 转账 (Transfer)</option>
+            </select>
+        </div>
 
-        // 4. 存入缓存
-        const SYSTEM_ID = getCurrentSystemId();
-        const today = new Date().toISOString().split('T')[0];
-        const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
+        <button class="btn" onclick="generatePreview()">生成预览 & 缓存</button>
+    </div>
+
+    <!-- 2. 小票预览区域 -->
+    <div id="receipt-paper" style="display:none;">
+        <div class="header">
+            <h2>PERSATUAN MIAO LI TANG SIBU</h2>
+            <p>Tel: 013980446 (寺)</p>
+            <p>JALAN PASAI SIONG OFF 25TH MILE</p>
+            <p>JALAN OYA, SIBU SARAWAK</p>
+            <h2>DONATION</h2>
+            
+            <!-- 这里的支付方式会被JS动态替换 -->
+            <p id="printPayMethod" style="font-weight:bold; font-size:16px; margin-top:5px;">CASH</p>
+        </div>
+
+        <div id="receiptInfo" class="receipt-info"></div>
+        <div id="summarySection" class="total-section"></div>
+
+        <div class="footer">
+            <p> 愿一切吉祥如意，功德圆满 </p>
+            <p>欢迎再次光临</p>
+        </div>
         
-        // 读取旧数据
-        const existing = JSON.parse(localStorage.getItem(cacheKey) || '[]');
-        // 添加新数据
-        existing.push({
-            timestamp: new Date().getTime(),
-            receiptData: receiptData
-        });
-        // 保存回缓存
-        localStorage.setItem(cacheKey, JSON.stringify(existing));
+        <div style="text-align:center; margin-top:10px;" class="no-print">
+             <button class="btn" onclick="window.print()">🖨️ 打印小票</button>
+        </div>
+    </div>
 
-        // 5. 模拟打印（这里你需要调用你的打印窗口逻辑）
-        alert("保存成功！即将打印...");
-        // window.open('print.html', '_blank'); // 假设你的打印页面叫 print.html
-    }
-</script>
+    <script>
+        // 模拟一些数据用于演示，实际使用时可以清空
+        const mockItems = [
+            { token: 11, fire: 77, pg3: 0, pg6: 11 }
+        ];
 
+        function generatePreview() {
+            // 1. 获取表单数据
+            const receiptNumber = document.getElementById('inputReceiptNumber').value;
+            const mainName = document.getElementById('inputMainName').value;
+            const phoneNumber = document.getElementById('inputPhone').value;
+            const dharmaType = document.getElementById('inputDharma').value;
+            const payMethod = document.getElementById('selectPayMethod').value; // 获取下拉框的值
+
+            // 2. 构建数据对象 (这部分数据结构必须和你的日结报表对接)
+            const data = {
+                receiptNumber: receiptNumber,
+                mainName: mainName,
+                phoneNumber: phoneNumber,
+                dharmaType: dharmaType,
+                sponsorAmount: 50, // 示例供养金
+                data: mockItems,   // 示例贡品数据
+                
+                // 👇 核心逻辑：如果是转账，添加 transferSlip 字段；如果是现金，不添加或为空
+                // 你的日结报表代码里是判断 `d.transferSlip` 来决定显示 Transfer 还是 Cash
+                transferSlip: payMethod === 'transfer' ? 'yes' : '' 
+            };
+
+            // 3. 调用渲染函数
+            renderReceipt(data);
+
+            // 4. 缓存数据到 LocalStorage (模拟对接日结报表)
+            cacheData(data);
+        }
+
+        function renderReceipt(data) {
+            // 显示小票区域
+            document.getElementById('receipt-paper').style.display = 'block';
+
+            // --- 更新支付方式显示 ---
+            const payMethodText = data.transferSlip ? 'TRANSFER' : 'CASH';
+            document.getElementById('printPayMethod').innerText = payMethodText;
+            // 如果是转账，可以加个颜色提示
+            document.getElementById('printPayMethod').style.color = data.transferSlip ? '#d9534f' : '#000';
+
+            // --- 填充基本信息 ---
+            const currentYear = new Date().getFullYear();
+            const receiptInfo = `
+                <div>
+                    <p><strong>D/NO:</strong> ${data.receiptNumber || "未生成"}</p>
+                    <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                    <p><strong>主祈者:</strong> ${data.mainName || "未填写"}</p>
+                    <p><strong>电话:</strong> ${data.phoneNumber || "未填写"}</p>
+                    <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || "未选择"} 祈福</p>
+                </div>
+            `;
+            document.getElementById("receiptInfo").innerHTML = receiptInfo;
+
+            // --- 计算贡品 ---
+            let tokenTotal = 0;
+            let fireTotal = 0;
+            let pg3Total = 0;
+            let pg6Total = 0;
+            let sponsorTotal = data.sponsorAmount || 0;
+
+            if(data.data) {
+                data.data.forEach(item => {
+                    tokenTotal += (item.token || 0) * 5;
+                    fireTotal += (item.fire || 0) * 1;
+                    pg3Total += (item.pg3 || 0) * 3;
+                    pg6Total += (item.pg6 || 0) * 6;
+                });
+            }
+
+            const grandTotal = tokenTotal + fireTotal + pg3Total + pg6Total + sponsorTotal;
+
+            // --- 填充明细 ---
+            const summarySection = `
+                <div class="item-row">
+                    <span class="label">祈福令牌</span>
+                    <span class="formula">5 × ${tokenTotal / 5} 个</span>
+                    <span class="amount">${tokenTotal.toFixed(2)}</span>
+                </div>
+                <div class="item-row">
+                    <span class="label">小护摩片</span>
+                    <span class="formula">1 × ${fireTotal} 片</span>
+                    <span class="amount">${fireTotal.toFixed(2)}</span>
+                </div>
+                <div class="item-row">
+                    <span class="label">纸金 3</span>
+                    <span class="formula">3 × ${pg3Total / 3} 份</span>
+                    <span class="amount">${pg3Total.toFixed(2)}</span>
+                </div>
+                <div class="item-row">
+                    <span class="label">纸金 6</span>
+                    <span class="formula">6 × ${pg6Total / 6} 份</span>
+                    <span class="amount">${pg6Total.toFixed(2)}</span>
+                </div>
+                <div class="item-row">
+                    <span class="label">祈福报名供养金</span>
+                    <span class="formula">-</span>
+                    <span class="amount">${sponsorTotal.toFixed(2)}</span>
+                </div>
+                <div class="item-row" style="font-weight: bold; margin-top: 5px; border-top: 1px solid #eee; padding-top:5px;">
+                    <span class="label">总计</span>
+                    <span class="formula"></span>
+                    <span class="amount">RM ${grandTotal.toFixed(2)}</span>
+                </div>
+            `;
+            document.getElementById("summarySection").innerHTML = summarySection;
+
+            // 滚动到小票位置
+            document.getElementById('receipt-paper').scrollIntoView();
+        }
+
+        function cacheData(data) {
+            // 模拟存入 LocalStorage，以便你的日结报表能读到
+            // 注意：这里为了演示简单，直接存今天的。实际项目中你可能需要根据日期分组
+            const date = new Date().toISOString().split('T')[0];
+            const SYSTEM_ID = 'system_1'; // 假设的系统ID
+            const cacheKey = `daily_receipts_${date}_${SYSTEM_ID}`;
+            
+            // 获取现有数据
+            const existing = JSON.parse(localStorage.getItem(cacheKey) || '[]');
+            
+            // 包装成报表需要的格式
+            const newItem = {
+                timestamp: new Date().getTime(),
+                receiptData: data
+            };
+            
+            existing.push(newItem);
+            localStorage.setItem(cacheKey, JSON.stringify(existing));
+            
+            console.log("数据已缓存，日结报表可读取", newItem);
+            alert("预览已生成，数据已模拟存入缓存！");
+        }
+    </script>
 </body>
 </html>
