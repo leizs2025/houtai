@@ -100,8 +100,8 @@ window.cacheReceiptData = function (data) {
     // 生成唯一的缓存键
     const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
     
-    // 获取现有的缓存数据
-    let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey) || []);
+    // ✅ 修改这里：提供 '[]' (空数组的JSON字符串) 作为默认值
+    let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey) || '[]');
     
     // 添加当前收据数据
     const receiptEntry = {
@@ -124,7 +124,8 @@ window.getDailyCachedReceipts = function (date = null) {
     const today = date || new Date().toISOString().split('T')[0];
     
     const cacheKey = `daily_receipts_${today}_${SYSTEM_ID}`;
-    return JSON.parse(localStorage.getItem(cacheKey) || []);
+    // ✅ 修改这里：提供 '[]' (空数组的JSON字符串) 作为默认值
+    return JSON.parse(localStorage.getItem(cacheKey) || '[]');
 };
 
 // 清空当日缓存（通常在A4打印后调用）
