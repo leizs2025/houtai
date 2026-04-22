@@ -106,77 +106,66 @@
         }
 
         // --- 智能汇总表生成器 ---
-        function generateSummaryTable(receipts) {
-            // 初始化统计变量
-            let stats = {
-                token: { count: 0, price: 5, name: "祈福令牌" },
-                fire: { count: 0, price: 1, name: "小护摩片" },
-                pg3: { count: 0, price: 3, name: "纸金 3" },
-                pg6: { count: 0, price: 6, name: "纸金 6" },
-                donation: { count: 0, price: 0, name: "随喜赞助" } // 赞助单独处理
-            };
+ // --- 主逻辑：加载并渲染收据 (替换原本的 loadDailyReceipts) ---
+function loadDailyReceipts() {
+    const selectedDate = document.getElementById('datePicker').value || new Date().toISOString().split('T')[0];
+    const receipts = getDailyCachedReceipts(selectedDate);
 
-            let totalAmount = 0;
-            let receiptCount = 0;
+    if (receipts.length === 0) {
+        document.getElementById('receiptList').innerHTML = '<p style="text-align:center; color:#666;">该日期没有收据记录</p>';
+        document.getElementById('summaryTable').innerHTML = '';
+        return;
+    }
 
-            // 遍历数据累加
-            receipts.forEach(item => {
-                const data = item.receiptData;
-                if (data.data && Array.isArray(data.data)) {
-                    data.data.forEach(p => {
-                        stats.token.count += +p.token || 0;
-                        stats.fire.count += +p.fire || 0;
-                        stats.pg3.count += +p.pg3 || 0;
-                        stats.pg6.count += +p.pg6 || 0;
-                    });
-                }
-                stats.donation.count += +data.sponsorAmount || 0;
-                totalAmount += parseFloat(data.total || 0);
-                receiptCount++;
-            });
+    // 生成收据列表 HTML
+    let html = `<h3 style="border-bottom:1px solid #ccc; padding-bottom:10px;">
+                    ${selectedDate} 汇总 (${receipts.length} 笔)
+                </h3>`;
 
-            // 动态构建表格行
-            let rows = '';
+    receipts.forEach((item) => {
+        const d = item.receiptData;
+        const time = new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        
+        // 格式化手机号 (简单的加空格)
+        const phone = d.phoneNumber ? d.phoneNumber.replace(/(\d{2})(\d{4})(\d{4})/, '$1 $2 $3') : 'N/A';
 
-            // 只有数量 > 0 才显示行
-            if (stats.token.count > 0) {
-                rows += `<tr><td>${stats.token.name}</td><td>${stats.token.count}</td><td>${stats.token.price}</td><td>${(stats.token.count * stats.token.price).toFixed(2)}</td></tr>`;
-            }
-            if (stats.fire.count > 0) {
-                rows += `<tr><td>${stats.fire.name}</td><td>${stats.fire.count}</td><td>${stats.fire.price}</td><td>${(stats.fire.count * stats.fire.price).toFixed(2)}</td></tr>`;
-            }
-            if (stats.pg3.count > 0) {
-                rows += `<tr><td>${stats.pg3.name}</td><td>${stats.pg3.count}</td><td>${stats.pg3.price}</td><td>${(stats.pg3.count * stats.pg3.price).toFixed(2)}</td></tr>`;
-            }
-            if (stats.pg6.count > 0) {
-                rows += `<tr><td>${stats.pg6.name}</td><td>${stats.pg6.count}</td><td>${stats.pg6.price}</td><td>${(stats.pg6.count * stats.pg6.price).toFixed(2)}</td></tr>`;
-            }
-            
-            // 随喜赞助通常总是显示，除非你希望金额为0时也隐藏，可以加判断 stats.donation.count > 0
-            rows += `<tr><td>${stats.donation.name}</td><td>-</td><td>-</td><td>${stats.donation.count.toFixed(2)}</td></tr>`;
+        // 支付方式逻辑 (假设如果有转账记录则显示Transfer，否则Cash，这里简化处理)
+        // 实际项目中你可能需要更复杂的逻辑来判断支付方式
+        const payMethod = "Cash"; // 默认 Cash
+        const amount = d.total ? parseFloat(d.total).toFixed(2) : "0.00";
 
-            // 收据张数统计
-            rows += `<tr><td>收据张数</td><td>${receiptCount}</td><td>-</td><td>-</td></tr>`;
+        // ✅ 核心排版：使用 Flex 布局实现左右对齐
+        html += `
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:14px; border-bottom:1px dashed #eee; padding-bottom:5px;">
+                <!-- 左侧信息 -->
+                <div style="flex:1;">
+                    <span style="font-weight:bold;">收据编号: ${d.receiptNumber || 'N/A'}</span> 
+                    <span style="margin-left:10px;">| 阳上报恩: <strong>${d.mainName || '匿名'}</strong></span>
+                    <div style="font-size:12px; color:#555; margin-top:2px;">
+                        法会: ${d.dharmaType || 'N/A'}
+                    </div>
+                </div>
 
-            // 总计行
-            rows += `<tr class="total-row"><td colspan="3">总收入</td><td>${totalAmount.toFixed(2)}</td></tr>`;
+                <!-- 右侧信息 -->
+                <div style="text-align:right; flex:1;">
+                    <div>
+                        <span style="font-family:monospace;">${phone}</span> 
+                        <span style="margin-left:10px;">| ${payMethod} - RM ${amount}</span>
+                        <span style="font-size:12px; color:#888;">• ${time}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
 
-            return `
-                <table class="summary-table">
-                    <thead>
-                        <tr>
-                            <th>统计项目</th>
-                            <th>数量</th>
-                            <th>单价</th>
-                            <th>金额 (RM)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rows}
-                    </tbody>
-                </table>
-            `;
-        }
+    // 2. 生成下方的汇总表
+    const summaryHtml = generateSummaryTable(receipts);
+    
+    // 写入页面
+    document.getElementById('receiptList').innerHTML = html;
+    document.getElementById('summaryTable').innerHTML = summaryHtml;
+    document.getElementById('datePicker').value = selectedDate;
+}
 
         // --- 其他功能 ---
         function printSummary() {
