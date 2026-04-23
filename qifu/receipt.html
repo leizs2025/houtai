@@ -147,38 +147,22 @@
         printDisplayEl.innerText = val;
     });
 
-    // 2. 全局变量存储数据
-    let currentReceiptData = null;
-    let hasBeenProcessed = false; // ✅ 添加处理标记
-
-    // 3. 监听主程序发来的数据（只保存，不缓存）
+    // 2. 接收主程序数据
     window.addEventListener("message", function (event) {
         try {
-            // ✅ 防止重复处理
-            if (hasBeenProcessed) {
-                console.log('⚠️ 已处理过数据，忽略重复消息');
-                return;
-            }
-            
             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
             
-            // ✅ 标记为已处理
-            hasBeenProcessed = true;
-            
-            // ✅ 只保存数据到全局变量，不执行任何缓存
-            currentReceiptData = data;
-
             // --- 填充基本信息 ---
             const currentYear = new Date().getFullYear();
             const now = new Date();
-            const formattedTime = now.toLocaleString(); // ✅ 安全的日期格式化
+            const formattedTime = now.toLocaleString();
             
             const infoHtml = `
-                <p><strong>D/NO:</strong> ${data.receiptNumber || '---'}</p>
+                <p><strong>D/NO:</strong> ${data.receiptNumber || 'N/A'}</p>
                 <p><strong>时间:</strong> ${formattedTime}</p>
-                <p><strong>主祈者:</strong> ${data.mainName || '---'}</p>
-                <p><strong>电话:</strong> ${data.phoneNumber || '---'}</p>
-                <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || '---'} 祈福</p>
+                <p><strong>主祈者:</strong> ${data.mainName || '匿名'}</p>
+                <p><strong>电话:</strong> ${data.phoneNumber || 'N/A'}</p>
+                <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || '-'} 祈福</p>
             `;
             document.getElementById("receiptInfo").innerHTML = infoHtml;
 
@@ -210,57 +194,49 @@
             `;
             document.getElementById("summarySection").innerHTML = summaryHtml;
 
+            // 3. 打印按钮：只缓存数据，不重复处理
+            document.getElementById("printBtn").onclick = function() {
+                // 创建要缓存的数据
+                const receiptToCache = {
+                    receiptNumber: data.receiptNumber || 'N/A',
+                    mainName: data.mainName || '匿名', 
+                    phoneNumber: data.phoneNumber || 'N/A',
+                    dharmaType: data.dharmaType || '-',
+                    totalAmount: grandTotal,
+                    paymentMethod: selectEl.value,
+                    timestamp: new Date().toISOString(),
+                    displayTime: new Date().toLocaleString()
+                };
+
+                // 获取系统ID参数
+                const urlParams = new URLSearchParams(window.location.search);
+                const systemId = urlParams.get('system_id') || 'system_1';
+
+                // 构建缓存键
+                const today = new Date().toISOString().split('T')[0];
+                const cacheKey = `daily_receipts_${today}_${systemId}`;
+
+                // 获取现有缓存
+                let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey)) || [];
+
+                // 将当前收据数据添加到缓存数组
+                cachedReceipts.push({
+                    receiptData: receiptToCache
+                });
+
+                // 保存回缓存
+                localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
+                
+                console.log(`✅ 已将收据 ${receiptToCache.receiptNumber} 写入缓存，支付方式: ${receiptToCache.paymentMethod}`);
+
+                // 执行打印
+                window.print();
+            };
+
         } catch (e) {
             console.error("数据解析失败", e);
             document.getElementById("receiptInfo").innerHTML = "<p>数据格式错误</p>";
         }
-    });
-
-    // 4. ✅ 打印按钮逻辑（✅ 添加防重复机制）
-    document.getElementById("printBtn").addEventListener("click", () => {
-        // ✅ 如果已经处理过数据，则不再执行
-        if (!hasBeenProcessed) {
-            console.log('⚠️ 数据尚未接收，无法打印');
-            return;
-        }
-
-        // ✅ 确保有数据才执行
-        if (currentReceiptData) {
-            // 将当前选择的支付方式注入数据
-            const finalData = { ...currentReceiptData, paymentMethod: selectEl.value };
-            
-            // ✅ 修复：使用时间戳字符串而不是Date对象
-            const now = new Date();
-            const timestampString = now.toISOString(); // ✅ ISO格式字符串
-            const receiptDataWithPayment = { 
-                ...finalData, 
-                timestamp: timestampString,
-                displayTime: now.toLocaleString() // ✅ 同时保存显示时间
-            };
-
-            // 获取系统ID参数
-            const urlParams = new URLSearchParams(window.location.search);
-            const systemId = urlParams.get('system_id') || 'system_1';
-
-            // 构建缓存键
-            const today = new Date().toISOString().split('T')[0];
-            const cacheKey = `daily_receipts_${today}_${systemId}`;
-
-            // 获取现有缓存
-            let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey)) || [];
-
-            // 将当前收据数据添加到缓存数组
-            cachedReceipts.push({
-                receiptData: receiptDataWithPayment
-            });
-
-            // 保存回缓存
-            localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
-            console.log(`✅ 已将收据 ${currentReceiptData.receiptNumber} 写入缓存，支付方式: ${selectEl.value}`);
-        }
-
-        // 执行打印
-        window.print();
     });
 </script>
 </body>
