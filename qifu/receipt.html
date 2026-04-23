@@ -149,11 +149,18 @@
 
     // 2. 全局变量存储数据
     let currentReceiptData = null;
+    let hasBeenPrinted = false; // ✅ 添加打印标记
 
     // 3. 监听主程序发来的数据（只保存，不缓存）
     window.addEventListener("message", function (event) {
         try {
             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            
+            // ✅ 如果已经打印过，则不再处理新数据（防止重复）
+            if (hasBeenPrinted) {
+                console.log('⚠️ 已打印过，忽略后续数据');
+                return;
+            }
             
             // ✅ 只保存数据到全局变量，不执行任何缓存
             currentReceiptData = data;
@@ -203,11 +210,20 @@
         }
     });
 
-    // 4. ✅ 打印按钮逻辑（✅ 只在这个函数里执行缓存，且只执行一次）
+    // 4. ✅ 打印按钮逻辑（✅ 添加防重复机制）
     document.getElementById("printBtn").addEventListener("click", () => {
+        // ✅ 如果已经打印过，则不再执行
+        if (hasBeenPrinted) {
+            console.log('⚠️ 已经打印过，阻止重复操作');
+            return;
+        }
+
+        // ✅ 标记为已打印状态
+        hasBeenPrinted = true;
+
         // ✅ 确保有数据才执行
         if (currentReceiptData) {
-            // 将当前选择的支付方式注入数据（✅ 这是最终确定的支付方式）
+            // 将当前选择的支付方式注入数据
             const finalData = { ...currentReceiptData, paymentMethod: selectEl.value };
             const receiptDataWithPayment = { ...finalData, timestamp: new Date().toISOString() };
 
