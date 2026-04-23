@@ -149,27 +149,33 @@
 
     // 2. 全局变量存储数据
     let currentReceiptData = null;
-    let hasBeenPrinted = false; // ✅ 添加打印标记
+    let hasBeenProcessed = false; // ✅ 添加处理标记
 
     // 3. 监听主程序发来的数据（只保存，不缓存）
     window.addEventListener("message", function (event) {
         try {
-            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-            
-            // ✅ 如果已经打印过，则不再处理新数据（防止重复）
-            if (hasBeenPrinted) {
-                console.log('⚠️ 已打印过，忽略后续数据');
+            // ✅ 防止重复处理
+            if (hasBeenProcessed) {
+                console.log('⚠️ 已处理过数据，忽略重复消息');
                 return;
             }
+            
+            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            
+            // ✅ 标记为已处理
+            hasBeenProcessed = true;
             
             // ✅ 只保存数据到全局变量，不执行任何缓存
             currentReceiptData = data;
 
             // --- 填充基本信息 ---
             const currentYear = new Date().getFullYear();
+            const now = new Date();
+            const formattedTime = now.toLocaleString(); // ✅ 安全的日期格式化
+            
             const infoHtml = `
                 <p><strong>D/NO:</strong> ${data.receiptNumber || '---'}</p>
-                <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                <p><strong>时间:</strong> ${formattedTime}</p>
                 <p><strong>主祈者:</strong> ${data.mainName || '---'}</p>
                 <p><strong>电话:</strong> ${data.phoneNumber || '---'}</p>
                 <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || '---'} 祈福</p>
@@ -212,20 +218,21 @@
 
     // 4. ✅ 打印按钮逻辑（✅ 添加防重复机制）
     document.getElementById("printBtn").addEventListener("click", () => {
-        // ✅ 如果已经打印过，则不再执行
-        if (hasBeenPrinted) {
-            console.log('⚠️ 已经打印过，阻止重复操作');
+        // ✅ 如果已经处理过数据，则不再执行
+        if (!hasBeenProcessed) {
+            console.log('⚠️ 数据尚未接收，无法打印');
             return;
         }
-
-        // ✅ 标记为已打印状态
-        hasBeenPrinted = true;
 
         // ✅ 确保有数据才执行
         if (currentReceiptData) {
             // 将当前选择的支付方式注入数据
             const finalData = { ...currentReceiptData, paymentMethod: selectEl.value };
-            const receiptDataWithPayment = { ...finalData, timestamp: new Date().toISOString() };
+            
+            // ✅ 修复时间戳问题：使用安全的时间戳创建
+            const now = new Date();
+            const safeTimestamp = now.toISOString(); // ✅ 安全的时间戳
+            const receiptDataWithPayment = { ...finalData, timestamp: safeTimestamp };
 
             // 获取系统ID参数
             const urlParams = new URLSearchParams(window.location.search);
