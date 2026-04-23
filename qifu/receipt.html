@@ -166,20 +166,31 @@
             `;
             document.getElementById("receiptInfo").innerHTML = infoHtml;
 
-            // --- 计算并填充贡品 ---
+            // --- 计算并填充贡品明细 ---
             let tokenTotal = 0;
             let fireTotal = 0;
             let pg3Total = 0;
             let pg6Total = 0;
             let sponsorTotal = data.sponsorAmount || 0;
 
-            if (Array.isArray(data.data)) {
+            let detailText = '';
+            if (Array.isArray(data.data) && data.data.length > 0) {
+                const items = [];
                 data.data.forEach(item => {
+                    if (item.token > 0) items.push(`${item.token} 个令牌`);
+                    if (item.fire > 0) items.push(`${item.fire} 个小护摩片`);
+                    if (item.pg3 > 0) items.push(`${item.pg3} 张纸金3`);
+                    if (item.pg6 > 0) items.push(`${item.pg6} 张纸金6`);
+                    
                     tokenTotal += (item.token || 0) * 5;
                     fireTotal += (item.fire || 0) * 1;
                     pg3Total += (item.pg3 || 0) * 3;
                     pg6Total += (item.pg6 || 0) * 6;
                 });
+                
+                detailText = items.join(', ') || '无明细';
+            } else {
+                detailText = '无明细';
             }
 
             const grandTotal = tokenTotal + fireTotal + pg3Total + pg6Total + sponsorTotal;
@@ -194,9 +205,10 @@
             `;
             document.getElementById("summarySection").innerHTML = summaryHtml;
 
-            // 3. 打印按钮：只缓存数据，不重复处理
+            // 3. 打印按钮：只在打印时缓存，使用安全格式
             document.getElementById("printBtn").onclick = function() {
-                // 创建要缓存的数据
+                // 创建要缓存的数据 - ✅ 使用纯字符串时间格式
+                const now = new Date();
                 const receiptToCache = {
                     receiptNumber: data.receiptNumber || 'N/A',
                     mainName: data.mainName || '匿名', 
@@ -204,8 +216,10 @@
                     dharmaType: data.dharmaType || '-',
                     totalAmount: grandTotal,
                     paymentMethod: selectEl.value,
-                    timestamp: new Date().toISOString(),
-                    displayTime: new Date().toLocaleString()
+                    timestamp: now.toLocaleTimeString(),  // ✅ 只存时间部分
+                    fullDateTime: now.toLocaleString(),   // ✅ 完整日期时间
+                    details: detailText,
+                    itemData: data.data || []
                 };
 
                 // 获取系统ID参数
