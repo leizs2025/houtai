@@ -120,7 +120,7 @@
 
             receipts.forEach((item) => {
                 const d = item.receiptData;
-                const time = new Date(item.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                const time = new Date(item.receiptData.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
                 const totalAmount = parseFloat(d.total || 0).toFixed(2);
                 grandTotal += parseFloat(totalAmount);
 
