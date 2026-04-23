@@ -100,6 +100,7 @@
         <button onclick="deleteEntry()" class="btn btn-warning">删除</button>
         <button onclick="printEntry()" class="btn btn-secondary">打印</button>
         <button onclick="printReceipt(getCurrentFormData())">👁️ 小票预览</button>
+        <button onclick="openDailySummaryPage()" class="btn btn-info">📊 日结报表</button>
       </div>
     </div>
   </div>
@@ -239,7 +240,22 @@ document.getElementById("donationBreakdown").innerHTML = `
       location.href = "https://leizs2025.github.io/houtai/login.html";
     }
   </script>
-
+   <script> 
+// 打开日结报表页面
+function openDailySummaryPage() {
+  // 获取当前系统ID
+  const currentUrl = new URL(window.location.href);
+  const systemId = currentUrl.searchParams.get('system_id') || 'system_1';
   
+  // 构造日结页面URL
+  const summaryUrl = `day.html?system_id=${systemId}`;
+  
+  // 在新窗口中打开日结页面
+  window.open(summaryUrl, '_blank');
+  
+  // 或者如果您想要在同一窗口中跳转：
+  // window.location.href = summaryUrl;
+}
+    </script>
 </body>
 </html>
