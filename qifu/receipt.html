@@ -229,10 +229,20 @@
             // 将当前选择的支付方式注入数据
             const finalData = { ...currentReceiptData, paymentMethod: selectEl.value };
             
-            // ✅ 修复时间戳问题：使用安全的时间戳创建
-            const now = new Date();
-            const safeTimestamp = now.toISOString(); // ✅ 安全的时间戳
-            const receiptDataWithPayment = { ...finalData, timestamp: safeTimestamp };
+// ✅ 替换原 time 相关代码为：
+const now = new Date();
+const y = now.getFullYear();
+const m = String(now.getMonth() + 1).padStart(2, '0');
+const d = String(now.getDate()).padStart(2, '0');
+const h = String(now.getHours()).padStart(2, '0');
+const i = String(now.getMinutes()).padStart(2, '0');
+const safeTimestamp = `${y}/${m}/${d} ${h}:${i}`; // ← 唯一要改的字段
+
+const receiptDataWithPayment = {
+    ...currentReceiptData,
+    paymentMethod: selectEl.value,
+    timestamp: safeTimestamp   // ✅ 强制使用此格式
+};
 
             // 获取系统ID参数
             const urlParams = new URLSearchParams(window.location.search);
