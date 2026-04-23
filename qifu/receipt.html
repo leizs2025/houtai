@@ -132,166 +132,132 @@
     <button id="printBtn" class="print-button">🖨️ 打印小票</button>
 
 <script>
-    // --- 工具函数 ---
-    function getCurrentSystemId() {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get('system_id') || 'system_1';
-    }
+    // 1. 初始化：读取上次保存的支付方式
+    const selectEl = document.getElementById('payMethodSelect');
+    const printDisplayEl = document.getElementById('printMethodDisplay');
+    const savedMethod = localStorage.getItem('payMethod') || 'CASH';
+    
+    selectEl.value = savedMethod;
+    printDisplayEl.innerText = savedMethod;
 
-    function getDailyCachedReceipts(date) {
-        const SYSTEM_ID = getCurrentSystemId();
-        const cacheKey = `daily_receipts_${date}_${SYSTEM_ID}`;
-        const raw = localStorage.getItem(cacheKey);
-        return raw ? JSON.parse(raw) : [];
-    }
+    // 监听下拉框变化，实时保存
+    selectEl.addEventListener('change', function() {
+        const val = this.value;
+        localStorage.setItem('payMethod', val);
+        printDisplayEl.innerText = val;
+    });
 
-    // --- 主逻辑：生成报表 ---
-    function loadDailyReceipts() {
-        const selectedDate = document.getElementById('datePicker').value || new Date().toISOString().split('T')[0];
-        const receipts = getDailyCachedReceipts(selectedDate);
+    // 2. 全局变量存储数据
+    let currentReceiptData = null;
+    let hasBeenProcessed = false; // ✅ 添加处理标记
 
-        if (receipts.length === 0) {
-            document.getElementById('reportContent').innerHTML = '<p style="text-align:center; color:#888;">该日期暂无数据</p>';
+    // 3. 监听主程序发来的数据（只保存，不缓存）
+    window.addEventListener("message", function (event) {
+        try {
+            // ✅ 防止重复处理
+            if (hasBeenProcessed) {
+                console.log('⚠️ 已处理过数据，忽略重复消息');
+                return;
+            }
+            
+            const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+            
+            // ✅ 标记为已处理
+            hasBeenProcessed = true;
+            
+            // ✅ 只保存数据到全局变量，不执行任何缓存
+            currentReceiptData = data;
+
+            // --- 填充基本信息 ---
+            const currentYear = new Date().getFullYear();
+            const now = new Date();
+            const formattedTime = now.toLocaleString(); // ✅ 安全的日期格式化
+            
+            const infoHtml = `
+                <p><strong>D/NO:</strong> ${data.receiptNumber || '---'}</p>
+                <p><strong>时间:</strong> ${formattedTime}</p>
+                <p><strong>主祈者:</strong> ${data.mainName || '---'}</p>
+                <p><strong>电话:</strong> ${data.phoneNumber || '---'}</p>
+                <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || '---'} 祈福</p>
+            `;
+            document.getElementById("receiptInfo").innerHTML = infoHtml;
+
+            // --- 计算并填充贡品 ---
+            let tokenTotal = 0;
+            let fireTotal = 0;
+            let pg3Total = 0;
+            let pg6Total = 0;
+            let sponsorTotal = data.sponsorAmount || 0;
+
+            if (Array.isArray(data.data)) {
+                data.data.forEach(item => {
+                    tokenTotal += (item.token || 0) * 5;
+                    fireTotal += (item.fire || 0) * 1;
+                    pg3Total += (item.pg3 || 0) * 3;
+                    pg6Total += (item.pg6 || 0) * 6;
+                });
+            }
+
+            const grandTotal = tokenTotal + fireTotal + pg3Total + pg6Total + sponsorTotal;
+
+            const summaryHtml = `
+                <div class="item-row"><span class="label">祈福令牌</span><span>5 × ${tokenTotal / 5}</span><span>${tokenTotal.toFixed(2)}</span></div>
+                <div class="item-row"><span class="label">小护摩片</span><span>1 × ${fireTotal}</span><span>${fireTotal.toFixed(2)}</span></div>
+                <div class="item-row"><span class="label">纸金 3</span><span>3 × ${pg3Total / 3}</span><span>${pg3Total.toFixed(2)}</span></div>
+                <div class="item-row"><span class="label">纸金 6</span><span>6 × ${pg6Total / 6}</span><span>${pg6Total.toFixed(2)}</span></div>
+                <div class="item-row"><span class="label">供养金</span><span>-</span><span>${sponsorTotal.toFixed(2)}</span></div>
+                <div class="total-row"><span>总计</span><span>RM ${grandTotal.toFixed(2)}</span></div>
+            `;
+            document.getElementById("summarySection").innerHTML = summaryHtml;
+
+        } catch (e) {
+            console.error("数据解析失败", e);
+            document.getElementById("receiptInfo").innerHTML = "<p>数据格式错误</p>";
+        }
+    });
+
+    // 4. ✅ 打印按钮逻辑（✅ 添加防重复机制）
+    document.getElementById("printBtn").addEventListener("click", () => {
+        // ✅ 如果已经处理过数据，则不再执行
+        if (!hasBeenProcessed) {
+            console.log('⚠️ 数据尚未接收，无法打印');
             return;
         }
 
-        let html = `<h3>日期：${selectedDate} | 共 ${receipts.length} 笔</h3>`;
-        let grandTotal = 0;
+        // ✅ 确保有数据才执行
+        if (currentReceiptData) {
+            // 将当前选择的支付方式注入数据
+            const finalData = { ...currentReceiptData, paymentMethod: selectEl.value };
+            
+            // ✅ 修复时间戳问题：使用安全的时间戳创建
+            const now = new Date();
+            const safeTimestamp = now.toISOString(); // ✅ 安全的时间戳
+            const receiptDataWithPayment = { ...finalData, timestamp: safeTimestamp };
 
-        receipts.forEach((item, idx) => {
-            // ✅ 关键修复：item 是 { receiptData: {...} }，所有数据都在 receiptData 下
-            const d = item.receiptData;
-            if (!d) {
-                console.warn(`第 ${idx+1} 条缓存无效（无 receiptData）`);
-                return;
-            }
+            // 获取系统ID参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const systemId = urlParams.get('system_id') || 'system_1';
 
-            // ✅ 修复时间：优先用字符串，兜底用当前时间
-            let displayTime = '---';
-            if (d.timestamp && typeof d.timestamp === 'string') {
-                // 尝试解析常见格式
-                const parsed = new Date(d.timestamp);
-                if (!isNaN(parsed.getTime())) {
-                    displayTime = parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                } else {
-                    console.warn(`时间格式无效: "${d.timestamp}"，收据: ${d.receiptNumber}`);
-                    displayTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                }
-            }
+            // 构建缓存键
+            const today = new Date().toISOString().split('T')[0];
+            const cacheKey = `daily_receipts_${today}_${systemId}`;
 
-            // ✅ 修复金额：必须用 d.totalAmount
-            const totalAmount = parseFloat(d.totalAmount) || 0;
-            grandTotal += totalAmount;
+            // 获取现有缓存
+            let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey)) || [];
 
-            // 支付方式
-            const payMethod = (d.paymentMethod || 'CASH').toUpperCase();
+            // 将当前收据数据添加到缓存数组
+            cachedReceipts.push({
+                receiptData: receiptDataWithPayment
+            });
 
-            // 手机号处理
-            const phone = (d.phoneNumber || '').replace(/[-\s]/g, '');
-
-            // 智能汇总贡品
-            let counts = { token: 0, fire: 0, pg3: 0, pg6: 0 };
-            if (Array.isArray(d.data)) {
-                d.data.forEach(p => {
-                    counts.token += parseInt(p.token) || 0;
-                    counts.fire += parseInt(p.fire) || 0;
-                    counts.pg3 += parseInt(p.pg3) || 0;
-                    counts.pg6 += parseInt(p.pg6) || 0;
-                });
-            }
-
-            const itemStr = [];
-            if (counts.token > 0) itemStr.push(`令牌 × ${counts.token}`);
-            if (counts.fire > 0) itemStr.push(`护摩 × ${counts.fire}`);
-            if (counts.pg3 > 0) itemStr.push(`纸金3 × ${counts.pg3}`);
-            if (counts.pg6 > 0) itemStr.push(`纸金6 × ${counts.pg6}`);
-            const offeringText = itemStr.length > 0 
-                ? itemStr.join(' | ') 
-                : (d.sponsorAmount > 0 ? `随喜 RM ${d.sponsorAmount}` : '无明细');
-
-            // ✅ 生成 HTML
-            html += `
-                <div class="receipt-item">
-                    <div class="row-main">
-                        <div class="left-info">
-                            收据编号: <strong>${d.receiptNumber || 'N/A'}</strong> | 
-                            阳上报恩: <strong>${d.mainName || '匿名'}</strong> | 
-                            手机号: <span style="font-family:monospace">${phone}</span>
-                        </div>
-                        <div class="right-info">
-                            ${payMethod} - RM ${totalAmount.toFixed(2)} • ${displayTime}
-                        </div>
-                    </div>
-
-                    <div class="row-detail">
-                        <span class="label">法会:</span> ${d.dharmaType || '-'} | 
-                        <span class="label">供奉:</span> ${offeringText}
-                    </div>
-                </div>
-            `;
-        });
-
-        html += `<div class="total-amount">总计金额: RM ${grandTotal.toFixed(2)}</div>`;
-        html += generateSummaryTable(receipts);
-
-        document.getElementById('reportContent').innerHTML = html;
-    }
-
-    // --- 生成底部统计表 ---
-    function generateSummaryTable(receipts) {
-        let stats = { token: 0, fire: 0, pg3: 0, pg6: 0 };
-
-        receipts.forEach(item => {
-            const d = item.receiptData;
-            if (!d) return;
-            if (Array.isArray(d.data)) {
-                d.data.forEach(p => {
-                    stats.token += parseInt(p.token) || 0;
-                    stats.fire += parseInt(p.fire) || 0;
-                    stats.pg3 += parseInt(p.pg3) || 0;
-                    stats.pg6 += parseInt(p.pg6) || 0;
-                });
-            }
-        });
-
-        if (stats.token === 0 && stats.fire === 0 && stats.pg3 === 0 && stats.pg6 === 0) {
-            return '';
+            // 保存回缓存
+            localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
+            console.log(`✅ 已将收据 ${currentReceiptData.receiptNumber} 写入缓存，支付方式: ${selectEl.value}`);
         }
 
-        return `
-            <table class="summary-table">
-                <thead>
-                    <tr>
-                        <th>项目</th>
-                        <th style="text-align:center;">总数量</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${stats.token > 0 ? `<tr><td>祈福令牌</td><td class="count-col">${stats.token}</td></tr>` : ''}
-                    ${stats.fire > 0 ? `<tr><td>小护摩片</td><td class="count-col">${stats.fire}</td></tr>` : ''}
-                    ${stats.pg3 > 0 ? `<tr><td>纸金 3</td><td class="count-col">${stats.pg3}</td></tr>` : ''}
-                    ${stats.pg6 > 0 ? `<tr><td>纸金 6</td><td class="count-col">${stats.pg6}</td></tr>` : ''}
-                </tbody>
-            </table>
-        `;
-    }
-
-    function printSummary() { window.print(); }
-
-    function clearCache() {
-        if (confirm('确定要清空今日数据吗？')) {
-            const selectedDate = document.getElementById('datePicker').value || new Date().toISOString().split('T')[0];
-            const SYSTEM_ID = getCurrentSystemId();
-            localStorage.removeItem(`daily_receipts_${selectedDate}_${SYSTEM_ID}`);
-            loadDailyReceipts();
-        }
-    }
-
-    // 初始化
-    window.onload = function() {
-        document.getElementById('datePicker').value = new Date().toISOString().split('T')[0];
-        loadDailyReceipts();
-    };
+        // 执行打印
+        window.print();
+    });
 </script>
 </body>
 </html>
