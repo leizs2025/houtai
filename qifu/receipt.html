@@ -229,10 +229,14 @@
             // 将当前选择的支付方式注入数据
             const finalData = { ...currentReceiptData, paymentMethod: selectEl.value };
             
-            // ✅ 修复时间戳问题：使用安全的时间戳创建
+            // ✅ 修复：使用时间戳字符串而不是Date对象
             const now = new Date();
-            const safeTimestamp = now.toISOString(); // ✅ 安全的时间戳
-            const receiptDataWithPayment = { ...finalData, timestamp: safeTimestamp };
+            const timestampString = now.toISOString(); // ✅ ISO格式字符串
+            const receiptDataWithPayment = { 
+                ...finalData, 
+                timestamp: timestampString,
+                displayTime: now.toLocaleString() // ✅ 同时保存显示时间
+            };
 
             // 获取系统ID参数
             const urlParams = new URLSearchParams(window.location.search);
