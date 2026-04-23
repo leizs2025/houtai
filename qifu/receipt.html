@@ -147,90 +147,47 @@
         printDisplayEl.innerText = val;
     });
 
-    // 2. 接收主程序数据 - ✅ 添加完整调试
+    // 2. 监听主程序发来的数据
     window.addEventListener("message", function (event) {
-        console.log('=== 收到来自主程序的数据 ===');
-        console.log('原始数据:', event.data);
-        
         try {
+            // 尝试解析数据
             const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-            console.log('解析后的数据:', data);
-            
-            // 检查数据结构
-            console.log('data.data:', data.data);
-            console.log('data.data 类型:', Array.isArray(data.data) ? 'Array' : typeof data.data);
-            console.log('data.sponsorAmount:', data.sponsorAmount);
-            
+
             // --- 填充基本信息 ---
             const currentYear = new Date().getFullYear();
-            const now = new Date();
-            const formattedTime = now.toLocaleString();
-            
             const infoHtml = `
-                <p><strong>D/NO:</strong> ${data.receiptNumber || 'N/A'}</p>
-                <p><strong>时间:</strong> ${formattedTime}</p>
-                <p><strong>主祈者:</strong> ${data.mainName || '匿名'}</p>
-                <p><strong>电话:</strong> ${data.phoneNumber || 'N/A'}</p>
-                <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || '-'} 祈福</p>
+                <p><strong>D/NO:</strong> ${data.receiptNumber || '---'}</p>
+                <p><strong>时间:</strong> ${new Date().toLocaleString()}</p>
+                <p><strong>主祈者:</strong> ${data.mainName || '---'}</p>
+                <p><strong>电话:</strong> ${data.phoneNumber || '---'}</p>
+                <p><strong>报名 ${currentYear} 年</strong> ${data.dharmaType || '---'} 祈福</p>
             `;
             document.getElementById("receiptInfo").innerHTML = infoHtml;
 
-            // --- 重新实现计算逻辑 - ✅ 更严格的检查 ---
+            // --- 计算并填充贡品 ---
             let tokenTotal = 0;
             let fireTotal = 0;
             let pg3Total = 0;
             let pg6Total = 0;
             let sponsorTotal = data.sponsorAmount || 0;
 
-            console.log('开始处理贡品数据...');
-            
+            // 只有当 data.data 存在且是数组时才遍历
             if (Array.isArray(data.data)) {
-                console.log('发现数组格式数据');
-                data.data.forEach((item, index) => {
-                    console.log(`处理第 ${index + 1} 项:`, item);
-                    
-                    const token = parseInt(item.token) || 0;
-                    const fire = parseInt(item.fire) || 0;
-                    const pg3 = parseInt(item.pg3) || 0;
-                    const pg6 = parseInt(item.pg6) || 0;
-                    
-                    console.log(`令牌: ${token}, 护摩: ${fire}, 纸金3: ${pg3}, 纸金6: ${pg6}`);
-                    
-                    tokenTotal += token * 5;
-                    fireTotal += fire * 1;
-                    pg3Total += pg3 * 3;
-                    pg6Total += pg6 * 6;
+                data.data.forEach(item => {
+                    // 注意：这里假设传来的字段名是 token, fire, pg3, pg6
+                    // 如果打印出来是0，请检查这里字段名是否和主程序一致
+                    tokenTotal += (item.token || 0) * 5;
+                    fireTotal += (item.fire || 0) * 1;
+                    pg3Total += (item.pg3 || 0) * 3;
+                    pg6Total += (item.pg6 || 0) * 6;
                 });
-            } else if (data.data && typeof data.data === 'object') {
-                // 如果是单个对象格式
-                console.log('发现对象格式数据');
-                const item = data.data;
-                const token = parseInt(item.token) || 0;
-                const fire = parseInt(item.fire) || 0;
-                const pg3 = parseInt(item.pg3) || 0;
-                const pg6 = parseInt(item.pg6) || 0;
-                
-                tokenTotal += token * 5;
-                fireTotal += fire * 1;
-                pg3Total += pg3 * 3;
-                pg6Total += pg6 * 6;
-            } else {
-                console.log('未找到有效的贡品数据格式');
             }
 
-            console.log('计算结果:');
-            console.log('令牌总额:', tokenTotal);
-            console.log('护摩总额:', fireTotal);
-            console.log('纸金3总额:', pg3Total);
-            console.log('纸金6总额:', pg6Total);
-            console.log('供养总额:', sponsorTotal);
-
             const grandTotal = tokenTotal + fireTotal + pg3Total + pg6Total + sponsorTotal;
-            console.log('总金额:', grandTotal);
 
-            // --- 生成明细文本 ---
+            // 生成贡品明细文本
             let detailText = '无明细';
-            if (Array.isArray(data.data)) {
+            if (Array.isArray(data.data) && data.data.length > 0) {
                 const items = [];
                 data.data.forEach(item => {
                     if (item.token > 0) items.push(`${item.token} 个令牌`);
@@ -239,62 +196,68 @@
                     if (item.pg6 > 0) items.push(`${item.pg6} 张纸金6`);
                 });
                 detailText = items.join(', ') || '无明细';
-            } else if (data.data && typeof data.data === 'object') {
-                const items = [];
-                const item = data.data;
-                if (item.token > 0) items.push(`${item.token} 个令牌`);
-                if (item.fire > 0) items.push(`${item.fire} 个小护摩片`);
-                if (item.pg3 > 0) items.push(`${item.pg3} 张纸金3`);
-                if (item.pg6 > 0) items.push(`${item.pg6} 张纸金6`);
-                detailText = items.join(', ') || '无明细';
             }
 
-            console.log('明细文本:', detailText);
-
-            // --- 更新显示 ---
             const summaryHtml = `
-                <div class="item-row"><span class="label">祈福令牌</span><span>5 × ${(tokenTotal / 5).toFixed(0)}</span><span>${tokenTotal.toFixed(2)}</span></div>
-                <div class="item-row"><span class="label">小护摩片</span><span>1 × ${fireTotal.toFixed(0)}</span><span>${fireTotal.toFixed(2)}</span></div>
-                <div class="item-row"><span class="label">纸金 3</span><span>3 × ${(pg3Total / 3).toFixed(0)}</span><span>${pg3Total.toFixed(2)}</span></div>
-                <div class="item-row"><span class="label">纸金 6</span><span>6 × ${(pg6Total / 6).toFixed(0)}</span><span>${pg6Total.toFixed(2)}</span></div>
+                <div class="item-row"><span class="label">祈福令牌</span><span>5 × ${tokenTotal / 5}</span><span>${tokenTotal.toFixed(2)}</span></div>
+                <div class="item-row"><span class="label">小护摩片</span><span>1 × ${fireTotal}</span><span>${fireTotal.toFixed(2)}</span></div>
+                <div class="item-row"><span class="label">纸金 3</span><span>3 × ${pg3Total / 3}</span><span>${pg3Total.toFixed(2)}</span></div>
+                <div class="item-row"><span class="label">纸金 6</span><span>6 × ${pg6Total / 6}</span><span>${pg6Total.toFixed(2)}</span></div>
                 <div class="item-row"><span class="label">供养金</span><span>-</span><span>${sponsorTotal.toFixed(2)}</span></div>
                 <div class="total-row"><span>总计</span><span>RM ${grandTotal.toFixed(2)}</span></div>
             `;
             document.getElementById("summarySection").innerHTML = summaryHtml;
 
-            // 3. 打印按钮
-            document.getElementById("printBtn").onclick = function() {
+            // 3. 打印按钮逻辑 - 添加缓存功能
+            document.getElementById("printBtn").addEventListener("click", () => {
+                // 创建要缓存的数据
                 const now = new Date();
                 const receiptToCache = {
-                    receiptNumber: data.receiptNumber || 'N/A',
-                    mainName: data.mainName || '匿名', 
-                    phoneNumber: data.phoneNumber || 'N/A',
-                    dharmaType: data.dharmaType || '-',
+                    receiptNumber: data.receiptNumber || '---',
+                    mainName: data.mainName || '---', 
+                    phoneNumber: data.phoneNumber || '---',
+                    dharmaType: data.dharmaType || '---',
                     totalAmount: grandTotal,
                     paymentMethod: selectEl.value,
-                    timestamp: now.toLocaleString(),
+                    timestamp: now.toLocaleString(), // ✅ 使用字符串格式，避免解析问题
                     details: detailText,
-                    amounts: { token: tokenTotal, fire: fireTotal, pg3: pg3Total, pg6: pg6Total, sponsor: sponsorTotal },
-                    itemData: data.data || []
+                    itemData: data.data || [],
+                    amounts: {
+                        token: tokenTotal,
+                        fire: fireTotal,
+                        pg3: pg3Total,
+                        pg6: pg6Total,
+                        sponsor: sponsorTotal
+                    }
                 };
 
+                // 获取系统ID参数
                 const urlParams = new URLSearchParams(window.location.search);
                 const systemId = urlParams.get('system_id') || 'system_1';
+
+                // 构建缓存键
                 const today = new Date().toISOString().split('T')[0];
                 const cacheKey = `daily_receipts_${today}_${systemId}`;
 
+                // 获取现有缓存
                 let cachedReceipts = JSON.parse(localStorage.getItem(cacheKey)) || [];
-                cachedReceipts.push({ receiptData: receiptToCache });
+
+                // 将当前收据数据添加到缓存数组
+                cachedReceipts.push({
+                    receiptData: receiptToCache
+                });
+
+                // 保存回缓存
                 localStorage.setItem(cacheKey, JSON.stringify(cachedReceipts));
                 
-                console.log(`✅ 已缓存收据:`, receiptToCache);
+                console.log(`✅ 已将收据 ${receiptToCache.receiptNumber} 写入缓存，支付方式: ${receiptToCache.paymentMethod}`);
 
                 window.print();
-            };
+            });
 
         } catch (e) {
-            console.error("数据处理失败", e);
-            document.getElementById("receiptInfo").innerHTML = "<p>数据格式错误: " + e.message + "</p>";
+            console.error("数据解析失败", e);
+            document.getElementById("receiptInfo").innerHTML = "<p>数据格式错误</p>";
         }
     });
 </script>
