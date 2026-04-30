@@ -273,50 +273,50 @@
             }
         }
 
-        // 验证手机号
-        async function checkPhone() {
-            const phoneInput = document.getElementById('phone');
-            const phone = phoneInput.value.trim();
-            const checkBtn = document.getElementById('checkBtn');
-            
-            if (!phone) {
-                showMessage('请输入手机号', 'error', 1);
-                return;
+// 验证手机号
+async function checkPhone() {
+    const phoneInput = document.getElementById('phone');
+    const phone = phoneInput.value.trim();
+    const checkBtn = document.getElementById('checkBtn');
+    
+    if (!phone) {
+        showMessage('请输入手机号', 'error', 1);
+        return;
+    }
+    
+    // 验证马来西亚手机号格式
+    if (!isValidMalaysiaPhone(phone)) {
+        showMessage('请输入正确的马来西亚手机号格式 (例: 0123456789 或 01234567890)', 'error', 1);
+        return;
+    }
+    
+    // 禁用按钮并显示加载状态
+    checkBtn.disabled = true;
+    checkBtn.innerHTML = '<i class="loading-icon">⏳</i> 验证中...';
+    
+    try {
+        const result = await sendToWorker('checkPhoneNumber', { phone: phone });
+        
+        if (result.success) {
+            // 手机号存在且未注册，显示第二步
+            document.getElementById('currentPhone').textContent = phone;
+            if (result.name) {
+                document.getElementById('userName').textContent = result.name;
             }
-            
-            // 验证马来西亚手机号格式
-            if (!isValidMalaysiaPhone(phone)) {
-                showMessage('请输入正确的马来西亚手机号格式 (例: 0123456789 或 01234567890)', 'error', 1);
-                return;
-            }
-            
-            // 禁用按钮并显示加载状态
-            checkBtn.disabled = true;
-            checkBtn.innerHTML = '<i class="loading-icon">⏳</i> 验证中...';
-            
-            try {
-                const result = await sendToWorker('checkPhoneNumber', { phone: phone });
-                
-                if (result.success) {
-                    // 手机号存在，显示第二步
-                    document.getElementById('currentPhone').textContent = phone;
-                    if (result.name) {
-                        document.getElementById('userName').textContent = result.name;
-                    }
-                    document.getElementById('step1').classList.add('hidden');
-                    document.getElementById('step2').classList.remove('hidden');
-                    showMessage('手机号验证通过，请设置密码', 'success', 1);
-                } else {
-                    // 手机号不存在
-                    showMessage(result.error || '该手机号未被授权注册，请联系管理员', 'error', 1);
-                }
-            } catch (error) {
-                showMessage('验证失败: ' + error.message, 'error', 1);
-            } finally {
-                checkBtn.disabled = false;
-                checkBtn.innerHTML = '验证手机号';
-            }
+            document.getElementById('step1').classList.add('hidden');
+            document.getElementById('step2').classList.remove('hidden');
+            showMessage('手机号验证通过，请设置密码', 'success', 1);
+        } else {
+            // 手机号不存在或已注册
+            showMessage(result.error || '验证失败', 'error', 1);
         }
+    } catch (error) {
+        showMessage('验证失败: ' + error.message, 'error', 1);
+    } finally {
+        checkBtn.disabled = false;
+        checkBtn.innerHTML = '验证手机号';
+    }
+}
 
         // 完成注册
         async function registerUser() {
