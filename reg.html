@@ -1,98 +1,239 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <base target="_top">
-    <title>会员注册</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户注册系统</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 500px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-        .container {
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="tel"], input[type="password"] {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+        * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 20px;
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* 表单容器 */
+        .step-container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            margin: 20px auto;
+            transition: all 0.3s ease;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* 表单头部 */
+        .form-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .form-header h2 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .form-header p {
+            color: #7f8c8d;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .highlight {
+            color: #3498db;
+            font-weight: 600;
+        }
+
+        /* 输入组 */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        /* 按钮样式 */
+        .primary-btn, .secondary-btn {
+            padding: 14px 24px;
             border: none;
-            border-radius: 4px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.3s ease;
             width: 100%;
         }
-        button:hover {
-            background-color: #45a049;
+
+        .primary-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            margin-top: 10px;
         }
-        button:disabled {
-            background-color: #cccccc;
+
+        .primary-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, #2980b9, #2573a7);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+
+        .secondary-btn {
+            background: #ecf0f1;
+            color: #7f8c8d;
+            margin-right: 10px;
+        }
+
+        .secondary-btn:hover:not(:disabled) {
+            background: #d5dbdb;
+            transform: translateY(-1px);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .primary-btn:disabled, .secondary-btn:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
         }
-        .error {
-            color: red;
-            margin-top: 10px;
+
+        /* 加载图标 */
+        .loading-icon {
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
         }
-        .success {
-            color: green;
-            margin-top: 10px;
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
-        .hidden {
-            display: none;
+
+        /* 消息样式 */
+        .message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+            min-height: 20px;
         }
-        .info-text {
-            font-size: 12px;
-            color: #666;
-            margin-top: 5px;
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 480px) {
+            .step-container {
+                margin: 10px;
+                padding: 20px;
+            }
+            
+            .form-header h2 {
+                font-size: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .secondary-btn {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>会员注册</h2>
-        
-        <!-- 第一步：手机号验证 -->
-        <div id="step1">
-            <div class="form-group">
-                <label for="phone">请输入手机号：</label>
-                <input type="tel" id="phone" placeholder="例如: 0123456789 或 01234567890" required>
-                <div class="info-text">马来西亚手机号格式：10-11位数字，以0开头</div>
-            </div>
-            <button id="checkBtn" onclick="checkPhone()">验证手机号</button>
-            <div id="message1" class="error"></div>
+    <!-- 步骤1：手机号验证 -->
+    <div id="step1" class="step-container">
+        <div class="form-header">
+            <h2>📱 用户注册</h2>
+            <p>请输入您的手机号进行验证</p>
         </div>
         
-        <!-- 第二步：设置密码 -->
-        <div id="step2" class="hidden">
-            <div class="form-group">
-                <label for="password">设置密码：</label>
-                <input type="password" id="password" placeholder="请设置登录密码" required>
-            </div>
-            <div class="form-group">
-                <label for="confirmPassword">确认密码：</label>
-                <input type="password" id="confirmPassword" placeholder="请再次输入密码" required>
-            </div>
-            <button id="registerBtn" onclick="registerUser()">完成注册</button>
-            <div id="message2" class="error"></div>
+        <div class="input-group">
+            <label for="phone">手机号码</label>
+            <input type="tel" id="phone" placeholder="例: 0123456789" maxlength="11">
         </div>
+        
+        <button id="checkBtn" class="primary-btn" onclick="checkPhone()">验证手机号</button>
+        
+        <div id="message1" class="message"></div>
+    </div>
+
+    <!-- 步骤2：密码设置 -->
+    <div id="step2" class="step-container hidden">
+        <div class="form-header">
+            <h2>🔐 设置密码</h2>
+            <p>欢迎 <span id="userName" class="highlight">用户</span> (<span id="currentPhone"></span>)</p>
+        </div>
+        
+        <div class="input-group">
+            <label for="password">设置密码</label>
+            <input type="password" id="password" placeholder="请输入密码">
+        </div>
+        
+        <div class="input-group">
+            <label for="confirmPassword">确认密码</label>
+            <input type="password" id="confirmPassword" placeholder="请再次输入密码">
+        </div>
+        
+        <div class="button-group">
+            <button class="secondary-btn" onclick="goBack()">返回</button>
+            <button id="registerBtn" class="primary-btn" onclick="registerUser()">完成注册</button>
+        </div>
+        
+        <div id="message2" class="message"></div>
     </div>
 
     <script>
@@ -151,13 +292,17 @@
             
             // 禁用按钮并显示加载状态
             checkBtn.disabled = true;
-            checkBtn.textContent = '验证中...';
+            checkBtn.innerHTML = '<i class="loading-icon">⏳</i> 验证中...';
             
             try {
                 const result = await sendToWorker('checkPhoneNumber', { phone: phone });
                 
                 if (result.success) {
                     // 手机号存在，显示第二步
+                    document.getElementById('currentPhone').textContent = phone;
+                    if (result.name) {
+                        document.getElementById('userName').textContent = result.name;
+                    }
                     document.getElementById('step1').classList.add('hidden');
                     document.getElementById('step2').classList.remove('hidden');
                     showMessage('手机号验证通过，请设置密码', 'success', 1);
@@ -169,7 +314,7 @@
                 showMessage('验证失败: ' + error.message, 'error', 1);
             } finally {
                 checkBtn.disabled = false;
-                checkBtn.textContent = '验证手机号';
+                checkBtn.innerHTML = '验证手机号';
             }
         }
 
@@ -192,7 +337,7 @@
             
             // 禁用按钮并显示加载状态
             registerBtn.disabled = true;
-            registerBtn.textContent = '注册中...';
+            registerBtn.innerHTML = '<i class="loading-icon">⏳</i> 注册中...';
             
             try {
                 const result = await sendToWorker('registerWithPassword', { 
@@ -206,10 +351,13 @@
                     document.getElementById('password').value = '';
                     document.getElementById('confirmPassword').value = '';
                     
-                    // 可以在这里添加跳转或其他操作
+                    // 3秒后自动回到第一步
                     setTimeout(function() {
+                        document.getElementById('step2').classList.add('hidden');
+                        document.getElementById('step1').classList.remove('hidden');
+                        document.getElementById('phone').value = '';
                         alert('注册成功！您可以使用手机号和密码登录了。');
-                    }, 1000);
+                    }, 3000);
                 } else {
                     showMessage(result.error || '注册失败', 'error', 2);
                 }
@@ -217,8 +365,17 @@
                 showMessage('注册失败: ' + error.message, 'error', 2);
             } finally {
                 registerBtn.disabled = false;
-                registerBtn.textContent = '完成注册';
+                registerBtn.innerHTML = '完成注册';
             }
+        }
+
+        // 返回上一步
+        function goBack() {
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step1').classList.remove('hidden');
+            document.getElementById('password').value = '';
+            document.getElementById('confirmPassword').value = '';
+            showMessage('', '', 2); // 清空消息
         }
 
         // 显示消息
@@ -226,8 +383,33 @@
             const messageId = 'message' + step;
             const messageDiv = document.getElementById(messageId);
             messageDiv.textContent = message;
-            messageDiv.className = type; // 'error' 或 'success'
+            messageDiv.className = `message ${type}`; // 'error' 或 'success'
         }
+
+        // 回车键支持
+        document.addEventListener('DOMContentLoaded', function() {
+            const phoneInput = document.getElementById('phone');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+
+            phoneInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkPhone();
+                }
+            });
+
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    registerUser();
+                }
+            });
+
+            confirmPasswordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    registerUser();
+                }
+            });
+        });
     </script>
 </body>
 </html>
