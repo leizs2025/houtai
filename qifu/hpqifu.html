@@ -264,7 +264,7 @@ window.searchPhone = function () {
     let allDigits = keyword.replace(/\D/g, '');
     
     // 验证是否为10-11位且以01开头的手机号
-    const phoneMatch = allDigits.match(/^01\d{8,9}$/);
+    const phoneMatch = allDigits.match(/^0\d{8,11}$/);
     if (!phoneMatch) {
         alert("请输入完整的10-11位手机号（以01开头）");
         return;
@@ -513,7 +513,7 @@ async function submitEntry() {
         let allDigits = rawInputPhone.replace(/\D/g, '');
         
         // ✅ 第二步：智能提取马来西亚手机号 (10-11位)
-        const match = allDigits.match(/01\d{8,9}/);
+        const match = allDigits.match(/0\d{8,11}/);
         if (!match) {
             alert("无法识别手机号格式，请检查是否包含正确数字");
             submitBtn.disabled = false;
