@@ -605,7 +605,7 @@ function searchPhone() {
     }
 
     // 验证马来西亚手机号格式 (0开头，10-11位)
-    const malaysianPhoneRegex = /^0\d{8,11}$/;
+    const malaysianPhoneRegex = /^\d{8,11}$/
     if (!malaysianPhoneRegex.test(keyword)) {
         alert("请输入有效的马来西亚手机号格式 (0开头，10-11位，例如: 0123456789 或 01234567890)");
         return;
@@ -897,7 +897,7 @@ async function submitUserData() {
         if (systemGeneratedPattern.test(rawInputPhone)) {
             // 如果是系统生成的格式，则从中提取手机号部分
             // 例如从 "6m0123456789+1" 提取 "0123456789"
-            const match = rawInputPhone.match(/\d[mqyb](\d{8,11})(\+\d+)?/);;
+            const match = rawInputPhone.match(/\d[mqyb](\d{8,11})(\+\d+)?/);
             if (match) {
                 pureNumber = match[1]; // 提取手机号部分
             }
