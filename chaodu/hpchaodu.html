@@ -897,7 +897,7 @@ async function submitUserData() {
         if (systemGeneratedPattern.test(rawInputPhone)) {
             // 如果是系统生成的格式，则从中提取手机号部分
             // 例如从 "6m0123456789+1" 提取 "0123456789"
-            const match = rawInputPhone.match(/\d[mqyb](\d{10})(\+\d+)?/);
+            const match = rawInputPhone.match(/\d[mqyb](\d{8,11})(\+\d+)?$/);
             if (match) {
                 pureNumber = match[1]; // 提取手机号部分
             }
