@@ -18,9 +18,8 @@
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: none; justify-content: center; align-items: center; }
         .spinner-border-lg { width: 3rem; height: 3rem; }
         .readonly-field { background-color: #e9ecef !important; cursor: not-allowed; }
-        .table-responsive thead th { position: sticky; top: 0; z-index: 10; background-color: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
-       
-
+        /* ⭐ 冻结表头核心样式 */
+       .table-responsive thead th { position: sticky; top: 0; z-index: 10; background-color: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
     </style>
 </head>
 <body>
@@ -343,7 +342,7 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">与往生者關係_P2</label>
+                                <label class="form-label">与往生者關係</label>
                                 <input type="text" class="form-control" name="与往生者關係_P2">
                             </div>
                             <div class="col-md-4">
