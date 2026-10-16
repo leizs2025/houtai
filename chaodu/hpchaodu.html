@@ -162,7 +162,7 @@
                             <option value="清明节">清明节</option>
                             <option value="中元节">中元节</option>
                             <option value="不空羂索">不空羂索</option>
-                            <option value="感恩护法">感恩护法</option>
+                            <option value="大福金刚札基拉姆">大福金刚札基拉姆</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-6">
@@ -781,7 +781,7 @@ function generatePrefixedPhone(phone, festival) {
     if (festival === "清明节") prefix = `${yearCode}m`;
     else if (festival === "中元节") prefix = `${yearCode}y`;
     else if (festival === "不空羂索") prefix = `${yearCode}q`;
-    else if (festival === "感恩护法") prefix = `${yearCode}b`;
+    else if (festival === "大福金刚札基拉姆") prefix = `${yearCode}b`;
     else prefix = `${yearCode}x`;
     return prefix + phone;
 }
@@ -909,7 +909,7 @@ async function submitUserData() {
         if (festival === "清明节") prefix = `${yearCode}m`;
         else if (festival === "中元节") prefix = `${yearCode}y`;
         else if (festival === "不空羂索") prefix = `${yearCode}q`;
-        else if (festival === "感恩护法") prefix = `${yearCode}b`;
+        else if (festival === "大福金刚札基拉姆") prefix = `${yearCode}b`;
         else prefix = `${yearCode}x`;
 
         // 5. 构建用于查询的基础号码
